@@ -1,11 +1,20 @@
 // Presentation formatting helpers shared across the admin UI.
 
 export function formatCurrency(amount: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    // Non-ISO codes (e.g. crypto like USDT) throw in Intl — format plainly with the code.
+    const number = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return `${number} ${currency}`;
+  }
 }
 
 export function formatNumber(value: number): string {
