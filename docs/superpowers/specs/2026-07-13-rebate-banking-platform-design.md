@@ -6,6 +6,7 @@
 - **Working title:** Rebate Banking (`trbrebate_banking`)
 
 > **Revision history.**
+>
 > - **v3** — Rewired to **Vercel-first hosting with Prisma** and **Neon or Supabase**.
 >   Cloudflare Workers / edge runtime is dropped (it was the only reason to avoid Prisma).
 >   Vercel's Node runtime lets us honor the brief's original **argon2** hashing, use normal
@@ -64,7 +65,7 @@ Enforced in copy, data model, and flows:
 - **Deposits fail closed.** The deposit capability is gated behind a feature flag +
   provider toggle + permission and rejects requests server-side when off.
 - **Referral bonuses are deferred and constrained** (see §16). If ever built, they credit
-  only on a referee's *first approved claim*, exclude self/same-device/same-KYC referrals,
+  only on a referee's _first approved claim_, exclude self/same-device/same-KYC referrals,
   and are capped — so they never become a recruitment-driven payout.
 
 > These guardrails keep the app clear of the FTC-flagged "task-based rebate/cashback" scam
@@ -74,11 +75,11 @@ Enforced in copy, data model, and flows:
 
 ## 3. Users, roles & permissions
 
-| Role | Description |
-|------|-------------|
-| **user** | Submits claims, holds a wallet, requests withdrawals, manages payout methods and KYC. |
-| **admin** | Reviews claims/KYC, processes withdrawals, manages settings — scoped by granular permissions. |
-| **superadmin** | An admin whose role includes all permissions, including `manage_admins`. |
+| Role           | Description                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| **user**       | Submits claims, holds a wallet, requests withdrawals, manages payout methods and KYC.         |
+| **admin**      | Reviews claims/KYC, processes withdrawals, manages settings — scoped by granular permissions. |
+| **superadmin** | An admin whose role includes all permissions, including `manage_admins`.                      |
 
 Admin capability is **granular**. Permission keys:
 
@@ -87,9 +88,10 @@ Admin capability is **granular**. Permission keys:
 `manage_admins`.
 
 A **role** is a named set of permission keys. Every admin action is guarded by the
-*specific* permission it requires — never by "is admin" alone.
+_specific_ permission it requires — never by "is admin" alone.
 
 **Authorization rules (defense against privilege escalation):**
+
 - Assigning an admin role, or editing `roles.permissions`, requires **`manage_admins`** —
   not `manage_users`. `manage_users` is limited to non-privilege attributes (status, KYC
   trigger, notes).
@@ -98,8 +100,8 @@ A **role** is a named set of permission keys. Every admin action is guarded by t
   threshold requires a second admin with `manage_wallet_adjustments` to approve before it
   posts. Every adjustment carries a reason code + memo and a dedicated audit entry.
 
-**Permission vs ownership.** A *permission* check answers "can this role do X"; an
-*ownership* check answers "is this MY claim/withdrawal/payout-method/document." These are
+**Permission vs ownership.** A _permission_ check answers "can this role do X"; an
+_ownership_ check answers "is this MY claim/withdrawal/payout-method/document." These are
 **distinct guards**. Every user-scoped read/mutation asserts `row.user_id == session.user.id`
 in addition to any permission check (see §12 IDOR).
 
@@ -116,35 +118,35 @@ suspended user or demoted admin cannot keep operating on a stale session.
 
 ## 4. Architecture & stack
 
-| Layer | Choice | Rationale |
-|-------|--------|-----------|
-| Framework / runtime | **Next.js 15 (App Router) + TypeScript**, **Node serverless runtime** | Deploys natively on Vercel; the same Node app runs on a VPS. No edge-runtime constraints. |
-| Hosting | **Vercel** (primary) · **VPS/Docker** (supported) | See §4.1. Cloudflare Workers/edge is out of scope. |
-| DB provider | **Neon** (default) *or* **Supabase** — Postgres either way | Neon: scale-to-zero, no 7-day idle pause. Supabase: bundled dashboard/storage if wanted. A VPS may run local Postgres. Swappable via connection config. |
-| ORM | **Prisma** | Schema-first, familiar, mature tooling; `prisma migrate` for migrations. Full Node runtime removes the bundle-size reason we previously considered Drizzle. |
-| DB connection | **Prisma driver adapter** — `@prisma/adapter-neon` (Neon, WebSocket, supports transactions) or Supabase **pooled `DATABASE_URL` + `DIRECT_URL`** (disable prepared statements in transaction mode, or use the session pooler); direct connection on a VPS | Interactive transactions supported on the Node runtime; pooled URL for the app, direct URL for CLI/migrations. A single `PrismaClient` singleton per instance. |
-| Money operations | **One standard-SQL CTE** via Prisma `$queryRaw`/`$executeRaw` (parameterized) + **idempotency keys**; compound ops wrapped in `prisma.$transaction` | The CTE is one round trip and pooler-safe (no prepared-statement dependency), so it works identically on Neon, Supabase (either pooler mode), and local Postgres. |
-| Auth | **Better Auth** + `@better-auth/prisma-adapter` | Email/password, email verification, email-OTP, TOTP 2FA, RBAC. |
-| Password hashing | **argon2id** (`@node-rs/argon2`) as Better Auth's custom hasher | Vercel's Node runtime runs the native binary, so we honor the brief's argon2 requirement directly. |
-| Rate limiting | **Shared-store limiter** — Upstash Redis on Vercel (or DB-backed via Better Auth); Redis/DB on a VPS | In-memory limiting does not persist across Vercel serverless instances and must not be used. |
-| UI | **Tailwind CSS + shadcn/ui (Radix)** | shadcn admin; a shared reusable component library serves user, admin, and marketing. |
-| Forms & validation | **React Hook Form + Zod** (shared schemas) | One Zod schema validates on client and server. |
-| Images | **`next/image`** with Vercel's built-in optimization (`sharp` on Node); a plain loader on a VPS | No edge image-loader workaround needed. |
-| File uploads | **Cloudflare R2 (S3-compatible)**, presigned uploads; server generates every object key under a per-user prefix; PUT constrained by content-type, max size, short expiry | R2 default; **S3 or Supabase Storage** are drop-in alternatives behind the storage interface. |
-| PII / secrets at rest | **AES-256-GCM via `node:crypto`** — key in an env/secret manager (never the DB), fresh 96-bit nonce per record, AAD bound to `user_id + column`, `key_version` for rotation | Encrypts payout details and provider keys. |
-| Payments | **`PaymentProvider` interface** — `SimulatedProvider` shipped; Paystack/Stripe/PayPal drop-in — with **signature-verified webhooks** | Deposit surface fail-closed behind flag + provider toggle + permission. |
-| Email | **Mailer abstraction — Resend (default)** on Vercel; SMTP available on a VPS | Node runtime; no bundle gymnastics. |
-| Scheduled work | **Single job entrypoint** — Vercel Cron (Hobby ≈ daily) or VPS cron | Retention purges, token cleanup, ledger reconciliation. Request-path work stays event-driven. |
-| Testing | **Vitest** (unit) + integration tests against **real Postgres** for money paths; Playwright optional later | Concurrency, idempotency, and CTE atomicity can't be validated against a mock. |
-| Tooling | **ESLint + Prettier + TS strict**, Husky pre-commit | Clean, consistent, review-friendly code. |
+| Layer                 | Choice                                                                                                                                                                                                                                                    | Rationale                                                                                                                                                         |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework / runtime   | **Next.js 16 (App Router) + TypeScript**, **Node serverless runtime**                                                                                                                                                                                     | Deploys natively on Vercel; the same Node app runs on a VPS. No edge-runtime constraints.                                                                         |
+| Hosting               | **Vercel** (primary) · **VPS/Docker** (supported)                                                                                                                                                                                                         | See §4.1. Cloudflare Workers/edge is out of scope.                                                                                                                |
+| DB provider           | **Neon** (default) _or_ **Supabase** — Postgres either way                                                                                                                                                                                                | Neon: scale-to-zero, no 7-day idle pause. Supabase: bundled dashboard/storage if wanted. A VPS may run local Postgres. Swappable via connection config.           |
+| ORM                   | **Prisma**                                                                                                                                                                                                                                                | Schema-first, familiar, mature tooling; `prisma migrate` for migrations. Full Node runtime removes the bundle-size reason we previously considered Drizzle.       |
+| DB connection         | **Prisma driver adapter** — `@prisma/adapter-neon` (Neon, WebSocket, supports transactions) or Supabase **pooled `DATABASE_URL` + `DIRECT_URL`** (disable prepared statements in transaction mode, or use the session pooler); direct connection on a VPS | Interactive transactions supported on the Node runtime; pooled URL for the app, direct URL for CLI/migrations. A single `PrismaClient` singleton per instance.    |
+| Money operations      | **One standard-SQL CTE** via Prisma `$queryRaw`/`$executeRaw` (parameterized) + **idempotency keys**; compound ops wrapped in `prisma.$transaction`                                                                                                       | The CTE is one round trip and pooler-safe (no prepared-statement dependency), so it works identically on Neon, Supabase (either pooler mode), and local Postgres. |
+| Auth                  | **Better Auth** + `@better-auth/prisma-adapter`                                                                                                                                                                                                           | Email/password, email verification, email-OTP, TOTP 2FA, RBAC.                                                                                                    |
+| Password hashing      | **argon2id** (`@node-rs/argon2`) as Better Auth's custom hasher                                                                                                                                                                                           | Vercel's Node runtime runs the native binary, so we honor the brief's argon2 requirement directly.                                                                |
+| Rate limiting         | **Shared-store limiter** — Upstash Redis on Vercel (or DB-backed via Better Auth); Redis/DB on a VPS                                                                                                                                                      | In-memory limiting does not persist across Vercel serverless instances and must not be used.                                                                      |
+| UI                    | **Tailwind CSS + shadcn/ui (Radix)**                                                                                                                                                                                                                      | shadcn admin; a shared reusable component library serves user, admin, and marketing.                                                                              |
+| Forms & validation    | **React Hook Form + Zod** (shared schemas)                                                                                                                                                                                                                | One Zod schema validates on client and server.                                                                                                                    |
+| Images                | **`next/image`** with Vercel's built-in optimization (`sharp` on Node); a plain loader on a VPS                                                                                                                                                           | No edge image-loader workaround needed.                                                                                                                           |
+| File uploads          | **Cloudflare R2 (S3-compatible)**, presigned uploads; server generates every object key under a per-user prefix; PUT constrained by content-type, max size, short expiry                                                                                  | R2 default; **S3 or Supabase Storage** are drop-in alternatives behind the storage interface.                                                                     |
+| PII / secrets at rest | **AES-256-GCM via `node:crypto`** — key in an env/secret manager (never the DB), fresh 96-bit nonce per record, AAD bound to `user_id + column`, `key_version` for rotation                                                                               | Encrypts payout details and provider keys.                                                                                                                        |
+| Payments              | **`PaymentProvider` interface** — `SimulatedProvider` shipped; Paystack/Stripe/PayPal drop-in — with **signature-verified webhooks**                                                                                                                      | Deposit surface fail-closed behind flag + provider toggle + permission.                                                                                           |
+| Email                 | **Mailer abstraction — Resend (default)** on Vercel; SMTP available on a VPS                                                                                                                                                                              | Node runtime; no bundle gymnastics.                                                                                                                               |
+| Scheduled work        | **Single job entrypoint** — Vercel Cron (Hobby ≈ daily) or VPS cron                                                                                                                                                                                       | Retention purges, token cleanup, ledger reconciliation. Request-path work stays event-driven.                                                                     |
+| Testing               | **Vitest** (unit) + integration tests against **real Postgres** for money paths; Playwright optional later                                                                                                                                                | Concurrency, idempotency, and CTE atomicity can't be validated against a mock.                                                                                    |
+| Tooling               | **ESLint + Prettier + TS strict**, Husky pre-commit                                                                                                                                                                                                       | Clean, consistent, review-friendly code.                                                                                                                          |
 
 ### 4.1 Deployment portability
 
-| Target | Cost | Notes |
-|--------|------|-------|
-| **Vercel** | Free Hobby / paid Pro | **Primary host.** Node serverless runtime; git-push deploy + CI. Hobby cron runs ≈ daily (fine for retention/reconcile). |
-| **VPS (Docker)** | Cheap | Next.js (Node) + Postgres in Docker; direct DB connection; SMTP available. |
-| **Cloudflare Workers / edge** | — | **Out of scope.** Prisma driver adapters don't yet support edge/Workers, and it's not a requirement. |
+| Target                        | Cost                  | Notes                                                                                                                    |
+| ----------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Vercel**                    | Free Hobby / paid Pro | **Primary host.** Node serverless runtime; git-push deploy + CI. Hobby cron runs ≈ daily (fine for retention/reconcile). |
+| **VPS (Docker)**              | Cheap                 | Next.js (Node) + Postgres in Docker; direct DB connection; SMTP available.                                               |
+| **Cloudflare Workers / edge** | —                     | **Out of scope.** Prisma driver adapters don't yet support edge/Workers, and it's not a requirement.                     |
 
 Portability holds because all I/O — DB connection, storage, email, payments, rate-limit
 store, scheduler — sits behind an interface. Moving Vercel ↔ VPS is a config/adapter
@@ -212,7 +214,7 @@ Money columns are `*_minor BigInt` + `currency char(3)`.
   `two_factor_enabled`, `session_epoch int`, `created_at`, `updated_at`.
 - **roles**: `id`, `name` (unique), `permissions text[]`, `is_system`.
 - **sessions / accounts / verification**: Better Auth's Prisma models.
-- **audit_logs** *(append-only; no app-level update/delete)*: `id`, `actor_id`, `action`,
+- **audit_logs** _(append-only; no app-level update/delete)_: `id`, `actor_id`, `action`,
   `entity_type`, `entity_id`, `before jsonb`, `after jsonb`, `ip_address`, `user_agent`,
   `created_at`. Written for every money mutation, config change (settings, flags, roles,
   providers, account status), **denied authorization**, and **failed 2FA**. No plaintext
@@ -224,14 +226,14 @@ Money columns are `*_minor BigInt` + `currency char(3)`.
   A **unique constraint on (`id`, `currency`)** backs the composite FK below. Balance is a
   materialized cache of the ledger; it may go **negative only via `adjustment` /
   `*_reversal` sources** (a receivable), never via a user withdrawal.
-- **wallet_transactions** *(append-only ledger; never updated or deleted)*:
+- **wallet_transactions** _(append-only ledger; never updated or deleted)_:
   `id`, `user_id`, `wallet_id`, `currency`, `direction` (`credit` | `debit`),
   `amount_minor`, `source` (`claim` | `claim_reversal` | `withdrawal` |
   `withdrawal_reversal` | `deposit` | `adjustment`), `reference_type`, `reference_id`,
   `idempotency_key` (**globally unique**), `balance_after_minor`, `reason_code`, `memo`,
   `created_at`.
   - **Currency integrity:** a composite FK `(wallet_id, currency) REFERENCES wallets(id,
-    currency)` — added in the Prisma migration (`@@unique([id, currency])` on wallets +
+currency)` — added in the Prisma migration (`@@unique([id, currency])` on wallets +
     a multi-field relation, or a raw SQL constraint) — rejects any ledger row whose
     currency differs from its wallet. Silent currency-mixing is impossible at the DB level.
   - `balance_after_minor` is always taken from the atomic statement's `RETURNING`, never
@@ -276,7 +278,7 @@ Money columns are `*_minor BigInt` + `currency char(3)`.
 
 ### 6.7 Programs, config & notifications
 
-- **rebate_programs** *(optional, Phase 8)*: `id`, `name`, `description`, `rate_bps`,
+- **rebate_programs** _(optional, Phase 8)_: `id`, `name`, `description`, `rate_bps`,
   `category`, `max_rebate_minor`, `starts_at`, `ends_at`, `active`.
 - **feature_flags**: `id`, `key` (unique, from a compile-time allowlist), `enabled bool`,
   `description`, `updated_by`, `updated_at`.
@@ -296,7 +298,7 @@ The ledger is the heart of the app. Correctness rules:
 2. **Cached balance is a materialization.** `wallets.balance_minor` always equals the
    signed sum of the ledger; a reconciliation job asserts this and alerts on drift.
 3. **One atomic statement per money write.** Each balance change is a **single CTE**
-   (executed via Prisma `$queryRaw`/`$executeRaw`) so the ledger insert is *gated by* the
+   (executed via Prisma `$queryRaw`/`$executeRaw`) so the ledger insert is _gated by_ the
    balance update — no two-statement window. Correct under READ COMMITTED, one round trip,
    with **no SELECT-then-write** anywhere:
 
@@ -316,6 +318,7 @@ The ledger is the heart of the app. Correctness rules:
    FROM upd
    RETURNING id;
    ```
+
    Zero inserted rows ⇒ **insufficient funds** (the handler raises it). Credits use the
    symmetric CTE (`balance_minor + $1`, no predicate). Admin **reversal/adjustment** debits
    omit the `>= $1` predicate so a clawback can drive the balance negative.
@@ -332,14 +335,14 @@ The ledger is the heart of the app. Correctness rules:
    duplicate insert violates the unique constraint and rolls back the statement, so retries
    never double-post:
 
-   | Event | Key |
-   |-------|-----|
-   | Claim credit | `claim:<id>:credit` |
-   | Claim clawback | `claim:<id>:reversal` |
-   | Withdrawal debit | `withdrawal:<id>:debit` |
-   | Withdrawal reversal | `withdrawal:<id>:reversal` |
-   | Deposit credit | `deposit:<provider>:<provider_reference>` |
-   | Admin adjustment | `adjustment:<adjustment_id>` |
+   | Event               | Key                                       |
+   | ------------------- | ----------------------------------------- |
+   | Claim credit        | `claim:<id>:credit`                       |
+   | Claim clawback      | `claim:<id>:reversal`                     |
+   | Withdrawal debit    | `withdrawal:<id>:debit`                   |
+   | Withdrawal reversal | `withdrawal:<id>:reversal`                |
+   | Deposit credit      | `deposit:<provider>:<provider_reference>` |
+   | Admin adjustment    | `adjustment:<adjustment_id>`              |
 
 ### 7.1 Operation flows
 
@@ -354,7 +357,7 @@ The ledger is the heart of the app. Correctness rules:
   - **Post-completion bounce:** handled via the permissioned adjustment path
     (`adjustment:<id>`), which may drive the balance negative.
 
-  > *Documented refinement of the brief.* The brief says "debit on completion." We debit on
+  > _Documented refinement of the brief._ The brief says "debit on completion." We debit on
   > **request** and reverse on failure, because debit-on-completion allows concurrent
   > requests against the same balance. Reserve-on-request keeps spendable balance accurate.
 
@@ -367,6 +370,7 @@ The ledger is the heart of the app. Correctness rules:
   future withdrawals are blocked while balance < 0.
 
 ### 7.2 Reconciliation
+
 A scheduled job recomputes `SUM(signed ledger)` per wallet and compares to
 `balance_minor`, recording and alerting on drift. Property-based tests assert the invariant
 holds after randomized interleaved credit/debit/reversal sequences.
@@ -397,6 +401,7 @@ holds after randomized interleaved credit/debit/reversal sequences.
 ## 9. Auth, account lifecycle & KYC
 
 ### 9.1 Auth
+
 - Email/password with **email verification**, password reset, and **shared-store rate
   limiting** on all sensitive endpoints (login, register, password-reset/verify resend,
   withdrawal create, payout-method add/edit, KYC submit, presigned-URL minting), plus a
@@ -415,11 +420,13 @@ holds after randomized interleaved credit/debit/reversal sequences.
   transaction** as the user, so every user always has exactly one wallet.
 
 ### 9.2 Account lifecycle
+
 - New users may be `pending` and can **log in to a limited dashboard** ("verification in
   progress") rather than being locked out. `active` unlocks full functionality;
   `suspended` blocks money actions **and invalidates active sessions** (§3).
 
 ### 9.3 KYC (tiered, admin-reviewed)
+
 - Levels: `none` → `basic` → `full`. Higher levels raise withdrawal limits.
 - Flow mirrors claims: upload ID (+ selfie for `full`) → KYC review queue → admin
   approve/reject with notes → `users.kyc_level` updated.
@@ -437,7 +444,7 @@ holds after randomized interleaved credit/debit/reversal sequences.
 - **Marketing (public):** `/`, `/how-it-works`, `/programs`, `/faq`, `/about`, `/contact`
 - **Auth:** `/register`, `/login`, `/forgot-password`, `/reset-password`, `/verify-email`
 - **User dashboard:** `/dashboard`, `/claims/new`, `/claims/:id`, `/wallet`,
-  `/wallet/deposit` *(gated: hidden + server-rejected when deposits off)*, `/withdrawals`,
+  `/wallet/deposit` _(gated: hidden + server-rejected when deposits off)_, `/withdrawals`,
   `/payout-methods`, `/kyc`, `/settings`
 - **Admin (shadcn):** `/admin`, `/admin/claims`, `/admin/claims/:id`, `/admin/kyc`,
   `/admin/users`, `/admin/withdrawals`, `/admin/deposits`, `/admin/payment-settings`,
@@ -486,6 +493,7 @@ Every transition records actor + timestamp (and before/after for sensitive ones)
   money and config change, plus denied-authz and failed-2FA events.
 
 ### 12.1 Compliance caveats to surface to the client
+
 > This is a demo/portfolio application, **not** a licensed bank or money-services business.
 > Before handling real customer funds, the client must address: money-transmitter/EMI
 > licensing in the target jurisdiction, an AML/CTF program, a real KYC vendor, ID-document
@@ -542,6 +550,7 @@ Every transition records actor + timestamp (and before/after for sensitive ones)
 Each phase ends in a demoable, deployed increment. Money paths get tests as they land.
 
 ### Phase 0 — Foundation
+
 Repo, tooling (TS strict, ESLint, Prettier, Husky), Tailwind + shadcn init, base layout &
 tokens, **Prisma + Neon (adapter) / Supabase** wired with `DATABASE_URL` + `DIRECT_URL`,
 **role seeds + first-admin bootstrap**, CI, and a "hello" deploy on **Vercel** (primary)
@@ -550,20 +559,24 @@ plus a documented VPS (Docker) build.
 bootstrap run.
 
 ### Phase 1 — Auth + RBAC + Feature flags
+
 Registration (country, timezone, intl phone, currency) with **wallet created in the same
 transaction**, email verification, login, password reset (argon2id hashing), account status
-+ limited pending dashboard, roles/permissions with the escalation rules, session
-invalidation, and the fail-closed feature-flag system with server + client guards.
-**Done when:** register→verify→login works; a wallet exists for every user; an admin
-toggles a flag and sees it fail closed; permission + ownership guards enforced; suspend
-invalidates sessions.
+
+- limited pending dashboard, roles/permissions with the escalation rules, session
+  invalidation, and the fail-closed feature-flag system with server + client guards.
+  **Done when:** register→verify→login works; a wallet exists for every user; an admin
+  toggles a flag and sees it fail closed; permission + ownership guards enforced; suspend
+  invalidates sessions.
 
 ### Phase 2 — Claims
+
 Repeatable line-item claim form with R2 presigned proof uploads (server-generated keys,
 constrained PUT), draft/submit lifecycle, claim list/detail, user dashboard shell.
 **Done when:** a user submits a multi-item claim with image proofs and sees it `submitted`.
 
 ### Phase 3 — Admin review + wallet crediting (ledger core)
+
 Admin claims queue, approve/reject with notes, the append-only ledger, **CTE crediting**
 (inside a `prisma.$transaction`), currency-integrity FK, and the wallet view with
 transaction history. **The money core** — ledger unit + real-Postgres
@@ -572,6 +585,7 @@ integration/reconciliation tests land here.
 balance, and concurrency/idempotency/reconciliation tests pass.
 
 ### Phase 4 — Withdrawals + payout methods
+
 Encrypted payout methods (nonce/AAD/key_version, masked display, ownership-checked),
 withdrawal request (debit-on-request), admin fulfillment queue, status lifecycle with
 reversal-on-fail, KYC/threshold gating, **2FA step-up**.
@@ -579,12 +593,14 @@ reversal-on-fail, KYC/threshold gating, **2FA step-up**.
 withdrawal restores balance; a non-2FA user is forced to enroll before withdrawing.
 
 ### Phase 5 — KYC
+
 Tiered verification (basic/full), ID + selfie upload to private R2, admin KYC queue,
 rolling-window limit gating, retention purge, audited document views.
 **Done when:** withdrawals are blocked below the configured KYC level, cumulative limits
 hold, and document access is audited.
 
 ### Phase 6 — Deposits + payment providers (gated)
+
 Admin payment-settings (encrypted keys), `PaymentProvider` interface + `SimulatedProvider`,
 the `/wallet/deposit` + `/admin/deposits` routes, and **signature-verified webhooks**,
 fully behind `deposits_enabled` + provider `enabled` + `manage_payment_settings` — fail
@@ -592,17 +608,20 @@ closed when off.
 **Done when:** deposits work when enabled; every deposit route/API/webhook returns 403/404
 (or rejects) when disabled; forged webhooks are rejected.
 
-### Phase 7 — Marketing, polish & hardening *(required)*
+### Phase 7 — Marketing, polish & hardening _(required)_
+
 Marketing pages, in-app notifications, statement/CSV export, accessibility + responsive
 polish, full test pass, security review, and deployment hardening across targets.
 **Done when:** the app is submission-ready — responsive, tested, documented, deployed on
 Vercel (and building for a VPS).
 
-### Phase 8 — Rebate extensions *(optional backlog; each its own increment)*
+### Phase 8 — Rebate extensions _(optional backlog; each its own increment)_
+
 Pick per client demand; each ships independently with its own acceptance criteria:
+
 - **Rebate programs:** admin-defined programs with category rates, caps, and windows;
   claims optionally reference a program.
-- **Referral bonuses (constrained):** credit only on a referee's *first approved claim*,
+- **Referral bonuses (constrained):** credit only on a referee's _first approved claim_,
   with self/same-device/same-KYC exclusion and hard caps.
 - **Loyalty tiers:** Bronze/Silver/Gold from lifetime approved rebates → higher limits or
   faster review (never "deposit to rank up").
@@ -613,6 +632,7 @@ Pick per client demand; each ships independently with its own acceptance criteri
 ## 17. Decisions locked & assumptions
 
 **Locked (this session):**
+
 - **Vercel-first hosting** (Node serverless), **VPS/Docker** supported; **Cloudflare
   Workers / edge is out of scope**.
 - ORM **Prisma**; DB **Neon (default) or Supabase** — Postgres via a Prisma driver adapter
@@ -631,6 +651,7 @@ Pick per client demand; each ships independently with its own acceptance criteri
   at registration.
 
 **Assumptions (flag if wrong):**
+
 - DB provider defaults to **Neon**; Supabase is a documented connection-config swap.
 - Deposits ship **off by default**; the client enables providers when ready.
 - Email uses Resend on Vercel, SMTP on a VPS.

@@ -1,0 +1,45 @@
+// Prisma schema — Rebate Banking
+//
+// Driver adapters are GA in Prisma 6.16+, so no preview feature is required.
+// The Neon WebSocket adapter is wired in lib/db.ts; the app connects through the
+// pooled DATABASE_URL and migrations run against the direct DIRECT_URL.
+//
+// This is the Phase 0 foundation (feature flags + roles). The wallet/ledger,
+// users, claims, withdrawals, KYC, and payment models arrive in later phases per
+// docs/superpowers/specs/2026-07-13-rebate-banking-platform-design.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Feature flags toggled from the admin panel. The server is the source of truth;
+/// safety-critical flags fail closed when a key is missing (design spec §8).
+model FeatureFlag {
+  key         String   @id
+  enabled     Boolean  @default(false)
+  description String?
+  updatedBy   String?  @map("updated_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+/// A named set of permission keys (e.g. review_claims). Seeded at bootstrap;
+/// system roles are protected from deletion. RBAC details in design spec §3.
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  permissions String[]
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
