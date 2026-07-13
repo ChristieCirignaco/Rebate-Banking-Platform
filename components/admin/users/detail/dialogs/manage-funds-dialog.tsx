@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Coins } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency } from "@/lib/format";
-import { toast } from "@/lib/toast";
 import { ActionIconButton } from "../shared";
 import type {
   BalanceOp,
@@ -41,7 +40,7 @@ export function ManageFundsDialog({
 }: {
   user: UserDetail;
   wallets: DetailWallet[];
-  onUpdateBalance: (payload: ManageFundsPayload) => void;
+  onUpdateBalance: (payload: ManageFundsPayload) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const [walletCurrency, setWalletCurrency] = useState("");
@@ -49,22 +48,31 @@ export function ManageFundsDialog({
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [adminNote, setAdminNote] = useState("");
+  const [pending, setPending] = useState(false);
+  // One nonce per in-flight adjustment: reused if a submit is retried, reset on success.
+  const requestIdRef = useRef<string | null>(null);
 
   const selectedWallet = wallets.find(
     (wallet) => wallet.currency === walletCurrency,
   );
 
-  function handleUpdate() {
-    if (!selectedWallet) return;
-    onUpdateBalance({
+  async function handleUpdate() {
+    if (!selectedWallet || pending) return;
+    if (!requestIdRef.current) requestIdRef.current = crypto.randomUUID();
+    setPending(true);
+    const ok = await onUpdateBalance({
       walletCurrency,
       op,
       description: description || undefined,
       amount: Number(amount) || 0,
       adminNote: adminNote || undefined,
+      requestId: requestIdRef.current,
     });
-    toast.success("Balance updated");
-    setOpen(false);
+    setPending(false);
+    if (ok) {
+      requestIdRef.current = null;
+      setOpen(false);
+    }
   }
 
   return (
@@ -181,8 +189,11 @@ export function ManageFundsDialog({
         </div>
 
         <DialogFooter>
-          <Button onClick={handleUpdate} disabled={!selectedWallet || !amount}>
-            Update Balance
+          <Button
+            onClick={handleUpdate}
+            disabled={!selectedWallet || !amount || pending}
+          >
+            {pending ? "Updating…" : "Update Balance"}
           </Button>
         </DialogFooter>
       </DialogContent>

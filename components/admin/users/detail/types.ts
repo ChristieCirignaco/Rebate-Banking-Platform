@@ -2,8 +2,8 @@ import type { ComponentType } from "react";
 
 // -----------------------------------------------------------------------------
 // Types for the inner user management page (/admin/users/[id]). Presentation is
-// driven entirely by these; the mock data in mock-data.ts is the single swap point
-// for real API/DB data. Every action is surfaced as a handler prop for wiring.
+// driven entirely by these; live data is mapped into them in lib/admin/user-detail.ts.
+// Every action is surfaced as a handler prop wired to app/admin/users/[id]/actions.ts.
 // -----------------------------------------------------------------------------
 
 export type Gender = "male" | "female" | "other" | "unspecified";
@@ -55,6 +55,7 @@ export interface UserStat {
   value: number;
   icon: ComponentType<{ className?: string }>;
   isCurrency?: boolean;
+  currency?: string;
 }
 
 export interface TxnSummaryPoint {
@@ -119,6 +120,8 @@ export interface ManageFundsPayload {
   description?: string;
   amount: number;
   adminNote?: string;
+  // Client-generated nonce: makes an accidental double-submit idempotent server-side.
+  requestId: string;
 }
 
 export type TransferCodeGroup = "imf" | "tax" | "cot";

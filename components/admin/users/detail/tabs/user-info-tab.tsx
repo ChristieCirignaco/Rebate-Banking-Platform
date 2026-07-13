@@ -17,7 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { Gender, UserDetail } from "../types";
 
@@ -69,7 +68,6 @@ export function UserInfoTab({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     onUpdate(values);
-    toast.success("Information updated");
   }
 
   return (

@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { UserDetailView } from "@/components/admin/users/detail/user-detail-view";
-import {
-  getActivity,
-  getControls,
-  getReferrals,
-  getTransactions,
-  getTransferCodes,
-  getTxnSummary,
-  getUserDetail,
-  getWallets,
-} from "@/components/admin/users/detail/mock-data";
+import { getUserDetailData } from "@/lib/admin/user-detail";
 
 export async function generateMetadata({
   params,
@@ -18,7 +10,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  return { title: `Manage ${getUserDetail(id).name}` };
+  const data = await getUserDetailData(id);
+  return { title: data ? `Manage ${data.user.name}` : "User" };
 }
 
 export default async function AdminUserDetailPage({
@@ -27,22 +20,23 @@ export default async function AdminUserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = getUserDetail(id);
+  const data = await getUserDetailData(id);
+  if (!data) notFound();
 
   return (
     <div className="flex flex-col gap-4 px-4 lg:px-6">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Manage Of User {user.name}
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Manage Of User {data.user.name}</h1>
       <UserDetailView
-        user={user}
-        wallets={getWallets()}
-        controls={getControls()}
-        txnSummary={getTxnSummary(30)}
-        transactions={getTransactions()}
-        referrals={getReferrals()}
-        activity={getActivity()}
-        transferCodes={getTransferCodes()}
+        user={data.user}
+        wallets={data.wallets}
+        controls={data.controls}
+        statValues={data.statValues}
+        statCurrency={data.statCurrency}
+        txnSummary={data.txnSummary}
+        transactions={data.transactions}
+        referrals={data.referrals}
+        activity={data.activity}
+        transferCodes={data.transferCodes}
       />
     </div>
   );

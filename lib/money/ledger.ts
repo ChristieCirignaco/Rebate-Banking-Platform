@@ -28,6 +28,14 @@ export type PostResult =
   | { ok: true; id: string; balanceAfterMinor: bigint }
   | { ok: false; reason: "insufficient_funds" | "duplicate" };
 
+// A duplicate idempotency key trips the unique index. The ORM path surfaces this as
+// P2002, but $queryRaw wraps it as P2010 carrying the raw SQLSTATE 23505 (unique_violation).
+function isUniqueViolation(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code === "P2002") return true;
+  return error.code === "P2010" && (error.meta as { code?: string } | undefined)?.code === "23505";
+}
+
 // Atomic money write: ONE CTE statement updates the wallet balance and inserts the
 // ledger row, so the insert is gated by the balance update — no two-statement window
 // (design spec §7). The unique idempotency key makes retries safe; debits are guarded
@@ -87,12 +95,7 @@ export async function postLedgerEntry(
     return { ok: true, id, balanceAfterMinor: rows[0].balance_after_minor };
   } catch (error) {
     // Duplicate idempotency key → the entry already posted; safe no-op.
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return { ok: false, reason: "duplicate" };
-    }
+    if (isUniqueViolation(error)) return { ok: false, reason: "duplicate" };
     throw error;
   }
 }

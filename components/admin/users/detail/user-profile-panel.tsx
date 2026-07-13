@@ -43,7 +43,7 @@ export function UserProfilePanel({
   transferCodes: TransferCodes;
   onLoginAsUser: () => void;
   onNotify: (payload: NotifyPayload) => void;
-  onManageFunds: (payload: ManageFundsPayload) => void;
+  onManageFunds: (payload: ManageFundsPayload) => Promise<boolean>;
   onSaveTransferCodes: (codes: TransferCodes) => void;
   onWithdrawalControl: (payload: WithdrawalControlPayload) => void;
 }) {

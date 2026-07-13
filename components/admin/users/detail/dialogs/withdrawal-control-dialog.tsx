@@ -33,7 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ActionIconButton } from "../shared";
 import type {
@@ -136,7 +135,6 @@ export function WithdrawalControlDialog({
       adminNote: adminNote || undefined,
       userMessage: userMessage || undefined,
     });
-    toast.success("Withdrawal status updated");
     setOpen(false);
   }
 

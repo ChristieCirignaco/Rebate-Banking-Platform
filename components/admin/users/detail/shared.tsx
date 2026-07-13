@@ -63,7 +63,7 @@ export const ActionIconButton = React.forwardRef<
 export function StatTile({ stat }: { stat: UserStat }) {
   const Icon = stat.icon;
   const value = stat.isCurrency
-    ? formatCurrency(stat.value)
+    ? formatCurrency(stat.value, stat.currency)
     : formatNumber(stat.value);
   return (
     <Card className="p-4">

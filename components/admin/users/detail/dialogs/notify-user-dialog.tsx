@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/lib/toast";
 import { ActionIconButton } from "../shared";
 import type { NotificationType, NotifyPayload, UserDetail } from "../types";
 
@@ -47,7 +46,6 @@ export function NotifyUserDialog({
       message,
       scheduleAt: scheduleAt || undefined,
     });
-    toast.success("Notification sent");
     setOpen(false);
   }
 

@@ -16,7 +16,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/lib/toast";
 import { ActionIconButton } from "../shared";
 import type { TransferCodeGroup, TransferCodes, UserDetail } from "../types";
 
@@ -114,7 +113,6 @@ export function TransferCodesDialog({
 
   function handleSave() {
     onSave(codes);
-    toast.success("Transfer codes saved");
     setOpen(false);
   }
 
