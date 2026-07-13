@@ -12,6 +12,17 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+// Absolute date-time, e.g. "Jul 13, 2026, 2:30 PM".
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 // Compact relative time (e.g. "2h ago"). Computed at render against the current time.
 export function formatRelativeTime(iso: string): string {
   const seconds = Math.max(
