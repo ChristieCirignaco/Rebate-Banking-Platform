@@ -83,12 +83,12 @@ CREATE TABLE "verification" (
 -- CreateTable
 CREATE TABLE "wallets" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
     "currency" TEXT NOT NULL,
-    "balanceMinor" BIGINT NOT NULL DEFAULT 0,
-    "isDefault" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "balance_minor" BIGINT NOT NULL DEFAULT 0,
+    "is_default" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "wallets_pkey" PRIMARY KEY ("id")
 );
@@ -96,21 +96,21 @@ CREATE TABLE "wallets" (
 -- CreateTable
 CREATE TABLE "wallet_transactions" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "walletId" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "wallet_id" TEXT NOT NULL,
     "currency" TEXT NOT NULL,
     "direction" TEXT NOT NULL,
-    "amountMinor" BIGINT NOT NULL,
+    "amount_minor" BIGINT NOT NULL,
     "source" TEXT NOT NULL,
-    "referenceType" TEXT,
-    "referenceId" TEXT,
-    "idempotencyKey" TEXT NOT NULL,
-    "balanceAfterMinor" BIGINT NOT NULL,
+    "reference_type" TEXT,
+    "reference_id" TEXT,
+    "idempotency_key" TEXT NOT NULL,
+    "balance_after_minor" BIGINT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'completed',
     "provider" TEXT,
     "description" TEXT,
     "memo" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "wallet_transactions_pkey" PRIMARY KEY ("id")
 );
@@ -175,22 +175,22 @@ CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
 CREATE INDEX "session_userId_idx" ON "session"("userId");
 
 -- CreateIndex
-CREATE INDEX "wallets_userId_idx" ON "wallets"("userId");
+CREATE INDEX "wallets_user_id_idx" ON "wallets"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "wallets_userId_currency_key" ON "wallets"("userId", "currency");
+CREATE UNIQUE INDEX "wallets_user_id_currency_key" ON "wallets"("user_id", "currency");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wallets_id_currency_key" ON "wallets"("id", "currency");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "wallet_transactions_idempotencyKey_key" ON "wallet_transactions"("idempotencyKey");
+CREATE UNIQUE INDEX "wallet_transactions_idempotency_key_key" ON "wallet_transactions"("idempotency_key");
 
 -- CreateIndex
-CREATE INDEX "wallet_transactions_userId_createdAt_idx" ON "wallet_transactions"("userId", "createdAt");
+CREATE INDEX "wallet_transactions_user_id_created_at_idx" ON "wallet_transactions"("user_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "wallet_transactions_walletId_idx" ON "wallet_transactions"("walletId");
+CREATE INDEX "wallet_transactions_wallet_id_idx" ON "wallet_transactions"("wallet_id");
 
 -- CreateIndex
 CREATE INDEX "notifications_userId_idx" ON "notifications"("userId");
@@ -208,13 +208,13 @@ ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "wallets" ADD CONSTRAINT "wallets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "wallets" ADD CONSTRAINT "wallets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "wallet_transactions" ADD CONSTRAINT "wallet_transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "wallet_transactions" ADD CONSTRAINT "wallet_transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "wallet_transactions" ADD CONSTRAINT "wallet_transactions_walletId_currency_fkey" FOREIGN KEY ("walletId", "currency") REFERENCES "wallets"("id", "currency") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "wallet_transactions" ADD CONSTRAINT "wallet_transactions_wallet_id_currency_fkey" FOREIGN KEY ("wallet_id", "currency") REFERENCES "wallets"("id", "currency") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

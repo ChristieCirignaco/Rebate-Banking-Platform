@@ -126,13 +126,13 @@ model Verification {
 
 model Wallet {
   id           String   @id @default(uuid())
-  userId       String
+  userId       String   @map("user_id")
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   currency     String
-  balanceMinor BigInt   @default(0)
-  isDefault    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  balanceMinor BigInt   @default(0) @map("balance_minor")
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   transactions WalletTransaction[]
 
@@ -144,23 +144,23 @@ model Wallet {
 
 model WalletTransaction {
   id                String   @id @default(uuid())
-  userId            String
+  userId            String   @map("user_id")
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  walletId          String
+  walletId          String   @map("wallet_id")
   currency          String
   wallet            Wallet   @relation(fields: [walletId, currency], references: [id, currency], onDelete: Cascade)
   direction         String // credit | debit
-  amountMinor       BigInt
+  amountMinor       BigInt   @map("amount_minor")
   source            String // deposit | withdrawal | withdrawal_reversal | adjustment | fee | transfer | rebate | reward
-  referenceType     String?
-  referenceId       String?
-  idempotencyKey    String   @unique
-  balanceAfterMinor BigInt
+  referenceType     String?  @map("reference_type")
+  referenceId       String?  @map("reference_id")
+  idempotencyKey    String   @unique @map("idempotency_key")
+  balanceAfterMinor BigInt   @map("balance_after_minor")
   status            String   @default("completed") // completed | pending | failed
   provider          String?
   description       String?
   memo              String?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
   @@index([walletId])
