@@ -7,15 +7,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Landmark } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 export function LoginForm({ className, ...props }: ComponentProps<"div">) {
@@ -25,16 +21,14 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
     setIsLoading(true);
 
     // signIn.email resolves with { data, error } — it does not throw on bad credentials.
-    const { error: signInError } = await authClient.signIn.email({
+    const { error } = await authClient.signIn.email({
       email,
       password,
       rememberMe: true,
@@ -42,15 +36,16 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
 
     setIsLoading(false);
 
-    if (signInError) {
-      setError(
-        signInError.status === 403
+    if (error) {
+      toast.error(
+        error.status === 403
           ? "Please verify your email address before signing in."
-          : (signInError.message ?? "Invalid email or password."),
+          : (error.message ?? "Invalid email or password."),
       );
       return;
     }
 
+    toast.success("Signed in");
     router.push(redirectTo);
     router.refresh();
   }
@@ -100,19 +95,13 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                   disabled={isLoading}
                 />
               </Field>
-              {error ? (
-                <p role="alert" className="text-destructive text-sm">
-                  {error}
-                </p>
-              ) : null}
               <Field>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? "Signing in…" : "Login"}
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Don&apos;t have an account?{" "}
-                <Link href="/register">Sign up</Link>
+                Don&apos;t have an account? <Link href="/register">Sign up</Link>
               </FieldDescription>
             </FieldGroup>
           </form>
