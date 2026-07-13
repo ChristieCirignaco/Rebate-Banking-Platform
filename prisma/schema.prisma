@@ -66,6 +66,7 @@ model User {
   wallets       Wallet[]
   transactions  WalletTransaction[]
   notifications Notification[]
+  products      Product[]
 
   @@index([status])
   @@index([kycStatus])
@@ -184,6 +185,34 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+// ---------------------------------------------------------------------------
+// Rebate product submissions. Users submit a purchased product for review; an
+// admin approves/rejects, and approval is what later credits the wallet. Price is
+// stored as integer minor units (like wallets) so no float ever touches money.
+// ---------------------------------------------------------------------------
+
+model Product {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  priceMinor BigInt    @map("price_minor")
+  currency   String    @default("USD")
+  quantity   Int       @default(1)
+  imageUrl   String?   @map("image_url")
+  status     String    @default("pending") // pending | approved | rejected
+  adminNote  String?   @map("admin_note")
+  reviewedAt DateTime? @map("reviewed_at")
+  reviewedBy String?   @map("reviewed_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("products")
 }
 
 model ActivationCode {

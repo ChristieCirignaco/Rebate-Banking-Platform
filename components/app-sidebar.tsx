@@ -10,7 +10,7 @@ import {
   Flag,
   Landmark,
   LayoutDashboard,
-  ReceiptText,
+  Package,
   Settings,
   ShieldCheck,
   Users,
@@ -51,7 +51,11 @@ const NAV: NavGroup[] = [
   {
     label: "Operations",
     items: [
-      { title: "Claims", href: "/admin/claims", icon: ReceiptText },
+      {
+        title: "Product Submissions",
+        href: "/admin/products",
+        icon: Package,
+      },
       { title: "KYC", href: "/admin/kyc", icon: ShieldCheck },
       {
         title: "Withdrawals",

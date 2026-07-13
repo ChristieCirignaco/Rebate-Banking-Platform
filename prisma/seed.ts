@@ -80,6 +80,38 @@ const STATUSES = [
 const ROLES = ["user", "user", "admin", "user", "user", "user", "user"];
 const GENDERS = ["male", "female", "unspecified"];
 
+// Rebate product submissions.
+const PRODUCT_CATALOG: { name: string; price: number }[] = [
+  { name: 'Samsung 55" 4K Smart TV', price: 649.99 },
+  { name: "Apple AirPods Pro (2nd Gen)", price: 229.0 },
+  { name: "Nike Air Max 270", price: 150.0 },
+  { name: "KitchenAid Stand Mixer", price: 429.95 },
+  { name: "Dyson V15 Cordless Vacuum", price: 749.99 },
+  { name: "Instant Pot Duo 7-in-1", price: 89.99 },
+  { name: "Sony WH-1000XM5 Headphones", price: 399.99 },
+  { name: "Levi's 501 Original Jeans", price: 69.5 },
+  { name: "Ninja Air Fryer XL", price: 129.99 },
+  { name: "Logitech MX Master 3S Mouse", price: 99.99 },
+  { name: "Fitbit Charge 6", price: 159.95 },
+  { name: "Le Creuset Dutch Oven", price: 380.0 },
+  { name: "GoPro HERO12 Black", price: 399.0 },
+  { name: "Yeti Rambler 20oz Tumbler", price: 35.0 },
+  { name: "Anker 737 Power Bank", price: 149.99 },
+  { name: "Philips Sonicare Toothbrush", price: 119.95 },
+];
+const PRODUCT_STATUSES = [
+  "pending",
+  "approved",
+  "approved",
+  "rejected",
+  "pending",
+  "approved",
+];
+const PRODUCT_NOTES: Record<string, string> = {
+  approved: "Receipt verified — rebate approved.",
+  rejected: "Receipt unreadable; please resubmit a clearer photo.",
+};
+
 const username = (name: string) => name.toLowerCase().replace(/[^a-z]+/g, "_");
 
 type TxnSpec = {
@@ -295,14 +327,43 @@ async function main() {
     }
   }
 
-  const [totalUsers, totalWallets, totalTxns] = await Promise.all([
-    prisma.user.count(),
-    prisma.wallet.count(),
-    prisma.walletTransaction.count(),
-  ]);
+  // ----- Product submissions (cascade-deleted with their demo users above) -----
+  // Concentrated on the first 16 users so the rest have none — exercises empty
+  // per-user stats and the list "no submissions" state.
+  const productUsers = createdIds.slice(0, 16);
+  for (let k = 0; k < 36; k += 1) {
+    const item = PRODUCT_CATALOG[k % PRODUCT_CATALOG.length];
+    const status = PRODUCT_STATUSES[k % PRODUCT_STATUSES.length];
+    const reviewed = status !== "pending";
+    await prisma.product.create({
+      data: {
+        id: randomUUID(),
+        userId: productUsers[k % productUsers.length],
+        name: item.name,
+        priceMinor: minor(item.price),
+        currency: "USD",
+        quantity: (k % 4) + 1,
+        imageUrl:
+          k % 5 === 0 ? null : `https://picsum.photos/seed/rebate-${k}/600/400`,
+        status,
+        adminNote: reviewed ? PRODUCT_NOTES[status] : null,
+        reviewedAt: reviewed ? daysAgo(k) : null,
+        reviewedBy: reviewed ? admin.id : null,
+        createdAt: daysAgo(1 + k),
+      },
+    });
+  }
+
+  const [totalUsers, totalWallets, totalTxns, totalProducts] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.wallet.count(),
+      prisma.walletTransaction.count(),
+      prisma.product.count(),
+    ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(
