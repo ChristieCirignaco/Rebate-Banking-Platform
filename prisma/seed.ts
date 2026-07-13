@@ -11,8 +11,8 @@ import { hashPassword } from "../lib/password";
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = (process.env.ADMIN_EMAIL ?? "admin@rebate.local").toLowerCase();
-  const password = process.env.ADMIN_PASSWORD ?? "ChangeMe123!";
+  const email = (process.env.ADMIN_EMAIL ?? "admin@gmail.com").toLowerCase();
+  const password = process.env.ADMIN_PASSWORD ?? "12345678";
   const name = process.env.ADMIN_NAME ?? "Admin";
   const passwordHash = await hashPassword(password);
 
