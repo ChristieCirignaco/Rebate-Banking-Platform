@@ -18,7 +18,7 @@ import {
   EMAIL_OPTIONS,
   KYC_OPTIONS,
   ROLE_OPTIONS,
-} from "./mock-data";
+} from "./filter-options";
 import type { SelectOption, UserFilters } from "./types";
 
 function FilterSelect({
