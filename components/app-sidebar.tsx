@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
+import type { ComponentProps, ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -27,7 +28,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "@/components/ui/sidebar";
 
 type NavItem = {
@@ -75,27 +75,36 @@ const NAV: NavGroup[] = [
   },
 ];
 
+// Placeholder identity until auth lands in Phase 1.
+const ADMIN_USER = { name: "Admin", email: "admin@rebatebank.app" };
+
 // The dashboard is only active on an exact match; section routes also match nested pages.
 function isActive(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppSidebar() {
+export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <Link href="/admin" className="flex items-center gap-2 px-2 py-1.5">
-          <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center rounded-md">
-            <Landmark className="size-4" />
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold">Rebate Bank</span>
-            <span className="text-muted-foreground text-xs">Admin</span>
-          </div>
-        </Link>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
+            >
+              <Link href="/admin">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md">
+                  <Landmark className="size-4" />
+                </div>
+                <span className="text-base font-semibold">Rebate Bank</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
@@ -125,11 +134,8 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="text-muted-foreground px-2 py-1.5 text-xs">
-          Signed in as admin
-        </div>
+        <NavUser user={ADMIN_USER} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   );
 }
