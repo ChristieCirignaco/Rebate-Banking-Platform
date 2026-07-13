@@ -1,10 +1,10 @@
 // Prisma schema — Rebate Banking
 //
 // Postgres via the default engine over DATABASE_URL (Docker locally, Neon in prod).
-// Better Auth owns the user/session/account/verification tables; roles are defined in
-// code (lib/permissions.ts), so there is no roles table. The wallet/ledger, claims,
-// withdrawals, KYC, and payment models arrive in later phases per
-// docs/superpowers/specs/2026-07-13-rebate-banking-platform-design.md.
+// Better Auth owns user/session/account/verification; ids are UUIDs (Better Auth is
+// configured to generate them). Money is stored as integer minor units (bigint), the
+// ledger is append-only, and wallet balances are a materialized cache kept in sync by
+// a single-statement CTE (design spec §5, §7).
 
 generator client {
   provider = "prisma-client-js"
@@ -17,10 +17,8 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// Better Auth (email/password + admin plugin). Field names match what Better
-// Auth's Prisma adapter expects — do not rename them. Ids are supplied by Better
-// Auth. Extra profile fields (country, timezone, currency, ...) land with the
-// registration flow in a later phase.
+// Identity (Better Auth) + app profile/admin fields. Added columns are nullable
+// or defaulted so Better Auth's inserts (which only set its own fields) succeed.
 // ---------------------------------------------------------------------------
 
 model User {
@@ -33,11 +31,45 @@ model User {
   banned        Boolean?  @default(false)
   banReason     String?
   banExpires    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+
+  // App profile
+  username        String?   @unique
+  phone           String?
+  country         String?
+  timezone        String?
+  locale          String?
+  currency        String    @default("USD")
+  gender          String    @default("unspecified")
+  birthday        DateTime?
+  address         String?
+  // App admin state
+  status            String   @default("active") // active | suspended | pending
+  kycStatus         String   @default("not_submitted") // approved | pending | not_submitted | rejected
+  kycDocumentType   String?
+  lastLoginAt       DateTime?
+  activationCode    String?
+  withdrawalStatus  String   @default("allowed") // allowed | pending | hold | suspended | restricted
+  withdrawalMessage String?
+  controls          Json? // per-user capability toggles (design spec §9.3 / user controls)
+  transferCodes     Json? // { imf: string[], tax: string[], cot: string[] }
+
+  // Referrals (self relation)
+  referredById String?
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("Referrals")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   sessions      Session[]
   accounts      Account[]
+  wallets       Wallet[]
+  transactions  WalletTransaction[]
+  notifications Notification[]
 
+  @@index([status])
+  @@index([kycStatus])
+  @@index([createdAt])
   @@map("user")
 }
 
@@ -53,6 +85,7 @@ model Session {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([userId])
   @@map("session")
 }
 
@@ -87,11 +120,84 @@ model Verification {
 }
 
 // ---------------------------------------------------------------------------
-// App models
+// Wallet & ledger. Balance is a cache of the append-only ledger; currency
+// integrity is enforced by the composite FK on wallet_transactions.
 // ---------------------------------------------------------------------------
 
-/// Feature flags toggled from the admin panel. The server is the source of truth;
-/// safety-critical flags fail closed when a key is missing (design spec §8).
+model Wallet {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency     String
+  balanceMinor BigInt   @default(0)
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@unique([userId, currency])
+  @@unique([id, currency]) // backs the composite FK below
+  @@index([userId])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId          String
+  currency          String
+  wallet            Wallet   @relation(fields: [walletId, currency], references: [id, currency], onDelete: Cascade)
+  direction         String // credit | debit
+  amountMinor       BigInt
+  source            String // deposit | withdrawal | withdrawal_reversal | adjustment | fee | transfer | rebate | reward
+  referenceType     String?
+  referenceId       String?
+  idempotencyKey    String   @unique
+  balanceAfterMinor BigInt
+  status            String   @default("completed") // completed | pending | failed
+  provider          String?
+  description       String?
+  memo              String?
+  createdAt         DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+// ---------------------------------------------------------------------------
+// App support models
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String // email | push
+  title       String?
+  message     String
+  scheduledAt DateTime?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model ActivationCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  createdBy String?
+  usedById  String?
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("activation_codes")
+}
+
+/// Feature flags toggled from the admin panel. Fail closed when a key is missing.
 model FeatureFlag {
   key         String   @id
   enabled     Boolean  @default(false)

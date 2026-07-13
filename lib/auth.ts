@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
@@ -13,6 +15,22 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: prismaAdapter(prisma, { provider: "postgresql" }),
+
+  // Generate UUID ids for all Better Auth models (user/session/account/verification).
+  advanced: { database: { generateId: () => randomUUID() } },
+
+  // Give every new user a default wallet.
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await prisma.wallet.create({
+            data: { userId: user.id, currency: "USD", isDefault: true },
+          });
+        },
+      },
+    },
+  },
 
   emailAndPassword: {
     enabled: true,
