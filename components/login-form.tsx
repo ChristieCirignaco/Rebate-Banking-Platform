@@ -11,7 +11,12 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 export function LoginForm({ className, ...props }: ComponentProps<"div">) {
@@ -101,7 +106,8 @@ export function LoginForm({ className, ...props }: ComponentProps<"div">) {
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Don&apos;t have an account? <Link href="/register">Sign up</Link>
+                Don&apos;t have an account?{" "}
+                <Link href="/register">Sign up</Link>
               </FieldDescription>
             </FieldGroup>
           </form>

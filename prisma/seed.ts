@@ -19,7 +19,13 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email },
     update: { role: "admin", emailVerified: true },
-    create: { id: randomUUID(), email, name, role: "admin", emailVerified: true },
+    create: {
+      id: randomUUID(),
+      email,
+      name,
+      role: "admin",
+      emailVerified: true,
+    },
   });
 
   const credential = await prisma.account.findFirst({
@@ -45,7 +51,9 @@ async function main() {
 
   console.info(`Seeded admin: ${email} (role=admin)`);
   if (!process.env.ADMIN_PASSWORD) {
-    console.info(`Default password: ${password} — set ADMIN_PASSWORD to override.`);
+    console.info(
+      `Default password: ${password} — set ADMIN_PASSWORD to override.`,
+    );
   }
 }
 

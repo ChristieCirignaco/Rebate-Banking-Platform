@@ -18,10 +18,16 @@ export function Toaster() {
           fontSize: "0.875rem",
         },
         success: {
-          iconTheme: { primary: "var(--primary)", secondary: "var(--primary-foreground)" },
+          iconTheme: {
+            primary: "var(--primary)",
+            secondary: "var(--primary-foreground)",
+          },
         },
         error: {
-          iconTheme: { primary: "var(--destructive)", secondary: "var(--primary-foreground)" },
+          iconTheme: {
+            primary: "var(--destructive)",
+            secondary: "var(--primary-foreground)",
+          },
         },
       }}
     />
