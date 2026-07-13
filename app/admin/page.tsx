@@ -7,21 +7,37 @@ import { StatCards } from "@/components/admin/overview/stat-card";
 import { SummaryChart } from "@/components/admin/overview/summary-chart";
 import { WalletSummary } from "@/components/admin/overview/wallet-summary";
 import {
-  dailyFees,
-  dailyWalletGrowth,
-  latestTransactions,
-  latestUsers,
-  statWidgets,
-  transactionSummary,
-  walletSummary,
-} from "@/components/admin/overview/mock-data";
+  getDailyFees,
+  getDailyWalletGrowth,
+  getLatestTransactions,
+  getLatestUsers,
+  getStatWidgets,
+  getTransactionSeries,
+  getWalletSummary,
+} from "@/lib/admin/dashboard";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-// Overview body. Data comes from the mock-data module today; swap that module for
-// real queries to wire the API (design spec §16). The admin layout supplies the
-// vertical rhythm, so each section only manages its own horizontal padding.
-export default function AdminDashboardPage() {
+// Overview body — all widgets read live data from the DB (design spec §16).
+export default async function AdminDashboardPage() {
+  const [
+    statWidgets,
+    transactionSummary,
+    walletSummary,
+    dailyFees,
+    dailyWalletGrowth,
+    latestTransactions,
+    latestUsers,
+  ] = await Promise.all([
+    getStatWidgets(),
+    getTransactionSeries(90),
+    getWalletSummary(),
+    getDailyFees(30),
+    getDailyWalletGrowth(30),
+    getLatestTransactions(6),
+    getLatestUsers(5),
+  ]);
+
   return (
     <>
       <StatCards widgets={statWidgets} />
