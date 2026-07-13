@@ -1,0 +1,23 @@
+# Local development database. Production uses Neon (see .env.example); the app talks
+# to either through DATABASE_URL/DIRECT_URL, so switching environments is env-only.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: trbrebate_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rebate
+      POSTGRES_PASSWORD: rebate
+      POSTGRES_DB: rebate
+    ports:
+      - "5544:5432"
+    volumes:
+      - rebate_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rebate -d rebate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  rebate_pg_data:

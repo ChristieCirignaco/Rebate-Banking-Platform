@@ -38,6 +38,10 @@ type NavItem = {
 
 type NavGroup = { label: string; items: NavItem[] };
 
+type AppSidebarProps = ComponentProps<typeof Sidebar> & {
+  user: { name: string; email: string };
+};
+
 // Mirrors the admin route map in the design spec (§10).
 const NAV: NavGroup[] = [
   {
@@ -75,16 +79,13 @@ const NAV: NavGroup[] = [
   },
 ];
 
-// Placeholder identity until auth lands in Phase 1.
-const ADMIN_USER = { name: "Admin", email: "admin@rebatebank.app" };
-
 // The dashboard is only active on an exact match; section routes also match nested pages.
 function isActive(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -134,7 +135,7 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser user={ADMIN_USER} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );

@@ -1,11 +1,9 @@
 // Prisma schema — Rebate Banking
 //
-// Driver adapters are GA in Prisma 6.16+, so no preview feature is required.
-// The Neon WebSocket adapter is wired in lib/db.ts; the app connects through the
-// pooled DATABASE_URL and migrations run against the direct DIRECT_URL.
-//
-// This is the Phase 0 foundation (feature flags + roles). The wallet/ledger,
-// users, claims, withdrawals, KYC, and payment models arrive in later phases per
+// Postgres via the default engine over DATABASE_URL (Docker locally, Neon in prod).
+// Better Auth owns the user/session/account/verification tables; roles are defined in
+// code (lib/permissions.ts), so there is no roles table. The wallet/ledger, claims,
+// withdrawals, KYC, and payment models arrive in later phases per
 // docs/superpowers/specs/2026-07-13-rebate-banking-platform-design.md.
 
 generator client {
@@ -18,6 +16,80 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ---------------------------------------------------------------------------
+// Better Auth (email/password + admin plugin). Field names match what Better
+// Auth's Prisma adapter expects — do not rename them. Ids are supplied by Better
+// Auth. Extra profile fields (country, timezone, currency, ...) land with the
+// registration flow in a later phase.
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String?   @default("user")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  token          String   @unique
+  expiresAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// App models
+// ---------------------------------------------------------------------------
+
 /// Feature flags toggled from the admin panel. The server is the source of truth;
 /// safety-critical flags fail closed when a key is missing (design spec §8).
 model FeatureFlag {
@@ -29,17 +101,4 @@ model FeatureFlag {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("feature_flags")
-}
-
-/// A named set of permission keys (e.g. review_claims). Seeded at bootstrap;
-/// system roles are protected from deletion. RBAC details in design spec §3.
-model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  permissions String[]
-  isSystem    Boolean  @default(false) @map("is_system")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("roles")
 }

@@ -1,16 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
 import { env } from "@/lib/env";
 
-// Neon WebSocket adapter: supports interactive transactions (prisma.$transaction),
-// which the ledger's compound operations depend on (design spec §4, §7).
-const adapter = new PrismaNeon({ connectionString: env.DATABASE_URL });
-
-// Reuse a single client across hot reloads in development to avoid exhausting
-// connections; a fresh instance per invocation is fine in production/serverless.
+// Default Prisma engine over DATABASE_URL. Local Docker Postgres and production Neon
+// differ only by connection string, so environments switch with env vars — no driver
+// adapter needed now that we run on Node everywhere (design spec §4).
+// Reuse a single client across dev hot reloads to avoid exhausting connections.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
 if (env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

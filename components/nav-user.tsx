@@ -1,5 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import {
+  BellIcon,
+  CircleUserRoundIcon,
+  EllipsisVerticalIcon,
+  LogOutIcon,
+} from "lucide-react";
+
+import { authClient } from "@/lib/auth-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -16,12 +25,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  BellIcon,
-  CircleUserRoundIcon,
-  EllipsisVerticalIcon,
-  LogOutIcon,
-} from "lucide-react";
 
 type NavUserProps = {
   user: { name: string; email: string };
@@ -36,9 +39,16 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-// Sidebar footer account menu. Actions are placeholders until auth lands in Phase 1.
+// Sidebar footer account menu.
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <SidebarMenu>
@@ -96,7 +106,7 @@ export function NavUser({ user }: NavUserProps) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOutIcon />
               Log out
             </DropdownMenuItem>
