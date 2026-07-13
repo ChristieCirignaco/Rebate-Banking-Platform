@@ -1,15 +1,19 @@
 # Rebate Banking Platform — Design Specification
 
-- **Status:** Draft for review (v2 — hardened after adversarial review)
+- **Status:** Draft for review (v3 — Vercel-first, Prisma)
 - **Date:** 2026-07-13
 - **Author:** Engineering (with client brief)
 - **Working title:** Rebate Banking (`trbrebate_banking`)
 
-> **v2 note.** This revision fixes issues found by an adversarial review of v1: the ledger
-> atomicity mechanism (now a single CTE), the DB driver strategy, an honest Cloudflare
-> Workers tier, several security gaps (adjustment permissions, key management, fail-closed
-> flags, webhook verification, IDOR/ownership, 2FA on the money surface), and the missing
-> timezone requirement.
+> **Revision history.**
+> - **v3** — Rewired to **Vercel-first hosting with Prisma** and **Neon or Supabase**.
+>   Cloudflare Workers / edge runtime is dropped (it was the only reason to avoid Prisma).
+>   Vercel's Node runtime lets us honor the brief's original **argon2** hashing, use normal
+>   `next/image` optimization, and drop the edge-portability workarounds. VPS (Docker)
+>   stays a supported target. The hardened ledger, security, and data model from v2 are
+>   unchanged in substance — only the execution layer (Prisma raw SQL) changed.
+> - **v2** — Hardened after a 4-critic adversarial review (ledger atomicity, security,
+>   completeness).
 
 ---
 
@@ -100,7 +104,7 @@ A **role** is a named set of permission keys. Every admin action is guarded by t
 in addition to any permission check (see §12 IDOR).
 
 **Role seeds & bootstrap.** System roles `user` (no admin perms) and `admin`/`superadmin`
-(seeded permission sets, `is_system = true`) are created by a seed migration. The first
+(seeded permission sets, `is_system = true`) are created by a seed script. The first
 `superadmin` is provisioned via an env-gated one-time setup route or seed script, never a
 public path.
 
@@ -114,40 +118,38 @@ suspended user or demoted admin cannot keep operating on a stale session.
 
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
-| Framework | **Next.js 15 (App Router) + TypeScript** | Runs on Vercel Hobby (native), Cloudflare Workers (via OpenNext, Paid tier), and any VPS/Docker. |
-| DB provider | **Neon serverless Postgres** (default) | Scale-to-zero with a cold start on first query after idle; **no 7-day pause** (unlike Supabase free). Portable; a VPS may run local Postgres instead (see driver row). |
-| ORM | **Drizzle ORM** | Edge-native, lightweight, zero-dep, typed, and driver-flexible (works over both the Neon serverless driver and node-postgres with one schema). |
-| DB driver | **`@neondatabase/serverless` WebSocket Pool** on Vercel + Workers; **`node-postgres`** adapter for a local-Postgres VPS | Better Auth and any interactive path require the WS Pool driver (Drizzle's `neon-http` cannot run `.transaction()` and Better Auth fails on it). The money ops are a single standard-SQL statement (below), so they run identically on either driver. |
-| Money operations | **One standard-SQL CTE statement** (conditional balance update + ledger insert in a single query) + **idempotency keys** | Atomic and race-safe under READ COMMITTED with no interactive session; portable across Neon and node-postgres. |
-| Auth | **Better Auth** (WS Pool driver) | Email/password, email verification, email-OTP, TOTP 2FA, RBAC. |
-| Password hashing | **scrypt** (Better Auth's pure-JS `@noble/hashes` scrypt), cost params tuned to the Workers CPU budget | argon2/bcrypt native bindings don't run on Workers; scrypt is the portable, strong KDF. *(Documented deviation from the brief's argon2/bcrypt.)* |
-| Rate limiting | **Shared-store limiter** (Better Auth DB/`secondaryStorage`), backed per target: Workers KV / Upstash on Vercel / Redis or DB on VPS | The in-memory default does not enforce across serverless isolates and must not be used. |
+| Framework / runtime | **Next.js 15 (App Router) + TypeScript**, **Node serverless runtime** | Deploys natively on Vercel; the same Node app runs on a VPS. No edge-runtime constraints. |
+| Hosting | **Vercel** (primary) · **VPS/Docker** (supported) | See §4.1. Cloudflare Workers/edge is out of scope. |
+| DB provider | **Neon** (default) *or* **Supabase** — Postgres either way | Neon: scale-to-zero, no 7-day idle pause. Supabase: bundled dashboard/storage if wanted. A VPS may run local Postgres. Swappable via connection config. |
+| ORM | **Prisma** | Schema-first, familiar, mature tooling; `prisma migrate` for migrations. Full Node runtime removes the bundle-size reason we previously considered Drizzle. |
+| DB connection | **Prisma driver adapter** — `@prisma/adapter-neon` (Neon, WebSocket, supports transactions) or Supabase **pooled `DATABASE_URL` + `DIRECT_URL`** (disable prepared statements in transaction mode, or use the session pooler); direct connection on a VPS | Interactive transactions supported on the Node runtime; pooled URL for the app, direct URL for CLI/migrations. A single `PrismaClient` singleton per instance. |
+| Money operations | **One standard-SQL CTE** via Prisma `$queryRaw`/`$executeRaw` (parameterized) + **idempotency keys**; compound ops wrapped in `prisma.$transaction` | The CTE is one round trip and pooler-safe (no prepared-statement dependency), so it works identically on Neon, Supabase (either pooler mode), and local Postgres. |
+| Auth | **Better Auth** + `@better-auth/prisma-adapter` | Email/password, email verification, email-OTP, TOTP 2FA, RBAC. |
+| Password hashing | **argon2id** (`@node-rs/argon2`) as Better Auth's custom hasher | Vercel's Node runtime runs the native binary, so we honor the brief's argon2 requirement directly. |
+| Rate limiting | **Shared-store limiter** — Upstash Redis on Vercel (or DB-backed via Better Auth); Redis/DB on a VPS | In-memory limiting does not persist across Vercel serverless instances and must not be used. |
 | UI | **Tailwind CSS + shadcn/ui (Radix)** | shadcn admin; a shared reusable component library serves user, admin, and marketing. |
 | Forms & validation | **React Hook Form + Zod** (shared schemas) | One Zod schema validates on client and server. |
-| File uploads | **Cloudflare R2 (S3-compatible)**, presigned via a lean signer (**`aws4fetch`**) — not the full S3 SDK on the request path | Server generates every object key under a per-user prefix; presigned PUT constrained by content-type, max size, short expiry. |
-| Images | **`next/image` with `unoptimized` or a Cloudflare image loader on the Workers build** | The default loader uses `sharp`, which doesn't run on Workers. |
-| PII / secrets at rest | **AES-256-GCM via Web Crypto** — key in a secret manager (never the DB), fresh 96-bit nonce per record, AAD bound to `user_id + column`, `key_version` for rotation | Encrypts payout details and provider keys; portable to all runtimes. |
+| Images | **`next/image`** with Vercel's built-in optimization (`sharp` on Node); a plain loader on a VPS | No edge image-loader workaround needed. |
+| File uploads | **Cloudflare R2 (S3-compatible)**, presigned uploads; server generates every object key under a per-user prefix; PUT constrained by content-type, max size, short expiry | R2 default; **S3 or Supabase Storage** are drop-in alternatives behind the storage interface. |
+| PII / secrets at rest | **AES-256-GCM via `node:crypto`** — key in an env/secret manager (never the DB), fresh 96-bit nonce per record, AAD bound to `user_id + column`, `key_version` for rotation | Encrypts payout details and provider keys. |
 | Payments | **`PaymentProvider` interface** — `SimulatedProvider` shipped; Paystack/Stripe/PayPal drop-in — with **signature-verified webhooks** | Deposit surface fail-closed behind flag + provider toggle + permission. |
-| Email | **Mailer abstraction — Resend (HTTP) on edge**; SMTP via a runtime-gated **dynamic import** only in the VPS build | Raw SMTP can't run on Workers and must be tree-shaken out of the edge bundle. |
-| Scheduled work | **Single job entrypoint** invoked per target (Vercel Cron / Cloudflare Cron Trigger / VPS cron) | For retention purges, token cleanup, and ledger reconciliation. v1 keeps request-path work event-driven. |
+| Email | **Mailer abstraction — Resend (default)** on Vercel; SMTP available on a VPS | Node runtime; no bundle gymnastics. |
+| Scheduled work | **Single job entrypoint** — Vercel Cron (Hobby ≈ daily) or VPS cron | Retention purges, token cleanup, ledger reconciliation. Request-path work stays event-driven. |
 | Testing | **Vitest** (unit) + integration tests against **real Postgres** for money paths; Playwright optional later | Concurrency, idempotency, and CTE atomicity can't be validated against a mock. |
 | Tooling | **ESLint + Prettier + TS strict**, Husky pre-commit | Clean, consistent, review-friendly code. |
 
-### 4.1 Deployment portability (honest matrix)
+### 4.1 Deployment portability
 
 | Target | Cost | Notes |
 |--------|------|-------|
-| **Vercel Hobby** | Free | **Primary submission host.** Native Node runtime; git-push deploy + CI. |
-| **VPS (Docker)** | Cheap | Next.js + Postgres in Docker; node-postgres driver; SMTP available. |
-| **Cloudflare Workers** | **~$5/mo (Paid)** | Via OpenNext. A real Next.js app of this scope exceeds the **3 MB Free** compressed limit (a bare OpenNext bundle is already ~3–3.5 MB), so the **Paid 10 MB** plan is required. Not a free target. |
+| **Vercel** | Free Hobby / paid Pro | **Primary host.** Node serverless runtime; git-push deploy + CI. Hobby cron runs ≈ daily (fine for retention/reconcile). |
+| **VPS (Docker)** | Cheap | Next.js (Node) + Postgres in Docker; direct DB connection; SMTP available. |
+| **Cloudflare Workers / edge** | — | **Out of scope.** Prisma driver adapters don't yet support edge/Workers, and it's not a requirement. |
 
-Portability rules that constrain every choice:
-- No Node-only native binaries on the request path (rules out argon2/bcrypt, `sharp`, raw
-  SMTP on Workers).
-- All I/O (DB **driver**, storage, email, payments, rate-limit store, scheduler) sits
-  behind an interface so a target swap is an adapter/config change, not a rewrite. Swapping
-  the DB is a **driver-adapter** swap (Neon WS ↔ node-postgres), not literally connection-
-  string-only — the schema and the money SQL stay identical.
+Portability holds because all I/O — DB connection, storage, email, payments, rate-limit
+store, scheduler — sits behind an interface. Moving Vercel ↔ VPS is a config/adapter
+change (connection URLs, cron trigger, mailer transport), not a rewrite. Native
+dependencies (argon2, `sharp`) are fine on both since both are Node.
 
 ### 4.2 Project structure (high level)
 
@@ -156,17 +158,18 @@ app/                    # Next.js App Router (marketing, auth, dashboard, admin)
 components/             # Reusable UI (ui/ = shadcn primitives, shared/ = composed)
 lib/
   auth/                 # Better Auth config, session, RBAC + ownership guards
-  db/                   # Drizzle schema, driver adapters, migrations, seeds
+  db/                   # Prisma client singleton, schema, migrations, seeds
   money/                # Ledger service (CTE ops), Money value object, idempotency, reconcile
   flags/                # Feature-flag service + fail-closed guards
   payments/             # PaymentProvider interface, providers, webhook verification
-  storage/              # R2 presign (aws4fetch), per-user key policy
+  storage/              # R2 presign, per-user key policy
   crypto/               # AES-GCM encrypt/decrypt (nonce, AAD, key_version)
   kyc/                  # KYC service + level/limit gating
   ratelimit/            # Shared-store limiter adapter
   scheduler/            # Single job entrypoint (retention, cleanup, reconcile)
   validation/           # Shared Zod schemas
 server/                 # Server actions / route handlers grouped by domain
+prisma/                 # schema.prisma, migrations, seed
 tests/                  # Vitest unit + integration (money paths first, real Postgres)
 ```
 
@@ -178,11 +181,11 @@ and KYC are UI-free services, unit-testable in isolation.
 ## 5. Money representation
 
 - **Integer minor units only.** Every amount is a count of the currency's minor unit
-  (cents, kobo) as a **`bigint`**. No floating-point money anywhere.
-- **bigint end-to-end.** The pg/Neon `int8` parser and Drizzle column mode return `bigint`
-  (not JS `number`, which loses precision above 2^53). The `Money` value object operates
-  on `bigint`, and API responses serialize amounts as **strings** at an explicit boundary
-  (bigint is not JSON-serializable).
+  (cents, kobo) as a Postgres `BigInt`, which Prisma maps to JS **`bigint`**. No
+  floating-point money anywhere.
+- **bigint end-to-end.** The `Money` value object operates on `bigint`; API responses
+  serialize amounts as **strings** at an explicit boundary (`bigint` is not
+  JSON-serializable).
 - **Currency code** (`char(3)`, ISO 4217) travels with every amount and is **enforced at
   the DB level** (see §6.2) — not just in app code.
 - **Single currency per user** (chosen at registration). Wallet, claims, and transactions
@@ -196,19 +199,19 @@ and KYC are UI-free services, unit-testable in isolation.
 
 ## 6. Data model
 
-Postgres + Drizzle. All tables have `id` (uuid), `created_at timestamptz`, and (where
-mutable) `updated_at timestamptz`, all UTC. Money columns are `*_minor bigint` + `currency
-char(3)`.
+Postgres via Prisma (`schema.prisma` + `prisma migrate`). All models have `id` (uuid),
+`created_at` (`timestamptz`), and (where mutable) `updated_at` (`timestamptz`), all UTC.
+Money columns are `*_minor BigInt` + `currency char(3)`.
 
 ### 6.1 Identity & access
 
-- **users**: `id`, `first_name`, `last_name`, `email` (unique, citext), `phone`,
+- **users**: `id`, `first_name`, `last_name`, `email` (unique, case-insensitive), `phone`,
   `phone_country`, `country`, `timezone` (IANA, e.g. `Africa/Lagos`), `locale`,
   `currency`, `password_hash`, `email_verified_at`, `role_id`, `status`
   (`pending` | `active` | `suspended`), `kyc_level` (`none` | `basic` | `full`),
   `two_factor_enabled`, `session_epoch int`, `created_at`, `updated_at`.
 - **roles**: `id`, `name` (unique), `permissions text[]`, `is_system`.
-- **sessions / accounts / verification**: Better Auth's schema.
+- **sessions / accounts / verification**: Better Auth's Prisma models.
 - **audit_logs** *(append-only; no app-level update/delete)*: `id`, `actor_id`, `action`,
   `entity_type`, `entity_id`, `before jsonb`, `after jsonb`, `ip_address`, `user_agent`,
   `created_at`. Written for every money mutation, config change (settings, flags, roles,
@@ -217,8 +220,8 @@ char(3)`.
 
 ### 6.2 Wallet & ledger
 
-- **wallets**: `id`, `user_id` (unique), `balance_minor bigint`, `currency`, `updated_at`.
-  A **unique key on (`id`, `currency`)** backs the composite FK below. Balance is a
+- **wallets**: `id`, `user_id` (unique), `balance_minor BigInt`, `currency`, `updated_at`.
+  A **unique constraint on (`id`, `currency`)** backs the composite FK below. Balance is a
   materialized cache of the ledger; it may go **negative only via `adjustment` /
   `*_reversal` sources** (a receivable), never via a user withdrawal.
 - **wallet_transactions** *(append-only ledger; never updated or deleted)*:
@@ -227,9 +230,10 @@ char(3)`.
   `withdrawal_reversal` | `deposit` | `adjustment`), `reference_type`, `reference_id`,
   `idempotency_key` (**globally unique**), `balance_after_minor`, `reason_code`, `memo`,
   `created_at`.
-  - **Currency integrity:** composite FK `(wallet_id, currency) REFERENCES wallets(id,
-    currency)` rejects any ledger row whose currency differs from its wallet — silent
-    currency-mixing is impossible at the DB level.
+  - **Currency integrity:** a composite FK `(wallet_id, currency) REFERENCES wallets(id,
+    currency)` — added in the Prisma migration (`@@unique([id, currency])` on wallets +
+    a multi-field relation, or a raw SQL constraint) — rejects any ledger row whose
+    currency differs from its wallet. Silent currency-mixing is impossible at the DB level.
   - `balance_after_minor` is always taken from the atomic statement's `RETURNING`, never
     from a prior app-side read.
 
@@ -291,38 +295,42 @@ The ledger is the heart of the app. Correctness rules:
    a new compensating row.
 2. **Cached balance is a materialization.** `wallets.balance_minor` always equals the
    signed sum of the ledger; a reconciliation job asserts this and alerts on drift.
-3. **One atomic statement per money op.** Each operation is a **single CTE** so the ledger
-   insert is *gated by* the balance update — there is no two-statement window. This is
-   correct on Neon's non-interactive HTTP path *and* on node-postgres, under READ
-   COMMITTED, with **no SELECT-then-write** anywhere.
+3. **One atomic statement per money write.** Each balance change is a **single CTE**
+   (executed via Prisma `$queryRaw`/`$executeRaw`) so the ledger insert is *gated by* the
+   balance update — no two-statement window. Correct under READ COMMITTED, one round trip,
+   with **no SELECT-then-write** anywhere:
 
    ```sql
    -- User debit (withdrawal): insert happens only if funds suffice
    WITH upd AS (
      UPDATE wallets
-        SET balance_minor = balance_minor - $amt, updated_at = now()
-      WHERE id = $wallet_id AND balance_minor >= $amt
+        SET balance_minor = balance_minor - $1, updated_at = now()
+      WHERE id = $2 AND balance_minor >= $1
       RETURNING balance_minor
    )
    INSERT INTO wallet_transactions
      (wallet_id, user_id, currency, direction, amount_minor, source,
       reference_type, reference_id, idempotency_key, balance_after_minor)
-   SELECT $wallet_id, $user_id, $currency, 'debit', $amt, 'withdrawal',
-          'withdrawal', $withdrawal_id, $idem_key, balance_minor
+   SELECT $2, $3, $4, 'debit', $1, 'withdrawal',
+          'withdrawal', $5, $6, balance_minor
    FROM upd
    RETURNING id;
    ```
    Zero inserted rows ⇒ **insufficient funds** (the handler raises it). Credits use the
-   symmetric CTE (`balance_minor + $amt`, no predicate). Admin **reversal/adjustment**
-   debits omit the `>= $amt` predicate so a clawback can drive the balance negative.
+   symmetric CTE (`balance_minor + $1`, no predicate). Admin **reversal/adjustment** debits
+   omit the `>= $1` predicate so a clawback can drive the balance negative.
 
-4. **No overdraw for users.** User-initiated debits always carry the `>= $amt` predicate.
+4. **Compound operations** (e.g. approve claim = mark claim `credited` **and** credit the
+   ledger) wrap the CTE and the related row update in a single `prisma.$transaction`
+   (interactive, supported on the Node runtime). The idempotency key is the ultimate
+   backstop: if a crash splits the steps, a retry re-runs, the ledger write no-ops on the
+   unique key, and the status update completes — the operation is self-healing.
+5. **No overdraw for users.** User-initiated debits always carry the `>= $1` predicate.
    There is no hard `CHECK (balance_minor >= 0)` (it would block legitimate clawbacks);
    the predicate + the reconciliation job are the guarantees.
-5. **Idempotency.** Every ledger write carries a **globally unique** `idempotency_key`
-   derived from its source event. A duplicate insert violates the unique constraint and
-   rolls back the whole statement (including the balance change), so retries never
-   double-post:
+6. **Idempotency.** Every ledger write carries a **globally unique** `idempotency_key`. A
+   duplicate insert violates the unique constraint and rolls back the statement, so retries
+   never double-post:
 
    | Event | Key |
    |-------|-----|
@@ -335,26 +343,24 @@ The ledger is the heart of the app. Correctness rules:
 
 ### 7.1 Operation flows
 
-- **Claim approval → credit.** One CTE inserts a `credit` (`source=claim`) and increments
-  the balance. Claim → `credited`.
-- **Withdrawal request → debit-on-request.** Creating a withdrawal debits spendable balance
-  via the predicated CTE (funds leave immediately so they can't be requested twice).
-  Ownership is asserted first: `payout_method.user_id == session.user.id` and `active`.
-  Withdrawal → `requested`.
+- **Claim approval → credit.** In one `prisma.$transaction`: the credit CTE
+  (`source=claim`) and `claims.status → credited`.
+- **Withdrawal request → debit-on-request.** Ownership asserted first
+  (`payout_method.user_id == session.user.id`, `active`); then the predicated debit CTE
+  (funds leave immediately so they can't be requested twice). Withdrawal → `requested`.
   - **Completion:** `requested → (processing) → completed`; no balance change.
-  - **Failure/cancel:** insert a compensating `credit` (`source=withdrawal_reversal`,
-    idempotent) to restore balance; status → `failed`/`cancelled`.
-  - **Post-completion bounce:** handled via the permissioned adjustment path (idempotent
-    `adjustment:<id>`), which may drive the balance negative.
+  - **Failure/cancel:** compensating `credit` CTE (`source=withdrawal_reversal`,
+    idempotent) restores balance; status → `failed`/`cancelled`.
+  - **Post-completion bounce:** handled via the permissioned adjustment path
+    (`adjustment:<id>`), which may drive the balance negative.
 
   > *Documented refinement of the brief.* The brief says "debit on completion." We debit on
   > **request** and reverse on failure, because debit-on-completion allows concurrent
-  > requests against the same balance. Reserve-on-request keeps the spendable balance
-  > accurate at all times.
+  > requests against the same balance. Reserve-on-request keeps spendable balance accurate.
 
 - **Deposit confirmation → credit.** Only on a **signature-verified** provider webhook that
-  also **re-asserts `deposits_enabled` + provider `enabled`** server-side. One CTE credits
-  the wallet (`source=deposit`, idempotent on `deposit:<provider>:<provider_reference>`).
+  also **re-asserts `deposits_enabled` + provider `enabled`** server-side. The credit CTE
+  (`source=deposit`) is idempotent on `deposit:<provider>:<provider_reference>`.
 - **Reversal / adjustment.** Requires `reverse_claims` (clawbacks) or
   `manage_wallet_adjustments` (adjustments), a reason code + memo, maker-checker above the
   configured threshold, and an audit entry. May take the balance negative (a receivable);
@@ -362,8 +368,8 @@ The ledger is the heart of the app. Correctness rules:
 
 ### 7.2 Reconciliation
 A scheduled job recomputes `SUM(signed ledger)` per wallet and compares to
-`balance_minor`, recording and alerting on any drift. Property-based tests assert the
-invariant holds after randomized interleaved credit/debit/reversal sequences.
+`balance_minor`, recording and alerting on drift. Property-based tests assert the invariant
+holds after randomized interleaved credit/debit/reversal sequences.
 
 ---
 
@@ -512,7 +518,7 @@ Every transition records actor + timestamp (and before/after for sensitive ones)
   2. double-reversal / double-fail is idempotent (**no double-credit**);
   3. clawback-exceeds-balance drives a controlled negative (receivable), not a silent
      no-op;
-  4. concurrent-request safety (no overdraw, no double-spend) via the real Neon/pg path;
+  4. concurrent-request safety (no overdraw, no double-spend) via the real DB path;
   5. a **property-based reconciliation** test: `balance == signed ledger sum` after N
      interleaved ops.
 - **Security:** gated-feature-off returns 403/404 (missing row + simulated DB error both
@@ -523,7 +529,8 @@ Every transition records actor + timestamp (and before/after for sensitive ones)
 
 ## 15. Bigint, currency & timezone conventions (quick reference)
 
-- Money in code: `bigint` minor units; format via `Money` using the user's locale.
+- Money in code: `bigint` minor units (Prisma `BigInt`); format via `Money` using the
+  user's locale.
 - Money over the wire: strings; parse/serialize at the API boundary.
 - Timestamps: `timestamptz` UTC in DB; render in `users.timezone`.
 - Currency: one per user; DB composite FK enforces ledger↔wallet currency equality.
@@ -536,17 +543,17 @@ Each phase ends in a demoable, deployed increment. Money paths get tests as they
 
 ### Phase 0 — Foundation
 Repo, tooling (TS strict, ESLint, Prettier, Husky), Tailwind + shadcn init, base layout &
-tokens, Drizzle + driver adapters (Neon WS / node-postgres), **role seeds + first-admin
-bootstrap**, CI, and a "hello" deploy verified on **Vercel** (primary) plus documented
-Workers (Paid) + VPS builds.
-**Done when:** the skeleton deploys on Vercel and builds for Workers and Docker; seeds and
+tokens, **Prisma + Neon (adapter) / Supabase** wired with `DATABASE_URL` + `DIRECT_URL`,
+**role seeds + first-admin bootstrap**, CI, and a "hello" deploy on **Vercel** (primary)
+plus a documented VPS (Docker) build.
+**Done when:** the skeleton deploys on Vercel and builds for Docker; migrations, seeds, and
 bootstrap run.
 
 ### Phase 1 — Auth + RBAC + Feature flags
 Registration (country, timezone, intl phone, currency) with **wallet created in the same
-transaction**, email verification, login, password reset, account status + limited pending
-dashboard, roles/permissions with the escalation rules, session invalidation, and the
-fail-closed feature-flag system with server + client guards.
+transaction**, email verification, login, password reset (argon2id hashing), account status
++ limited pending dashboard, roles/permissions with the escalation rules, session
+invalidation, and the fail-closed feature-flag system with server + client guards.
 **Done when:** register→verify→login works; a wallet exists for every user; an admin
 toggles a flag and sees it fail closed; permission + ownership guards enforced; suspend
 invalidates sessions.
@@ -557,9 +564,10 @@ constrained PUT), draft/submit lifecycle, claim list/detail, user dashboard shel
 **Done when:** a user submits a multi-item claim with image proofs and sees it `submitted`.
 
 ### Phase 3 — Admin review + wallet crediting (ledger core)
-Admin claims queue, approve/reject with notes, the append-only ledger, **CTE crediting**,
-currency-integrity FK, and the wallet view with transaction history. **The money core** —
-ledger unit + real-Postgres integration/reconciliation tests land here.
+Admin claims queue, approve/reject with notes, the append-only ledger, **CTE crediting**
+(inside a `prisma.$transaction`), currency-integrity FK, and the wallet view with
+transaction history. **The money core** — ledger unit + real-Postgres
+integration/reconciliation tests land here.
 **Done when:** approving a claim credits the wallet exactly once, the ledger sums to the
 balance, and concurrency/idempotency/reconciliation tests pass.
 
@@ -588,7 +596,7 @@ closed when off.
 Marketing pages, in-app notifications, statement/CSV export, accessibility + responsive
 polish, full test pass, security review, and deployment hardening across targets.
 **Done when:** the app is submission-ready — responsive, tested, documented, deployed on
-Vercel (and building for Workers/VPS).
+Vercel (and building for a VPS).
 
 ### Phase 8 — Rebate extensions *(optional backlog; each its own increment)*
 Pick per client demand; each ships independently with its own acceptance criteria:
@@ -605,16 +613,17 @@ Pick per client demand; each ships independently with its own acceptance criteri
 ## 17. Decisions locked & assumptions
 
 **Locked (this session):**
-- ORM **Drizzle**; DB **Neon**; **driver adapters** (Neon WS on Vercel/Workers,
-  node-postgres on a local-Postgres VPS) — a driver swap, not connection-string-only.
+- **Vercel-first hosting** (Node serverless), **VPS/Docker** supported; **Cloudflare
+  Workers / edge is out of scope**.
+- ORM **Prisma**; DB **Neon (default) or Supabase** — Postgres via a Prisma driver adapter
+  with `DATABASE_URL` (pooled) + `DIRECT_URL` (migrations).
 - **No P2P transfer** in v1 (ledger stays transfer-ready).
 - **Single currency per user, no FX**; currency integrity enforced at the DB level.
-- Primary **free** host **Vercel Hobby**; VPS cheap; **Cloudflare Workers requires the Paid
-  (~$5/mo) plan** — not free at this app's size.
-- Password hashing **scrypt** (pure-JS `@noble`, tuned) — portable substitute for
-  argon2/bcrypt.
-- Money ops are a **single CTE statement** (not two statements); overdraw guarded by the
-  predicate; reversals/adjustments may go negative (receivable).
+- Password hashing **argon2id** (`@node-rs/argon2`) — honoring the brief on the Node
+  runtime.
+- Money writes are a **single CTE statement** via Prisma raw SQL; compound ops wrapped in
+  `prisma.$transaction`; overdraw guarded by the predicate; reversals/adjustments may go
+  negative (receivable); idempotency keys make partial failures self-healing.
 - Withdrawals **debit-on-request**, reverse on failure.
 - **2FA mandatory** to reach the money surface; step-up + notify + cooldown on ATO
   surfaces.
@@ -622,15 +631,17 @@ Pick per client demand; each ships independently with its own acceptance criteri
   at registration.
 
 **Assumptions (flag if wrong):**
+- DB provider defaults to **Neon**; Supabase is a documented connection-config swap.
 - Deposits ship **off by default**; the client enables providers when ready.
-- Email uses Resend on hosted targets, SMTP on a VPS (dynamic-imported).
+- Email uses Resend on Vercel, SMTP on a VPS.
 - KYC in v1 is **manual admin review** (no third-party vendor); a vendor can slot behind
   the same interface later.
-- Rate-limit shared store is provisioned per target (KV / Upstash / Redis).
+- Rate-limit shared store is Upstash Redis on Vercel (or Redis/DB on a VPS).
 
 ---
 
 ## 18. Out of scope (v1)
 
 Real fund custody/licensing, FX/multi-currency conversion, P2P transfers, third-party KYC
-vendors, native mobile apps, and any affiliate/link-tracking mechanics.
+vendors, native mobile apps, Cloudflare Workers / edge-runtime deployment, and any
+affiliate/link-tracking mechanics.
