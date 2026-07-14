@@ -89,7 +89,7 @@ export async function getStatWidgets(): Promise<StatWidget[]> {
       value: toMajor(fees._sum.amountMinor ?? 0n),
       icon: Coins,
       tint: "amber",
-      href: "/admin/payment-settings",
+      href: "/admin/payment-gateways",
       isCurrency: true,
     },
   ];

@@ -84,11 +84,6 @@ const NAV: NavGroup[] = [
   {
     label: "Configuration",
     items: [
-      {
-        title: "Payment settings",
-        href: "/admin/payment-settings",
-        icon: CreditCard,
-      },
       { title: "Feature flags", href: "/admin/feature-flags", icon: Flag },
       { title: "Settings", href: "/admin/settings", icon: Settings },
     ],
