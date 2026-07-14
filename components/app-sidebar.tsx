@@ -12,7 +12,6 @@ import {
   Coins,
   CreditCard,
   FileCheck,
-  Flag,
   KeyRound,
   Landmark,
   LayoutDashboard,
@@ -148,10 +147,7 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Configuration",
-    items: [
-      { title: "Feature flags", href: "/admin/feature-flags", icon: Flag },
-      { title: "Settings", href: "/admin/settings", icon: Settings },
-    ],
+    items: [{ title: "Settings", href: "/admin/settings", icon: Settings }],
   },
 ];
 

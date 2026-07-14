@@ -448,7 +448,7 @@ holds after randomized interleaved credit/debit/reversal sequences.
   `/payout-methods`, `/kyc`, `/settings`
 - **Admin (shadcn):** `/admin`, `/admin/claims`, `/admin/claims/:id`, `/admin/kyc`,
   `/admin/users`, `/admin/withdrawals`, `/admin/deposits`, `/admin/payment-settings`,
-  `/admin/feature-flags`, `/admin/settings`
+  `/admin/settings` _(feature flags live here as a settings section, not their own route)_
 
 ---
 
