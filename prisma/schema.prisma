@@ -71,6 +71,7 @@ model User {
   withdrawals    Withdraw[]
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
+  createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
 
   @@index([status])
   @@index([kycStatus])
@@ -467,13 +468,20 @@ model Product {
 }
 
 model ActivationCode {
-  id        String    @id @default(uuid())
-  code      String    @unique
-  createdBy String?
-  usedById  String?
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  id        String   @id @default(uuid())
+  code      String   @unique
+  type      String   @default("admin_created") // admin_created | user_entered
+  status    String   @default("active") // active | suspended
+  notes     String?
+  createdBy String? // admin's user id; null once the admin is deleted, or for a system/user-entered code
+  createdByAdmin User? @relation("ActivationCodeCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdByName  String? @map("created_by_name") // snapshot; survives the admin being renamed/deleted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
   @@map("activation_codes")
 }
 

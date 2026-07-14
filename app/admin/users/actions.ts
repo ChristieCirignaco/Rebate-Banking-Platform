@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 import { getAdminSession, getSuperAdminSession } from "@/lib/auth-guards";
 import { auth } from "@/lib/auth";
@@ -18,10 +19,18 @@ export async function createActivationCode(): Promise<
   if (!session) return { ok: false, error: "Not authorized." };
 
   const code = `RB-${randomUUID().slice(0, 8).toUpperCase()}`;
-  await prisma.activationCode.create({
-    data: { code, createdBy: session.user.id },
-  });
+  try {
+    await prisma.activationCode.create({
+      data: { code, createdBy: session.user.id, createdByName: session.user.name },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { ok: false, error: "Generated a duplicate code — please try again." };
+    }
+    return { ok: false, error: "Could not create an activation code. Please try again." };
+  }
   revalidatePath("/admin/users");
+  revalidatePath("/admin/activation-codes");
   return { ok: true, code };
 }
 

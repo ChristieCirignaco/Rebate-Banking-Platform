@@ -13,6 +13,7 @@ import {
   CreditCard,
   FileCheck,
   Flag,
+  KeyRound,
   Landmark,
   LayoutDashboard,
   LifeBuoy,
@@ -97,6 +98,7 @@ const NAV: NavGroup[] = [
     items: [
       { title: "Users", href: "/admin/users", icon: Users },
       { title: "Admins", href: "/admin/users/admin", icon: UserCog },
+      { title: "Activation Codes", href: "/admin/activation-codes", icon: KeyRound },
     ],
   },
   {

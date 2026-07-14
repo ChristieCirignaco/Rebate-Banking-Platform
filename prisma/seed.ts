@@ -346,10 +346,65 @@ async function main() {
     await createWalletWithTxns(admin.id, "USD", true, usdTxns(1));
   }
 
+  // ----- Activation codes (idempotent: full reset; demo users below link to these) -----
+  await prisma.activationCode.deleteMany({});
+  const SEED_CODES = [
+    {
+      code: "RB-4F9A21C6",
+      type: "admin_created",
+      status: "active",
+      notes: "Q1 growth campaign — shared in the newsletter.",
+    },
+    { code: "RB-7B3E88D0", type: "admin_created", status: "active", notes: null },
+    {
+      code: "RB-1A6C55F2",
+      type: "admin_created",
+      status: "active",
+      notes: "Partner referral batch.",
+    },
+    { code: "RB-9D2F0AE7", type: "admin_created", status: "active", notes: null },
+    {
+      code: "RB-C8140B93",
+      type: "admin_created",
+      status: "active",
+      notes: "Affiliate — trbrebate.com/promo",
+    },
+    { code: "RB-E5A73C4D", type: "admin_created", status: "active", notes: null },
+    {
+      code: "RB-2F6B90AA",
+      type: "admin_created",
+      status: "suspended",
+      notes: "Leaked publicly on a forum — suspended pending reissue.",
+    },
+    {
+      code: "RB-8C41D7E1",
+      type: "admin_created",
+      status: "suspended",
+      notes: "Campaign ended.",
+    },
+    { code: "WELCOME2026", type: "user_entered", status: "active", notes: null },
+    { code: "FRIENDINVITE", type: "user_entered", status: "active", notes: null },
+  ];
+  for (const seedCode of SEED_CODES) {
+    await prisma.activationCode.create({
+      data: {
+        code: seedCode.code,
+        type: seedCode.type,
+        status: seedCode.status,
+        notes: seedCode.notes,
+        createdBy: seedCode.type === "admin_created" ? admin.id : null,
+        createdByName: seedCode.type === "admin_created" ? admin.name : null,
+      },
+    });
+  }
+
   // ----- Demo users (idempotent: clear and recreate the @example.com set) -----
   await prisma.user.deleteMany({ where: { email: { endsWith: DEMO_DOMAIN } } });
 
   const createdIds: string[] = [];
+  // Concentrated on the first 3 seed codes so some codes show multiple "Recent Users"
+  // in the activation-codes detail view, while the rest sit at zero uses.
+  let usedCodeCounter = 0;
   for (let i = 0; i < NAMES.length; i += 1) {
     const name = NAMES[i];
     const kycStatus = KYC_STATUSES[i % KYC_STATUSES.length];
@@ -377,9 +432,7 @@ async function main() {
         controls: DEFAULT_CONTROLS,
         transferCodes: { imf: [], tax: [], cot: [] },
         activationCode:
-          i % 3 === 0
-            ? `RB-${(4096 + i * 137).toString(36).toUpperCase()}`
-            : null,
+          i % 3 === 0 ? SEED_CODES[usedCodeCounter++ % 3].code : null,
         referredById,
         lastLoginAt: i % 5 === 0 ? null : hoursAgo(1 + i * 3),
         createdAt: daysAgo(2 + i * 3),
@@ -1249,6 +1302,7 @@ async function main() {
     totalCategories,
     totalTickets,
     totalTicketMessages,
+    totalActivationCodes,
   ] = await Promise.all([
     prisma.withdrawMethod.count(),
     prisma.withdraw.count(),
@@ -1258,10 +1312,11 @@ async function main() {
     prisma.supportCategory.count(),
     prisma.ticket.count(),
     prisma.ticketMessage.count(),
+    prisma.activationCode.count(),
   ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications, ${totalKycTemplates} KYC templates, ${totalKycSubmissions} KYC submissions, ${totalCategories} support categories, ${totalTickets} tickets, ${totalTicketMessages} ticket messages.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications, ${totalKycTemplates} KYC templates, ${totalKycSubmissions} KYC submissions, ${totalCategories} support categories, ${totalTickets} tickets, ${totalTicketMessages} ticket messages, ${totalActivationCodes} activation codes.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(
