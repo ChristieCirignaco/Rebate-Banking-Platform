@@ -72,7 +72,14 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Finance & Wallet",
-    items: [{ title: "Currencies", href: "/admin/currencies", icon: Coins }],
+    items: [
+      { title: "Currencies", href: "/admin/currencies", icon: Coins },
+      {
+        title: "Payment Gateways",
+        href: "/admin/payment-gateways",
+        icon: CreditCard,
+      },
+    ],
   },
   {
     label: "Configuration",

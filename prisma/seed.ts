@@ -403,17 +403,44 @@ async function main() {
     }
   }
 
-  const [totalUsers, totalWallets, totalTxns, totalProducts, totalCurrencies] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.wallet.count(),
-      prisma.walletTransaction.count(),
-      prisma.product.count(),
-      prisma.currency.count(),
-    ]);
+  // ----- Payment gateways (idempotent upsert; preserves admin-set credentials/status) --
+  const GATEWAYS = [
+    { slug: "paypal", name: "PayPal", logo: "/gateways/paypal.svg", supportedCurrencies: ["USD", "EUR", "GBP", "AUD", "CAD"], withdrawAvailable: true },
+    { slug: "stripe", name: "Stripe", logo: "/gateways/stripe.svg", supportedCurrencies: ["USD", "EUR", "GBP", "JPY", "INR", "SGD"], withdrawAvailable: false },
+    { slug: "paystack", name: "Paystack", logo: "/gateways/paystack.svg", supportedCurrencies: ["NGN", "GHS", "ZAR", "KES", "USD"], withdrawAvailable: true },
+    { slug: "cryptomus", name: "Cryptomus", logo: "/gateways/cryptomus.svg", supportedCurrencies: ["USDT", "BTC", "ETH", "USDC", "TRX"], withdrawAvailable: true },
+  ];
+  for (const gateway of GATEWAYS) {
+    await prisma.paymentGateway.upsert({
+      where: { slug: gateway.slug },
+      update: {
+        name: gateway.name,
+        logo: gateway.logo,
+        supportedCurrencies: gateway.supportedCurrencies,
+        withdrawAvailable: gateway.withdrawAvailable,
+      },
+      create: { ...gateway, isActive: false },
+    });
+  }
+
+  const [
+    totalUsers,
+    totalWallets,
+    totalTxns,
+    totalProducts,
+    totalCurrencies,
+    totalGateways,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.wallet.count(),
+    prisma.walletTransaction.count(),
+    prisma.product.count(),
+    prisma.currency.count(),
+    prisma.paymentGateway.count(),
+  ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(

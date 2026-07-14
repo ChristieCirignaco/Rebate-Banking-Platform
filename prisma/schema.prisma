@@ -213,6 +213,28 @@ model CurrencyRole {
 }
 
 // ---------------------------------------------------------------------------
+// Automatic payment gateways. Metadata is public; credential values (keys/secrets)
+// live in `credentials` as a single AES-256-GCM-encrypted JSON blob and are never
+// returned to the client in the clear. The webhook/IPN URL is derived from the app
+// URL at read time, not stored.
+// ---------------------------------------------------------------------------
+
+model PaymentGateway {
+  id                  String   @id @default(uuid())
+  slug                String   @unique
+  name                String
+  logo                String?
+  supportedCurrencies String[] @map("supported_currencies")
+  withdrawAvailable   Boolean  @default(false) @map("withdraw_available")
+  isActive            Boolean  @default(false) @map("is_active")
+  credentials         String?  @map("credentials") // AES-256-GCM encrypted JSON of the gateway's fields
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("payment_gateways")
+}
+
+// ---------------------------------------------------------------------------
 // App support models
 // ---------------------------------------------------------------------------
 
