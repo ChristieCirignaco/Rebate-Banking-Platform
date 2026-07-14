@@ -37,7 +37,7 @@ export function WithdrawsTabs({
   return (
     <Tabs defaultValue="requests" className="gap-4">
       <div className="w-full overflow-x-auto pb-2 -mb-2">
-        <TabsList className="w-max min-w-full justify-start">
+        <TabsList className="w-max justify-start">
         <TabsTrigger value="requests">
           <ClipboardList className="size-4" />
           Manual Requests
