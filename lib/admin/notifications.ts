@@ -39,7 +39,8 @@ export async function getAdminNotifications(
 
   const rows = await prisma.notification.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    // id tiebreaker keeps paging stable when timestamps tie.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     skip: (page - 1) * pageSize,
     take: pageSize,
   });

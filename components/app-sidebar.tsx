@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Package,
+  Receipt,
   Settings,
   ShieldCheck,
   Users,
@@ -95,6 +96,7 @@ const NAV: NavGroup[] = [
   {
     label: "Finance & Wallet",
     items: [
+      { title: "Transactions", href: "/admin/transaction", icon: Receipt },
       { title: "Currencies", href: "/admin/currencies", icon: Coins },
       {
         title: "Payment Gateways",

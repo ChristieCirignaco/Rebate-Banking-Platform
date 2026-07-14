@@ -186,7 +186,8 @@ export async function getWithdrawHistory(
   const rows = await prisma.withdraw.findMany({
     where,
     include: { user: { select: { id: true, name: true, email: true, image: true } } },
-    orderBy: { createdAt: "desc" },
+    // id tiebreaker keeps paging stable when timestamps tie.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     skip: (page - 1) * pageSize,
     take: pageSize,
   });
