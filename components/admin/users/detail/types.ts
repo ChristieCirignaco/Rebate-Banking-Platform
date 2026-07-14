@@ -24,6 +24,8 @@ export interface UserDetail {
   avatarUrl?: string;
   lastLogin?: string; // ISO
   browser: string; // e.g. "Chrome on macOS"
+  withdrawalStatus: WithdrawalStatus;
+  withdrawalMessage: string; // message shown to the user when withdrawals are restricted
 }
 
 export interface DetailWallet {

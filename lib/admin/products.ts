@@ -104,7 +104,8 @@ export async function getProductSubmissions(
   const rows = await prisma.product.findMany({
     where,
     include: { user: true },
-    orderBy: { createdAt: "desc" },
+    // id tiebreaker keeps paging stable when timestamps tie.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     skip: (page - 1) * pageSize,
     take: pageSize,
   });

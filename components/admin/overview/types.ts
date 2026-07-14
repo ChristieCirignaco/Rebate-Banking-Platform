@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 
-// Shared data shapes for the admin overview. Keep presentation components driven by
-// these so the mock data in mock-data.ts can be swapped for real API data later.
+// Shared data shapes for the admin overview. Presentation components are driven by
+// these; live data is mapped into them in lib/admin/dashboard.ts.
 
 export type StatTint =
   "emerald" | "blue" | "violet" | "amber" | "rose" | "cyan";

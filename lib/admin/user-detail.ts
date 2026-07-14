@@ -115,6 +115,8 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     avatarUrl: dbUser.image ?? undefined,
     lastLogin: dbUser.lastLoginAt?.toISOString(),
     browser: latestSession ? Object.values(parseUserAgent(latestSession.userAgent)).join(" on ") : "Unknown",
+    withdrawalStatus: (dbUser.withdrawalStatus as UserDetail["withdrawalStatus"]) ?? "allowed",
+    withdrawalMessage: dbUser.withdrawalMessage ?? "",
   };
 
   const wallets: DetailWallet[] = dbUser.wallets.map((wallet) => ({

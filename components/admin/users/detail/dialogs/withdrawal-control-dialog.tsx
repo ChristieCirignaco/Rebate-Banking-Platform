@@ -7,7 +7,6 @@ import {
   Ban,
   CheckCircle2,
   Clock,
-  Loader2,
   PauseCircle,
   ShieldAlert,
 } from "lucide-react";
@@ -109,25 +108,27 @@ export function WithdrawalControlDialog({
   onUpdateStatus: (payload: WithdrawalControlPayload) => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [loading, setLoading] = React.useState(true);
-  const [status, setStatus] = React.useState<WithdrawalStatus>("allowed");
+  const [status, setStatus] = React.useState<WithdrawalStatus>(
+    user.withdrawalStatus,
+  );
   const [adminNote, setAdminNote] = React.useState("");
-  const [userMessage, setUserMessage] = React.useState("");
+  const [userMessage, setUserMessage] = React.useState(user.withdrawalMessage);
 
+  // Seed the form from the user's actual saved control each time it opens — the props are
+  // fresh from the server, so re-reading them here keeps the form in sync after a
+  // router.refresh() without a setState-in-effect.
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) setLoading(true);
+    if (next) {
+      setStatus(user.withdrawalStatus);
+      setAdminNote("");
+      setUserMessage(user.withdrawalMessage);
+    }
   }
-
-  // Simulate loading the saved settings (async setState only — no sync set in effect).
-  React.useEffect(() => {
-    if (!open || !loading) return;
-    const timer = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, [open, loading]);
 
   const impact = STATUS_IMPACT[status];
   const ImpactIcon = impact.icon;
+  const currentImpact = STATUS_IMPACT[user.withdrawalStatus];
 
   function handleUpdate() {
     onUpdateStatus({
@@ -155,124 +156,123 @@ export function WithdrawalControlDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="text-muted-foreground flex items-center justify-center gap-2 py-16 text-sm">
-            <Loader2 className="size-4 animate-spin" />
-            Loading withdrawal control settings…
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border p-3">
-                  <p className="text-muted-foreground text-xs uppercase">
-                    User Information
-                  </p>
-                  <p className="mt-1 font-medium">{user.name}</p>
-                  <p className="text-muted-foreground text-sm">{user.email}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-muted-foreground text-xs uppercase">
-                    Current Status
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
-                      Allowed
-                    </Badge>
-                    <span className="text-muted-foreground text-xs">
-                      No control set
-                    </span>
-                  </div>
-                </div>
+        <>
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground text-xs uppercase">
+                  User Information
+                </p>
+                <p className="mt-1 font-medium">{user.name}</p>
+                <p className="text-muted-foreground text-sm">{user.email}</p>
               </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label>Withdrawal Status</Label>
-                  <Select
-                    value={status}
-                    onValueChange={(value) =>
-                      setStatus(value as WithdrawalStatus)
-                    }
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground text-xs uppercase">
+                  Current Status
+                </p>
+                <div className="mt-1 flex items-center gap-2">
+                  <Badge
+                    className={cn(
+                      "border capitalize",
+                      currentImpact.box,
+                      currentImpact.iconColor,
+                    )}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_ORDER.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {STATUS_IMPACT[value].selectLabel}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {user.withdrawalStatus}
+                  </Badge>
+                  <span className="text-muted-foreground text-xs">
+                    {currentImpact.title}
+                  </span>
                 </div>
-                <div
-                  className={cn(
-                    "flex items-start gap-2 rounded-lg border p-3",
-                    impact.box,
-                  )}
-                >
-                  <ImpactIcon
-                    className={cn("mt-0.5 size-4 shrink-0", impact.iconColor)}
-                  />
-                  <div>
-                    <p className="text-sm font-medium">{impact.title}</p>
-                    <p className="text-muted-foreground text-xs">
-                      {impact.description}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="wc-admin-note">Admin Note</Label>
-                <Textarea
-                  id="wc-admin-note"
-                  rows={2}
-                  value={adminNote}
-                  onChange={(event) => setAdminNote(event.target.value)}
-                  placeholder="Internal note (not shown to the user)"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="wc-user-message">User Message</Label>
-                <Textarea
-                  id="wc-user-message"
-                  rows={2}
-                  value={userMessage}
-                  onChange={(event) => setUserMessage(event.target.value)}
-                  placeholder="Message shown to the user"
-                />
-                <p className="text-muted-foreground text-xs">
-                  This message will be displayed to the user when they try to
-                  withdraw and will be sent via email.
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
-                <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
-                  Important
-                </p>
-                <ul className="text-muted-foreground mt-1 list-disc space-y-1 pl-4 text-xs">
-                  <li>
-                    Any non-allowed status redirects the user to a status page.
-                  </li>
-                  <li>An email is sent to the user with your message.</li>
-                  <li>All changes are logged for audit.</li>
-                </ul>
               </div>
             </div>
 
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleUpdate}>Update Status</Button>
-            </DialogFooter>
-          </>
-        )}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Withdrawal Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(value) =>
+                    setStatus(value as WithdrawalStatus)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_ORDER.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {STATUS_IMPACT[value].selectLabel}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div
+                className={cn(
+                  "flex items-start gap-2 rounded-lg border p-3",
+                  impact.box,
+                )}
+              >
+                <ImpactIcon
+                  className={cn("mt-0.5 size-4 shrink-0", impact.iconColor)}
+                />
+                <div>
+                  <p className="text-sm font-medium">{impact.title}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {impact.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="wc-admin-note">Admin Note</Label>
+              <Textarea
+                id="wc-admin-note"
+                rows={2}
+                value={adminNote}
+                onChange={(event) => setAdminNote(event.target.value)}
+                placeholder="Internal note (not shown to the user)"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="wc-user-message">User Message</Label>
+              <Textarea
+                id="wc-user-message"
+                rows={2}
+                value={userMessage}
+                onChange={(event) => setUserMessage(event.target.value)}
+                placeholder="Message shown to the user"
+              />
+              <p className="text-muted-foreground text-xs">
+                This message will be displayed to the user when they try to
+                withdraw and will be sent via email.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+              <p className="text-xs font-medium text-blue-700 dark:text-blue-400">
+                Important
+              </p>
+              <ul className="text-muted-foreground mt-1 list-disc space-y-1 pl-4 text-xs">
+                <li>
+                  Any non-allowed status redirects the user to a status page.
+                </li>
+                <li>An email is sent to the user with your message.</li>
+                <li>All changes are logged for audit.</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleUpdate}>Update Status</Button>
+          </DialogFooter>
+        </>
       </DialogContent>
     </Dialog>
   );

@@ -1,5 +1,5 @@
-// Data shapes for the users list. Keep components driven by these so the mock data
-// in mock-data.ts can be swapped for real API/DB data later.
+// Data shapes for the users list. Components are driven by these; live data is mapped
+// into them in lib/admin/users-list.ts.
 
 export type AccountStatus = "active" | "suspended" | "pending";
 export type EmailStatus = "verified" | "unverified";
