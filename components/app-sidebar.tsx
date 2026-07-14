@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Coins,
   CreditCard,
   Flag,
   Landmark,
@@ -68,6 +69,10 @@ const NAV: NavGroup[] = [
   {
     label: "People",
     items: [{ title: "Users", href: "/admin/users", icon: Users }],
+  },
+  {
+    label: "Finance & Wallet",
+    items: [{ title: "Currencies", href: "/admin/currencies", icon: Coins }],
   },
   {
     label: "Configuration",

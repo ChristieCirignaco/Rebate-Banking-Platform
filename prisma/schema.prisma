@@ -169,6 +169,50 @@ model WalletTransaction {
 }
 
 // ---------------------------------------------------------------------------
+// Currency configuration. The admin manages every supported currency (fiat or
+// crypto): display metadata, a manual "1 USD = rate" conversion rate, an auto-wallet
+// flag, default/active toggles, and per-role fee + limit config. `code` matches the
+// free String currency on wallets/transactions (kept without a hard FK so existing
+// wallet rows are never orphaned). Rates/fees/limits are config thresholds, so Decimal
+// — ledger money stays BigInt minor units.
+// ---------------------------------------------------------------------------
+
+model Currency {
+  id         String         @id @default(uuid())
+  code       String         @unique
+  name       String
+  symbol     String
+  type       String         @default("fiat") // fiat | crypto
+  flagUrl    String?        @map("flag_url")
+  rate       Decimal        @default(1) @map("rate") @db.Decimal(38, 18)
+  autoWallet Boolean        @default(false) @map("auto_wallet")
+  isDefault  Boolean        @default(false) @map("is_default")
+  isActive   Boolean        @default(true) @map("is_active")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  roles      CurrencyRole[]
+
+  @@index([type])
+  @@map("currencies")
+}
+
+model CurrencyRole {
+  id         String   @id @default(uuid())
+  currencyId String   @map("currency_id")
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  role       String // sender | voucher | payment | withdraw
+  feeType    String   @default("percent") @map("fee_type") // percent | fixed
+  feeValue   Decimal  @default(0) @map("fee_value") @db.Decimal(38, 18)
+  minAmount  Decimal  @default(0) @map("min_amount") @db.Decimal(38, 18)
+  maxAmount  Decimal  @default(0) @map("max_amount") @db.Decimal(38, 18)
+  enabled    Boolean  @default(true)
+
+  @@unique([currencyId, role])
+  @@index([currencyId])
+  @@map("currency_roles")
+}
+
+// ---------------------------------------------------------------------------
 // App support models
 // ---------------------------------------------------------------------------
 

@@ -19,13 +19,39 @@ export const auth = betterAuth({
   // Generate UUID ids for all Better Auth models (user/session/account/verification).
   advanced: { database: { generateId: () => randomUUID() } },
 
-  // Give every new user a default wallet.
+  // Give every new user a wallet for each active auto-wallet currency (the default
+  // currency backs their default wallet). Falls back to a USD wallet so signup never
+  // depends on currency config existing yet.
   databaseHooks: {
     user: {
       create: {
         after: async (user) => {
-          await prisma.wallet.create({
-            data: { userId: user.id, currency: "USD", isDefault: true },
+          const [defaultCurrency, autoCurrencies] = await Promise.all([
+            prisma.currency.findFirst({
+              where: { isDefault: true },
+              select: { code: true },
+            }),
+            prisma.currency.findMany({
+              where: { isActive: true, autoWallet: true },
+              select: { code: true },
+              orderBy: { code: "asc" },
+            }),
+          ]);
+
+          // The configured default currency always backs the default wallet (even if it
+          // isn't itself auto-wallet). Falls back to USD so signup never depends on config.
+          const defaultCode = defaultCurrency?.code ?? "USD";
+          const codes = Array.from(
+            new Set([defaultCode, ...autoCurrencies.map((currency) => currency.code)]),
+          );
+
+          await prisma.wallet.createMany({
+            data: codes.map((code) => ({
+              userId: user.id,
+              currency: code,
+              isDefault: code === defaultCode,
+            })),
+            skipDuplicates: true,
           });
         },
       },

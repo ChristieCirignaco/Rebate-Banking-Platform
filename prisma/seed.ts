@@ -354,16 +354,66 @@ async function main() {
     });
   }
 
-  const [totalUsers, totalWallets, totalTxns, totalProducts] =
+  // ----- Currencies (idempotent upsert by code) + their per-role fee/limit config -----
+  const SEED_CURRENCIES = [
+    { code: "USD", name: "US Dollar", symbol: "$", type: "fiat", rate: 1, isDefault: true, autoWallet: true },
+    { code: "EUR", name: "Euro", symbol: "€", type: "fiat", rate: 0.96, autoWallet: true },
+    { code: "GBP", name: "British Pound", symbol: "£", type: "fiat", rate: 0.79, autoWallet: false },
+    { code: "NGN", name: "Nigerian Naira", symbol: "₦", type: "fiat", rate: 1580, autoWallet: false },
+    { code: "USDT", name: "Tether", symbol: "₮", type: "crypto", rate: 1, autoWallet: false },
+  ];
+  const ROLE_KEYS = ["sender", "voucher", "payment", "withdraw"];
+  for (const spec of SEED_CURRENCIES) {
+    const currency = await prisma.currency.upsert({
+      where: { code: spec.code },
+      update: {
+        name: spec.name,
+        symbol: spec.symbol,
+        type: spec.type,
+        rate: spec.rate,
+        isDefault: spec.isDefault ?? false,
+        autoWallet: spec.autoWallet ?? false,
+        isActive: true,
+      },
+      create: {
+        code: spec.code,
+        name: spec.name,
+        symbol: spec.symbol,
+        type: spec.type,
+        rate: spec.rate,
+        isDefault: spec.isDefault ?? false,
+        autoWallet: spec.autoWallet ?? false,
+        isActive: true,
+      },
+    });
+    for (const role of ROLE_KEYS) {
+      await prisma.currencyRole.upsert({
+        where: { currencyId_role: { currencyId: currency.id, role } },
+        update: {},
+        create: {
+          currencyId: currency.id,
+          role,
+          feeType: "percent",
+          feeValue: 1.5,
+          minAmount: 1,
+          maxAmount: 10000,
+          enabled: true,
+        },
+      });
+    }
+  }
+
+  const [totalUsers, totalWallets, totalTxns, totalProducts, totalCurrencies] =
     await Promise.all([
       prisma.user.count(),
       prisma.wallet.count(),
       prisma.walletTransaction.count(),
       prisma.product.count(),
+      prisma.currency.count(),
     ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(
