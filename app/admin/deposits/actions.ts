@@ -133,8 +133,8 @@ function validateMethod(payload: DepositMethodPayload): string | null {
   if (payload.chargeType === "percent" && nonNeg(payload.chargeValue) > 100) {
     return "Percentage charge cannot exceed 100%.";
   }
-  if (payload.logo != null) {
-    if (typeof payload.logo !== "string" || payload.logo.length > 400_000) {
+  if (payload.logo) {
+    if (payload.logo.length > 400_000) {
       return "Logo image is too large.";
     }
     const dataImage = /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(payload.logo);

@@ -152,7 +152,11 @@ const HISTORY_PAGE_SIZE = 10;
 export async function getWithdrawHistory(
   params: WithdrawHistoryParams = {},
 ): Promise<WithdrawHistoryResult> {
-  const pageSize = params.pageSize ?? HISTORY_PAGE_SIZE;
+  const rawPageSize = params.pageSize ?? HISTORY_PAGE_SIZE;
+  const pageSize =
+    Number.isFinite(rawPageSize) && rawPageSize > 0
+      ? Math.min(Math.floor(rawPageSize), 100)
+      : HISTORY_PAGE_SIZE;
   const requestedPage = Math.max(1, params.page ?? 1);
   const status = params.status && params.status !== "all" ? params.status : undefined;
   const search = params.search?.trim();
@@ -223,7 +227,9 @@ export async function getWithdrawSchedule(): Promise<WithdrawScheduleDay[]> {
 }
 
 export async function getGatewayOptions(): Promise<GatewayOption[]> {
+  // Only gateways that can actually process withdrawals are offered for auto methods.
   return prisma.paymentGateway.findMany({
+    where: { withdrawAvailable: true },
     select: { id: true, slug: true, name: true, logo: true },
     orderBy: { name: "asc" },
   });

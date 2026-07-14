@@ -36,7 +36,8 @@ export function WithdrawsTabs({
 }) {
   return (
     <Tabs defaultValue="requests" className="gap-4">
-      <TabsList className="w-full justify-start overflow-x-auto">
+      <div className="w-full overflow-x-auto pb-2 -mb-2">
+        <TabsList className="w-max min-w-full justify-start">
         <TabsTrigger value="requests">
           <ClipboardList className="size-4" />
           Manual Requests
@@ -62,12 +63,13 @@ export function WithdrawsTabs({
           <History className="size-4" />
           Withdraws History
         </TabsTrigger>
-      </TabsList>
+        </TabsList>
+      </div>
 
-      <TabsContent value="requests">
+      <TabsContent value="requests" forceMount className="data-[state=inactive]:hidden">
         <WithdrawRequestsTab requests={requests} />
       </TabsContent>
-      <TabsContent value="auto">
+      <TabsContent value="auto" forceMount className="data-[state=inactive]:hidden">
         <WithdrawMethodsTab
           methodType="auto"
           methods={autoMethods}
@@ -75,7 +77,7 @@ export function WithdrawsTabs({
           gateways={gateways}
         />
       </TabsContent>
-      <TabsContent value="manual">
+      <TabsContent value="manual" forceMount className="data-[state=inactive]:hidden">
         <WithdrawMethodsTab
           methodType="manual"
           methods={manualMethods}
@@ -83,10 +85,10 @@ export function WithdrawsTabs({
           gateways={gateways}
         />
       </TabsContent>
-      <TabsContent value="schedule">
+      <TabsContent value="schedule" forceMount className="data-[state=inactive]:hidden">
         <WithdrawScheduleTab schedule={schedule} />
       </TabsContent>
-      <TabsContent value="history">
+      <TabsContent value="history" forceMount className="data-[state=inactive]:hidden">
         <WithdrawHistoryTab initial={history} />
       </TabsContent>
     </Tabs>

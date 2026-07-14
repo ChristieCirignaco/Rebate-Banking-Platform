@@ -549,8 +549,9 @@ async function main() {
   const wAutoPaypal = await prisma.withdrawMethod.create({
     data: { type: "auto", name: "PayPal", symbol: "$", logo: "/gateways/paypal.svg", currencyId: currencyId.get("USD")!, paymentGatewayId: gatewayId.get("paypal"), rate: 1, chargeType: "percent", chargeValue: 2, minAmount: 10, maxAmount: 5000, isActive: true },
   });
-  const wAutoStripe = await prisma.withdrawMethod.create({
-    data: { type: "auto", name: "Stripe Payout", symbol: "€", logo: "/gateways/stripe.svg", currencyId: currencyId.get("EUR")!, paymentGatewayId: gatewayId.get("stripe"), rate: 0.96, chargeType: "percent", chargeValue: 2.5, minAmount: 10, maxAmount: 10000, isActive: true },
+  // Auto methods must use a withdrawal-capable gateway (Stripe's withdrawAvailable is false).
+  const wAutoPaystack = await prisma.withdrawMethod.create({
+    data: { type: "auto", name: "Paystack Payout", symbol: "₦", logo: "/gateways/paystack.svg", currencyId: currencyId.get("NGN")!, paymentGatewayId: gatewayId.get("paystack"), rate: 1580, chargeType: "percent", chargeValue: 2.5, minAmount: 1000, maxAmount: 5000000, isActive: true },
   });
   const wBank = await prisma.withdrawMethod.create({
     data: {
@@ -626,10 +627,10 @@ async function main() {
     { method: wAutoPaypal, code: "USD", amount: 150, status: "completed", ageDays: 9, held: true },
     { method: wBank, code: "USD", amount: 300, status: "completed", ageDays: 12, held: true, fieldValues: bankFieldValues("Noah Smith", "7778889999") },
     // Rejected/failed (no net ledger impact — seeded standalone).
-    { method: wAutoStripe, code: "EUR", amount: 120, status: "canceled", ageDays: 8, held: false },
+    { method: wAutoPaystack, code: "NGN", amount: 150000, status: "canceled", ageDays: 8, held: false },
     { method: wCrypto, code: "USDT", amount: 500, status: "failed", ageDays: 10, held: false },
     { method: wCrypto, code: "USDT", amount: 800, status: "canceled", ageDays: 14, held: false },
-    { method: wAutoStripe, code: "EUR", amount: 60, status: "failed", ageDays: 18, held: false },
+    { method: wAutoPaystack, code: "NGN", amount: 90000, status: "failed", ageDays: 18, held: false },
   ];
 
   let w = 0;

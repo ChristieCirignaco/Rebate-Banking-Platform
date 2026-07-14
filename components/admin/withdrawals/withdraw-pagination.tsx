@@ -30,7 +30,10 @@ export function WithdrawPagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
+    <nav
+      aria-label="Pagination"
+      className="flex flex-wrap items-center justify-between gap-2"
+    >
       <Button
         variant="outline"
         size="sm"
@@ -72,6 +75,6 @@ export function WithdrawPagination({
         Next
         <ChevronRight className="size-4" />
       </Button>
-    </div>
+    </nav>
   );
 }

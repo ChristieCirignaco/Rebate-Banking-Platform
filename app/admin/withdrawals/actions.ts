@@ -195,8 +195,8 @@ function validateMethod(payload: WithdrawMethodPayload): string | null {
   if (payload.chargeType === "percent" && nonNeg(payload.chargeValue) > 100) {
     return "Percentage charge cannot exceed 100%.";
   }
-  if (payload.logo != null) {
-    if (typeof payload.logo !== "string" || payload.logo.length > 400_000) {
+  if (payload.logo) {
+    if (payload.logo.length > 400_000) {
       return "Logo image is too large.";
     }
     const dataImage = /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(payload.logo);
@@ -253,12 +253,15 @@ async function referencesValid(
   if ((await prisma.currency.count({ where: { id: payload.currencyId } })) === 0) {
     return "Selected currency no longer exists.";
   }
-  if (
-    payload.type === "auto" &&
-    payload.paymentGatewayId &&
-    (await prisma.paymentGateway.count({ where: { id: payload.paymentGatewayId } })) === 0
-  ) {
-    return "Selected payment gateway no longer exists.";
+  if (payload.type === "auto" && payload.paymentGatewayId) {
+    const gateway = await prisma.paymentGateway.findUnique({
+      where: { id: payload.paymentGatewayId },
+      select: { withdrawAvailable: true },
+    });
+    if (!gateway) return "Selected payment gateway no longer exists.";
+    if (!gateway.withdrawAvailable) {
+      return "Selected payment gateway can't process withdrawals.";
+    }
   }
   return null;
 }
@@ -362,11 +365,25 @@ export async function deleteWithdraw(id: string): Promise<ActionResult> {
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
   const existing = await prisma.withdraw.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, status: true, heldTransactionId: true, refundTransactionId: true },
   });
   if (!existing) return { ok: false, error: "Withdrawal not found." };
 
-  // Removes the withdrawal ORDER record only; the wallet ledger is left untouched.
+  // Deleting the order record must never strand held funds. A pending withdrawal still
+  // holds a debit that only reject can refund; completed funds legitimately left the
+  // wallet; a canceled one has already been refunded — so only refuse the unresolved cases.
+  if (existing.status === "pending") {
+    return { ok: false, error: "Reject or approve this withdrawal before deleting it." };
+  }
+  if (
+    existing.heldTransactionId &&
+    !existing.refundTransactionId &&
+    existing.status !== "completed"
+  ) {
+    return { ok: false, error: "This withdrawal still holds funds that were never refunded." };
+  }
+
+  // Removes the ORDER record only; the wallet ledger (source of truth) is left untouched.
   await prisma.withdraw.delete({ where: { id } });
   revalidate();
   return { ok: true };

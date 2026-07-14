@@ -398,7 +398,12 @@ export function WithdrawMethodDialog({
                   </Select>
                 </div>
               </div>
-              <MethodFieldBuilder fields={fields} onChange={setFields} />
+              <MethodFieldBuilder
+                fields={fields}
+                onChange={setFields}
+                label="User Withdrawal Fields"
+                emptyHint="No custom fields yet. Add the details the user must provide to receive funds (e.g. Bank Name, Account Number, Wallet Address)."
+              />
             </>
           ) : null}
 

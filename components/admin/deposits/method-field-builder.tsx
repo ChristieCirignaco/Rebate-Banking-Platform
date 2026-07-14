@@ -37,9 +37,13 @@ const TYPE_OPTIONS: { value: ManualFieldType; label: string }[] = [
 export function MethodFieldBuilder({
   fields,
   onChange,
+  label = "User Deposit Fields",
+  emptyHint = "No custom fields yet. Add fields the user must fill when depositing (e.g. Sender Name, Transaction Hash).",
 }: {
   fields: FieldRow[];
   onChange: (fields: FieldRow[]) => void;
+  label?: string;
+  emptyHint?: string;
 }) {
   function update(index: number, patch: Partial<FieldRow>) {
     onChange(fields.map((field, i) => (i === index ? { ...field, ...patch } : field)));
@@ -51,7 +55,7 @@ export function MethodFieldBuilder({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <Label>User Deposit Fields</Label>
+        <Label>{label}</Label>
         <Button
           type="button"
           variant="outline"
@@ -65,8 +69,7 @@ export function MethodFieldBuilder({
 
       {fields.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed p-3 text-center text-xs">
-          No custom fields yet. Add fields the user must fill when depositing (e.g. Sender
-          Name, Transaction Hash).
+          {emptyHint}
         </p>
       ) : (
         <div className="flex flex-col gap-2">

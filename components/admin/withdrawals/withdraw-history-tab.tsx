@@ -51,6 +51,7 @@ export function WithdrawHistoryTab({ initial }: { initial: WithdrawHistoryResult
   const [range, setRange] = useState<DateRange>(EMPTY_RANGE);
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestId = useRef(0);
 
   useEffect(
     () => () => {
@@ -60,13 +61,14 @@ export function WithdrawHistoryTab({ initial }: { initial: WithdrawHistoryResult
   );
 
   // Server-driven paging + filtering: fetch each page from the action, keeping tab
-  // switching client-side.
+  // switching client-side. A request token drops any out-of-order response.
   function fetchPage(
     page: number,
     statusValue: WithdrawStatus | "all",
     searchValue: string,
     rangeValue: DateRange,
   ) {
+    const id = ++requestId.current;
     startTransition(async () => {
       const result = await listWithdrawHistory({
         page,
@@ -75,15 +77,17 @@ export function WithdrawHistoryTab({ initial }: { initial: WithdrawHistoryResult
         from: rangeValue.from || undefined,
         to: rangeValue.to || undefined,
       });
-      setData(result);
+      if (id === requestId.current) setData(result);
     });
   }
 
   function onStatus(value: WithdrawStatus | "all") {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setStatus(value);
     fetchPage(1, value, search, range);
   }
   function onRange(value: DateRange) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setRange(value);
     fetchPage(1, status, search, value);
   }
@@ -177,21 +181,25 @@ export function WithdrawHistoryTab({ initial }: { initial: WithdrawHistoryResult
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
-                      <DeleteWithdrawDialog
-                        id={withdraw.id}
-                        txnId={withdraw.txnId}
-                        onDeleted={() => fetchPage(data.page, status, search, range)}
-                      >
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-9 text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
-                          title="Delete transaction"
-                          aria-label={`Delete ${withdraw.txnId}`}
+                      {withdraw.status === "pending" ? (
+                        <span className="text-muted-foreground text-xs">Review first</span>
+                      ) : (
+                        <DeleteWithdrawDialog
+                          id={withdraw.id}
+                          txnId={withdraw.txnId}
+                          onDeleted={() => fetchPage(data.page, status, search, range)}
                         >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </DeleteWithdrawDialog>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-9 text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                            title="Delete transaction"
+                            aria-label={`Delete ${withdraw.txnId}`}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </DeleteWithdrawDialog>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -202,7 +210,7 @@ export function WithdrawHistoryTab({ initial }: { initial: WithdrawHistoryResult
       </Card>
 
       {data.total > 0 ? (
-        <p className="text-muted-foreground text-sm">
+        <p className={cn("text-muted-foreground text-sm", isPending && "opacity-60")}>
           {`Showing ${from}–${to} of ${data.total} withdrawals`}
         </p>
       ) : null}
