@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ADMIN_ROLES } from "@/lib/auth-guards";
 import {
   SYSTEM_ALERT_TYPES,
   type AdminNotificationsResult,
@@ -67,6 +68,6 @@ export async function getAdminNotifications(
 // recipient filter exactly (null role counts as a user), so the count can't drift from it.
 export async function getBroadcastAudienceSize(): Promise<number> {
   return prisma.user.count({
-    where: { OR: [{ role: { not: "admin" } }, { role: null }] },
+    where: { OR: [{ role: { notIn: [...ADMIN_ROLES] } }, { role: null }] },
   });
 }

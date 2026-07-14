@@ -2,13 +2,6 @@ import type { SelectOption } from "./types";
 
 // Static UI config for the users filter dropdowns (not mock data).
 
-export const ROLE_OPTIONS: SelectOption[] = [
-  { value: "all", label: "All roles" },
-  { value: "user", label: "User" },
-  { value: "admin", label: "Admin" },
-  { value: "superadmin", label: "Superadmin" },
-];
-
 export const ACCOUNT_STATUS_OPTIONS: SelectOption[] = [
   { value: "all", label: "All statuses" },
   { value: "active", label: "Active" },

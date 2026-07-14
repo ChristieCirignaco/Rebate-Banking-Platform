@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getAdminSession } from "@/lib/auth-guards";
+import { ADMIN_ROLES, getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { getAdminNotifications, FEED_PAGE_SIZE } from "@/lib/admin/notifications";
 import {
@@ -65,10 +65,10 @@ export async function broadcastNotification(
     scheduledAt = when;
   }
 
-  // "All users" = every non-admin. role is nullable and null means "user" (the column
-  // default), so include null-role rows explicitly — `{ not: "admin" }` alone drops them.
+  // "All users" = every non-admin-tier account. role is nullable and null means "user"
+  // (the column default), so include null-role rows explicitly — `notIn` alone drops them.
   const users = await prisma.user.findMany({
-    where: { OR: [{ role: { not: "admin" } }, { role: null }] },
+    where: { OR: [{ role: { notIn: [...ADMIN_ROLES] } }, { role: null }] },
     select: { id: true },
   });
   if (users.length === 0) {

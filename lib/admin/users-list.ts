@@ -4,21 +4,25 @@ import type {
   AdminUser,
   EmailStatus,
   KycStatus,
-  UserRole,
 } from "@/components/admin/users/types";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
-// Real users for the list page, mapped to the view shape.
+// Real users for the list page, mapped to the view shape. Admin-tier accounts (admin,
+// super_admin) are managed separately at /admin/users/admin — excluded here by an
+// allowlist (role is "user" or null) rather than a denylist, since Prisma's `not`/`notIn`
+// silently drop NULL rows under three-valued SQL logic.
 export async function getAdminUsers(): Promise<AdminUser[]> {
-  const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+  const users = await prisma.user.findMany({
+    where: { OR: [{ role: "user" }, { role: null }] },
+    orderBy: { createdAt: "desc" },
+  });
   const now = Date.now();
 
   return users.map((user) => ({
     id: user.id,
     name: user.name,
     username: user.username ?? user.email.split("@")[0],
-    role: (user.role ?? "user") as UserRole,
     accountStatus: (user.status as AccountStatus) ?? "active",
     email: user.email,
     emailStatus: (user.emailVerified

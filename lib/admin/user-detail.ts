@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isAdminTierRole } from "@/lib/auth-guards";
 import { toMajor } from "@/lib/money/money";
 import type {
   ActivityEntry,
@@ -89,7 +90,11 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
       sessions: { orderBy: { createdAt: "desc" }, take: 25 },
     },
   });
-  if (!dbUser) return null;
+  // Admin-tier accounts are managed exclusively at /admin/users/admin (which enforces
+  // the super_admin-only edit/deactivate gate and the super_admin sensitive-field lock);
+  // treating one as "not found" here closes off the unrestricted single-user action set
+  // (manage funds, notify, withdrawal control, etc.) from ever reaching an admin account.
+  if (!dbUser || isAdminTierRole(dbUser.role)) return null;
 
   const [firstName, ...rest] = dbUser.name.split(" ");
   const latestSession = dbUser.sessions[0];

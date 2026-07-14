@@ -10,7 +10,6 @@ import {
   EmailStatusBadge,
   KycStatusBadge,
   OnlineDot,
-  RoleBadge,
 } from "./user-badges";
 import type { AdminUser } from "./types";
 
@@ -54,7 +53,6 @@ export function UserTableRow({ user }: { user: AdminUser }) {
               <span className="text-muted-foreground text-xs">
                 @{user.username}
               </span>
-              <RoleBadge role={user.role} />
               <OnlineDot status={user.onlineStatus} />
             </div>
           </div>

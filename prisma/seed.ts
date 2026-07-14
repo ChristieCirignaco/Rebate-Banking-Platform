@@ -299,12 +299,12 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { role: "admin", status: "active", emailVerified: true },
+    update: { role: "super_admin", status: "active", emailVerified: true },
     create: {
       id: randomUUID(),
       email: adminEmail,
       name: adminName,
-      role: "admin",
+      role: "super_admin",
       emailVerified: true,
       status: "active",
       kycStatus: "approved",
@@ -952,7 +952,7 @@ async function main() {
     })} ${code}`;
 
   const admins = await prisma.user.findMany({
-    where: { role: "admin" },
+    where: { role: { in: ["admin", "super_admin"] } },
     select: { id: true },
   });
 

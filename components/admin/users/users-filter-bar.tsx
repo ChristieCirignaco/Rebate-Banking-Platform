@@ -17,7 +17,6 @@ import {
   ACCOUNT_STATUS_OPTIONS,
   EMAIL_OPTIONS,
   KYC_OPTIONS,
-  ROLE_OPTIONS,
 } from "./filter-options";
 import type { SelectOption, UserFilters } from "./types";
 
@@ -69,18 +68,7 @@ export function UsersFilterBar({
   return (
     <Card className="p-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 xl:flex">
-          <FilterSelect
-            value={filters.role}
-            onChange={(value) =>
-              onFiltersChange({
-                ...filters,
-                role: value as UserFilters["role"],
-              })
-            }
-            options={ROLE_OPTIONS}
-            placeholder="Account Role"
-          />
+        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3 xl:flex">
           <FilterSelect
             value={filters.accountStatus}
             onChange={(value) =>

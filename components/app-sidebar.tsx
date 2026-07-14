@@ -19,6 +19,7 @@ import {
   Receipt,
   Settings,
   ShieldCheck,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -80,7 +81,10 @@ const NAV: NavGroup[] = [
   },
   {
     label: "People",
-    items: [{ title: "Users", href: "/admin/users", icon: Users }],
+    items: [
+      { title: "Users", href: "/admin/users", icon: Users },
+      { title: "Admins", href: "/admin/users/admin", icon: UserCog },
+    ],
   },
   {
     label: "Communication",

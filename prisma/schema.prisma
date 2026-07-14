@@ -27,7 +27,7 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          String?   @default("user")
+  role          String?   @default("user") // user | admin | super_admin
   banned        Boolean?  @default(false)
   banReason     String?
   banExpires    DateTime?

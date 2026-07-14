@@ -2,18 +2,7 @@ import { Lock } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { EmailStatus, KycStatus, OnlineStatus, UserRole } from "./types";
-
-const ROLE_STYLES: Record<UserRole, string> = {
-  user: "border-transparent bg-slate-500/12 text-slate-600 dark:text-slate-300",
-  admin: "border-transparent bg-blue-500/12 text-blue-600 dark:text-blue-400",
-  superadmin:
-    "border-transparent bg-violet-500/12 text-violet-600 dark:text-violet-400",
-};
-
-export function RoleBadge({ role }: { role: UserRole }) {
-  return <Badge className={cn("uppercase", ROLE_STYLES[role])}>{role}</Badge>;
-}
+import type { EmailStatus, KycStatus, OnlineStatus } from "./types";
 
 export function EmailStatusBadge({ status }: { status: EmailStatus }) {
   if (status === "verified") {

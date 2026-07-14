@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ADMIN_ROLES } from "@/lib/auth-guards";
 import type { SystemAlertType } from "@/components/admin/notifications/types";
 
 // Fan a system alert out to every admin as a Notification row, reusing the existing
@@ -12,7 +13,7 @@ export async function notifyAdmins(args: {
   message: string;
 }): Promise<number> {
   const admins = await prisma.user.findMany({
-    where: { role: "admin" },
+    where: { role: { in: [...ADMIN_ROLES] } },
     select: { id: true },
   });
   if (admins.length === 0) return 0;

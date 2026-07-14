@@ -81,7 +81,7 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    adminPlugin({ ac, roles, defaultRole: "user", adminRoles: ["admin"] }),
+    adminPlugin({ ac, roles, defaultRole: "user", adminRoles: ["admin", "super_admin"] }),
     nextCookies(), // keep last so server actions can set cookies
   ],
 });

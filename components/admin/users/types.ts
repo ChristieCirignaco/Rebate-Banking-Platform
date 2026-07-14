@@ -1,7 +1,6 @@
 // Data shapes for the users list. Keep components driven by these so the mock data
 // in mock-data.ts can be swapped for real API/DB data later.
 
-export type UserRole = "user" | "admin" | "superadmin";
 export type AccountStatus = "active" | "suspended" | "pending";
 export type EmailStatus = "verified" | "unverified";
 export type KycStatus = "approved" | "pending" | "not_submitted" | "rejected";
@@ -12,7 +11,6 @@ export interface AdminUser {
   name: string;
   username: string;
   avatarUrl?: string;
-  role: UserRole;
   accountStatus: AccountStatus;
   email: string;
   emailStatus: EmailStatus;
@@ -25,7 +23,6 @@ export interface AdminUser {
 }
 
 export interface UserFilters {
-  role: "all" | UserRole;
   accountStatus: "all" | AccountStatus;
   kyc: "all" | KycStatus;
   email: "all" | EmailStatus;

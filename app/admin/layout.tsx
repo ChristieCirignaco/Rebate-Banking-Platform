@@ -1,28 +1,32 @@
 import type { CSSProperties, ReactNode } from "react";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { auth } from "@/lib/auth";
+import { getAdminSession, getSession } from "@/lib/auth-guards";
 
 // Admin uses the shadcn dashboard-01 shell (inset sidebar + site header). The user
 // and marketing surfaces use bespoke modern Tailwind instead — see design spec §13.
 //
-// Real enforcement lives here (the proxy only checks cookie presence): require a
-// valid session AND the admin role before rendering anything under /admin.
+// Real enforcement lives here (the proxy only checks cookie presence): require a valid
+// session, an admin-tier role, and an active status before rendering anything under
+// /admin. Delegates the role/status check to getAdminSession() (lib/auth-guards.ts) so
+// there is exactly one place that decides "is admin" — this only branches separately
+// because "no session" and "wrong role/suspended" need distinct redirect targets, which
+// getAdminSession()'s single null return can't distinguish. getAdminSession() is
+// request-cached, so a page that also calls it (e.g. to compute a super-admin-only view)
+// reuses this same result instead of re-querying.
 export default async function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
-
+  const session = await getSession();
   if (!session) {
     redirect("/login?redirect=/admin");
   }
-  if (session.user.role !== "admin") {
+  if (!(await getAdminSession())) {
     redirect("/");
   }
 

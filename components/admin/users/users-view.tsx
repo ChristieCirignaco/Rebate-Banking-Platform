@@ -11,7 +11,6 @@ import type { AdminUser, UserFilters } from "./types";
 const PAGE_SIZE = 8;
 
 const DEFAULT_FILTERS: UserFilters = {
-  role: "all",
   accountStatus: "all",
   kyc: "all",
   email: "all",
@@ -22,7 +21,6 @@ function matches(
   filters: UserFilters,
   search: string,
 ): boolean {
-  if (filters.role !== "all" && user.role !== filters.role) return false;
   if (
     filters.accountStatus !== "all" &&
     user.accountStatus !== filters.accountStatus
