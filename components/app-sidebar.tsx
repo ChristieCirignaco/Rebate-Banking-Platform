@@ -7,8 +7,10 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Bell,
+  ClipboardCheck,
   Coins,
   CreditCard,
+  FileCheck,
   Flag,
   Landmark,
   LayoutDashboard,
@@ -59,13 +61,20 @@ const NAV: NavGroup[] = [
         href: "/admin/products",
         icon: Package,
       },
-      { title: "KYC", href: "/admin/kyc", icon: ShieldCheck },
       {
         title: "Withdrawals",
         href: "/admin/withdrawals",
         icon: ArrowUpFromLine,
       },
       { title: "Deposits", href: "/admin/deposits", icon: ArrowDownToLine },
+    ],
+  },
+  {
+    label: "Kyc Management",
+    items: [
+      { title: "Awaiting Kyc", href: "/admin/kyc/pending", icon: ClipboardCheck },
+      { title: "Kyc List", href: "/admin/kyc", icon: ShieldCheck },
+      { title: "Kyc Templates", href: "/admin/kyc/template", icon: FileCheck },
     ],
   },
   {

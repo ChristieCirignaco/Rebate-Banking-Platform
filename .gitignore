@@ -42,3 +42,6 @@ next-env.d.ts
 
 # claude code local runtime
 .claude/
+
+# local object storage (uploaded files; served via access-controlled route)
+/storage

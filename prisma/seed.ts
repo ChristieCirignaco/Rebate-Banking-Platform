@@ -1,10 +1,88 @@
 import { randomUUID } from "node:crypto";
+import { deflateSync } from "node:zlib";
 import { PrismaClient } from "@prisma/client";
 
-// Relative import (not the @/ alias) so this runs under tsx / `prisma db seed`.
+// Relative imports (not the @/ alias) so this runs under tsx / `prisma db seed`.
 import { hashPassword } from "../lib/password";
+import { clearNamespace, putObject } from "../lib/storage";
 
 const prisma = new PrismaClient();
+
+// --- Tiny real-file generators for seeded KYC documents (no external assets) ----------
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n += 1) {
+    let c = n;
+    for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32(buf: Buffer): number {
+  let c = 0xffffffff;
+  for (let i = 0; i < buf.length; i += 1) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function pngChunk(type: string, data: Buffer): Buffer {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length, 0);
+  const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body), 0);
+  return Buffer.concat([len, body, crc]);
+}
+
+// A valid solid-colour PNG — a stand-in "document image" so the review modal renders a real
+// inline image (and lightbox) rather than mock data.
+function solidPng(width: number, height: number, rgb: [number, number, number]): Buffer {
+  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // colour type: truecolour RGB
+  const row = Buffer.alloc(1 + width * 3);
+  for (let x = 0; x < width; x += 1) {
+    row[1 + x * 3] = rgb[0];
+    row[2 + x * 3] = rgb[1];
+    row[3 + x * 3] = rgb[2];
+  }
+  const raw = Buffer.concat(Array.from({ length: height }, () => row));
+  return Buffer.concat([
+    sig,
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+// A minimal single-page PDF a viewer will open — used to exercise the "download / open in
+// new tab" (non-image) branch of the KYC file preview.
+function minimalPdf(text: string): Buffer {
+  const content = `BT /F1 24 Tf 72 700 Td (${text.replace(/[()\\]/g, "")}) Tj ET`;
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  objs.forEach((body, i) => {
+    offsets.push(Buffer.byteLength(pdf, "latin1"));
+    pdf += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xrefPos = Buffer.byteLength(pdf, "latin1");
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach((off) => {
+    pdf += `${String(off).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`;
+  return Buffer.from(pdf, "latin1");
+}
 
 const minor = (major: number) => BigInt(Math.round(major * 100));
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400 * 1000);
@@ -670,6 +748,199 @@ async function main() {
     });
   }
 
+  // ----- KYC templates + submissions (with REAL files in object storage) --------------
+  // Idempotent: clear prior templates/submissions and the stored files, then recreate.
+  await prisma.kycSubmission.deleteMany({});
+  await prisma.kycTemplate.deleteMany({});
+  await clearNamespace("kyc");
+
+  // Reset the denormalized KYC status for all demo users; the loop below sets it only for
+  // users who actually receive a submission, so User.kycStatus stays consistent with the
+  // KycSubmission source of truth (no phantom "pending" users on the list or in alerts).
+  await prisma.user.updateMany({
+    where: { id: { in: createdIds } },
+    data: { kycStatus: "not_submitted", kycDocumentType: null },
+  });
+
+  const GOV_FIELDS = [
+    { label: "Full Name", type: "text", required: true },
+    { label: "ID Number", type: "text", required: true },
+    { label: "ID Front Image", type: "file", required: true },
+    { label: "ID Back Image", type: "file", required: true },
+    { label: "Selfie", type: "file", required: false },
+  ];
+  const ADDR_FIELDS = [
+    { label: "Residential Address", type: "text", required: true },
+    { label: "Proof of Address", type: "file", required: true },
+  ];
+  const BIZ_FIELDS = [
+    { label: "Business Name", type: "text", required: true },
+    { label: "Registration Number", type: "text", required: true },
+    { label: "Certificate", type: "file", required: true },
+  ];
+
+  const makeTemplate = (
+    title: string,
+    description: string,
+    status: string,
+    fields: { label: string; type: string; required: boolean }[],
+  ) =>
+    prisma.kycTemplate.create({
+      data: {
+        title,
+        description,
+        applicableTo: "user",
+        status,
+        fields: { create: fields.map((f, i) => ({ ...f, sortOrder: i })) },
+      },
+    });
+
+  const govTemplate = await makeTemplate(
+    "Government ID Verification",
+    "Upload a government-issued photo ID (front and back) plus a selfie.",
+    "active",
+    GOV_FIELDS,
+  );
+  const addrTemplate = await makeTemplate(
+    "Address Verification",
+    "Confirm your residential address with a recent utility bill or bank statement.",
+    "active",
+    ADDR_FIELDS,
+  );
+  await makeTemplate(
+    "Business Verification",
+    "For business accounts — registration certificate and details.",
+    "inactive",
+    BIZ_FIELDS,
+  );
+
+  const nameById = new Map(
+    (
+      await prisma.user.findMany({
+        where: { id: { in: createdIds } },
+        select: { id: true, name: true },
+      })
+    ).map((u) => [u.id, u.name]),
+  );
+
+  const colorForLabel = (label: string): [number, number, number] => {
+    if (/front/i.test(label)) return [37, 99, 235];
+    if (/back/i.test(label)) return [22, 163, 74];
+    if (/selfie/i.test(label)) return [217, 119, 6];
+    return [100, 116, 139];
+  };
+  const slug = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  async function buildFieldValues(
+    fields: { label: string; type: string; required: boolean }[],
+    userName: string,
+    index: number,
+  ) {
+    const values: {
+      label: string;
+      type: string;
+      value: string;
+      name?: string;
+      contentType?: string;
+    }[] = [];
+    for (const field of fields) {
+      if (field.type === "file") {
+        if (/proof/i.test(field.label)) {
+          const key = await putObject("kyc", minimalPdf(`Proof of Address — ${userName}`), "pdf");
+          values.push({
+            label: field.label,
+            type: "file",
+            value: key,
+            name: "proof-of-address.pdf",
+            contentType: "application/pdf",
+          });
+        } else {
+          const key = await putObject("kyc", solidPng(640, 400, colorForLabel(field.label)), "png");
+          values.push({
+            label: field.label,
+            type: "file",
+            value: key,
+            name: `${slug(field.label)}.png`,
+            contentType: "image/png",
+          });
+        }
+      } else if (field.type === "number") {
+        values.push({ label: field.label, type: "number", value: String(25 + (index % 40)) });
+      } else if (/name/i.test(field.label)) {
+        values.push({ label: field.label, type: "text", value: userName });
+      } else if (/address/i.test(field.label)) {
+        values.push({ label: field.label, type: "text", value: `${10 + index} Market Street, Lagos` });
+      } else if (/number/i.test(field.label)) {
+        values.push({ label: field.label, type: "text", value: `ID-${(1000000 + index).toString(36).toUpperCase()}` });
+      } else {
+        values.push({ label: field.label, type: "text", value: `Sample ${field.label}` });
+      }
+    }
+    return values;
+  }
+
+  type KycSpec = {
+    fields?: { label: string; type: string; required: boolean }[];
+    templateId?: string;
+    templateTitle: string;
+    manual?: boolean;
+    status: string;
+    ageDays: number;
+    remarks?: string;
+  };
+
+  const kycSpecs: KycSpec[] = [
+    // Awaiting queue (pending)
+    { fields: GOV_FIELDS, templateId: govTemplate.id, templateTitle: govTemplate.title, status: "pending", ageDays: 1 },
+    { fields: GOV_FIELDS, templateId: govTemplate.id, templateTitle: govTemplate.title, status: "pending", ageDays: 2 },
+    { fields: ADDR_FIELDS, templateId: addrTemplate.id, templateTitle: addrTemplate.title, status: "pending", ageDays: 1 },
+    { fields: GOV_FIELDS, templateId: govTemplate.id, templateTitle: govTemplate.title, status: "pending", ageDays: 3 },
+    // Processed
+    { fields: GOV_FIELDS, templateId: govTemplate.id, templateTitle: govTemplate.title, status: "approved", ageDays: 6, remarks: "Documents verified." },
+    { fields: ADDR_FIELDS, templateId: addrTemplate.id, templateTitle: addrTemplate.title, status: "approved", ageDays: 8, remarks: "Address confirmed." },
+    { fields: GOV_FIELDS, templateId: govTemplate.id, templateTitle: govTemplate.title, status: "rejected", ageDays: 7, remarks: "ID photo was blurry — please resubmit." },
+    { fields: GOV_FIELDS, templateId: govTemplate.id, templateTitle: govTemplate.title, status: "approved", ageDays: 11 },
+    { fields: ADDR_FIELDS, templateId: addrTemplate.id, templateTitle: addrTemplate.title, status: "rejected", ageDays: 13, remarks: "Proof of address is older than 3 months." },
+    // Manually approved by an admin — no submission, no files, empty note.
+    { manual: true, templateTitle: "Manual Verification", status: "approved", ageDays: 5 },
+    { manual: true, templateTitle: "Manual Verification", status: "approved", ageDays: 9 },
+  ];
+
+  let k = 0;
+  for (const spec of kycSpecs) {
+    const userId = createdIds[(k * 2 + 1) % createdIds.length];
+    const userName = nameById.get(userId) ?? "User";
+    const reviewed = spec.status !== "pending";
+    const fieldValues =
+      spec.manual || !spec.fields ? [] : await buildFieldValues(spec.fields, userName, k);
+
+    await prisma.kycSubmission.create({
+      data: {
+        userId,
+        templateId: spec.manual ? null : (spec.templateId ?? null),
+        templateTitle: spec.templateTitle,
+        status: spec.status,
+        fieldValues,
+        note: !spec.manual && k % 3 === 0 ? "Please review at your earliest convenience." : null,
+        remarks: spec.remarks ?? null,
+        manual: spec.manual ?? false,
+        reviewedById: reviewed ? admin.id : null,
+        reviewedAt: reviewed ? daysAgo(spec.ageDays - 0.5) : null,
+        createdAt: daysAgo(spec.ageDays),
+      },
+    });
+
+    // Keep the denormalized User.kycStatus (read by the users list) in sync.
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        kycStatus: spec.status,
+        kycDocumentType: spec.manual ? "Manual" : spec.templateTitle,
+      },
+    });
+    k += 1;
+  }
+
   // ----- System alerts for the admin "All Notifications" feed -------------------------
   // Real inbound alerts derived from the seeded pending records + KYC submissions, fanned
   // out to every admin (the same shape notifyAdmins() writes at runtime). readAt = null
@@ -694,9 +965,10 @@ async function main() {
       where: { status: "pending" },
       include: { user: { select: { name: true } } },
     }),
-    prisma.user.findMany({
-      where: { kycStatus: "pending" },
-      select: { id: true, name: true, kycDocumentType: true, createdAt: true },
+    prisma.kycSubmission.findMany({
+      where: { status: "pending" },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
       take: 4,
     }),
   ]);
@@ -714,11 +986,11 @@ async function main() {
       message: `${wd.user.name} requested a ${fmtAmount(wd.amountMinor, wd.currency)} withdrawal via ${wd.provider ?? "a payment method"}.`,
       createdAt: wd.createdAt,
     })),
-    ...kycPending.map((u) => ({
+    ...kycPending.map((sub) => ({
       type: "kyc_submitted",
       title: "KYC submitted for review",
-      message: `${u.name} submitted ${u.kycDocumentType ?? "identity documents"} for verification.`,
-      createdAt: u.createdAt,
+      message: `${sub.user.name} submitted ${sub.templateTitle ?? "identity documents"} for verification.`,
+      createdAt: sub.createdAt,
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -765,14 +1037,17 @@ async function main() {
     prisma.depositMethod.count(),
     prisma.deposit.count(),
   ]);
-  const [totalWMethods, totalWithdraws, totalNotifications] = await Promise.all([
-    prisma.withdrawMethod.count(),
-    prisma.withdraw.count(),
-    prisma.notification.count(),
-  ]);
+  const [totalWMethods, totalWithdraws, totalNotifications, totalKycTemplates, totalKycSubmissions] =
+    await Promise.all([
+      prisma.withdrawMethod.count(),
+      prisma.withdraw.count(),
+      prisma.notification.count(),
+      prisma.kycTemplate.count(),
+      prisma.kycSubmission.count(),
+    ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications, ${totalKycTemplates} KYC templates, ${totalKycSubmissions} KYC submissions.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(

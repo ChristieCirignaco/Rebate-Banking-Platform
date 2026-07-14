@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 
 import { AdminSection } from "@/components/admin/admin-section";
-import { PlaceholderPanel } from "@/components/admin/placeholder-panel";
+import { KycSubmissionsView } from "@/components/admin/kyc/kyc-submissions-view";
+import { getKycSubmissions } from "@/lib/admin/kyc";
 
-export const metadata: Metadata = { title: "KYC" };
+export const metadata: Metadata = { title: "KYC List" };
 
-export default function AdminKycPage() {
+export default async function KycListPage() {
+  const initial = await getKycSubmissions({ status: "all" });
+
   return (
     <AdminSection
-      title="KYC"
-      description="Review identity verification submissions."
+      title="KYC List"
+      description="Every identity-verification submission, processed and pending."
     >
-      <PlaceholderPanel>
-        The KYC review queue lands in Phase 5.
-      </PlaceholderPanel>
+      <KycSubmissionsView initial={initial} mode="all" />
     </AdminSection>
   );
 }

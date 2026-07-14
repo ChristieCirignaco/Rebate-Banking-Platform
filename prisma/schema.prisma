@@ -65,10 +65,11 @@ model User {
   accounts      Account[]
   wallets       Wallet[]
   transactions  WalletTransaction[]
-  notifications Notification[]
-  products      Product[]
-  deposits      Deposit[]
-  withdrawals   Withdraw[]
+  notifications  Notification[]
+  products       Product[]
+  deposits       Deposit[]
+  withdrawals    Withdraw[]
+  kycSubmissions KycSubmission[]
 
   @@index([status])
   @@index([kycStatus])
@@ -485,4 +486,61 @@ model FeatureFlag {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("feature_flags")
+}
+
+// ---------------------------------------------------------------------------
+// KYC: an admin-defined verification template (a set of dynamic fields) that
+// users submit against. A submission snapshots the template title + field values
+// (text/number inline, file fields hold a storage key) for review. Mirrors the
+// DepositMethod + ManualMethodField + Deposit trio. Users only (no merchants).
+// ---------------------------------------------------------------------------
+
+model KycTemplate {
+  id           String             @id @default(uuid())
+  title        String
+  description  String?
+  applicableTo String             @default("user") @map("applicable_to") // user (merchants unsupported)
+  status       String             @default("active") // active | inactive
+  fields       KycTemplateField[]
+  submissions  KycSubmission[]
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  @@map("kyc_templates")
+}
+
+model KycTemplateField {
+  id         String      @id @default(uuid())
+  templateId String      @map("template_id")
+  template   KycTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  label      String
+  type       String      @default("text") // text | file | number
+  required   Boolean     @default(true)
+  sortOrder  Int         @default(0) @map("sort_order")
+
+  @@index([templateId])
+  @@map("kyc_template_fields")
+}
+
+model KycSubmission {
+  id            String       @id @default(uuid())
+  userId        String       @map("user_id")
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId    String?      @map("template_id")
+  template      KycTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateTitle String?      @map("template_title") // snapshot; survives template rename/delete
+  status        String       @default("pending") // pending | approved | rejected
+  fieldValues   Json?        @map("field_values") // [{ label, type, value, name?, contentType? }]
+  note          String? // optional note the user submitted with the request
+  remarks       String? // admin remarks recorded on review
+  manual        Boolean      @default(false) // admin-created/manually-approved (no user submission)
+  reviewedById  String?      @map("reviewed_by_id")
+  reviewedAt    DateTime?    @map("reviewed_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("kyc_submissions")
 }
