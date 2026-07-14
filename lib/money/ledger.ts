@@ -6,6 +6,11 @@ import { prisma } from "@/lib/db";
 
 export type LedgerDirection = "credit" | "debit";
 
+// The subset of the Prisma client the ledger needs; a $transaction callback's `tx` client
+// satisfies it, so callers can post the entry inside a wider transaction (atomic with a
+// status transition). Defaults to the shared singleton.
+type LedgerClient = Pick<typeof prisma, "$queryRaw">;
+
 type PostEntryArgs = {
   walletId: string;
   userId: string;
@@ -22,6 +27,8 @@ type PostEntryArgs = {
   memo?: string | null;
   // Debits only: reversals/adjustments may drive the balance negative; user debits may not.
   allowNegative?: boolean;
+  // Run inside an existing transaction when provided (see LedgerClient).
+  client?: LedgerClient;
 };
 
 export type PostResult =
@@ -58,6 +65,7 @@ export async function postLedgerEntry(
     description = null,
     memo = null,
     allowNegative = false,
+    client = prisma,
   } = args;
 
   if (amountMinor <= 0n) throw new Error("amountMinor must be positive");
@@ -70,7 +78,7 @@ export async function postLedgerEntry(
       : Prisma.empty;
 
   try {
-    const rows = await prisma.$queryRaw<{ balance_after_minor: bigint }[]>`
+    const rows = await client.$queryRaw<{ balance_after_minor: bigint }[]>`
       WITH upd AS (
         UPDATE wallets
            SET balance_minor = balance_minor + ${signed}::bigint,

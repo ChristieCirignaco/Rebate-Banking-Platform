@@ -191,7 +191,18 @@ export async function deleteCurrency(id: string): Promise<ActionResult> {
 
   // The default (e.g. USD) IS deletable in our system. Cascade removes its role config;
   // user wallets keep their string code (no hard FK), they just lose central config.
-  await prisma.currency.delete({ where: { id } });
+  // A deposit method references currencies with onDelete: Restrict, so guard that FK.
+  try {
+    await prisma.currency.delete({ where: { id } });
+  } catch (cause) {
+    if (cause instanceof Prisma.PrismaClientKnownRequestError && cause.code === "P2003") {
+      return {
+        ok: false,
+        error: "This currency is used by a deposit method and can't be deleted.",
+      };
+    }
+    throw cause;
+  }
   revalidatePath("/admin/currencies");
   return { ok: true };
 }

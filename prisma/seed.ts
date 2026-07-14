@@ -423,6 +423,252 @@ async function main() {
     });
   }
 
+  // ----- Deposit methods (reference the shared gateways + currencies) + deposits -------
+  // Clear + recreate (methods have no natural key). Deposits go first for the FK.
+  await prisma.deposit.deleteMany({});
+  await prisma.depositMethod.deleteMany({});
+
+  const currencyId = new Map(
+    (await prisma.currency.findMany({ select: { id: true, code: true } })).map((c) => [
+      c.code,
+      c.id,
+    ]),
+  );
+  const gatewayId = new Map(
+    (await prisma.paymentGateway.findMany({ select: { id: true, slug: true } })).map((g) => [
+      g.slug,
+      g.id,
+    ]),
+  );
+
+  const autoPaypal = await prisma.depositMethod.create({
+    data: { type: "auto", name: "PayPal", symbol: "$", logo: "/gateways/paypal.svg", currencyId: currencyId.get("USD")!, paymentGatewayId: gatewayId.get("paypal"), rate: 1, chargeType: "percent", chargeValue: 2.9, minAmount: 5, maxAmount: 10000, isActive: true },
+  });
+  const autoStripe = await prisma.depositMethod.create({
+    data: { type: "auto", name: "Stripe", symbol: "€", logo: "/gateways/stripe.svg", currencyId: currencyId.get("EUR")!, paymentGatewayId: gatewayId.get("stripe"), rate: 0.96, chargeType: "percent", chargeValue: 3.4, minAmount: 5, maxAmount: 20000, isActive: true },
+  });
+  const autoPaystack = await prisma.depositMethod.create({
+    data: { type: "auto", name: "Paystack", symbol: "₦", logo: "/gateways/paystack.svg", currencyId: currencyId.get("NGN")!, paymentGatewayId: gatewayId.get("paystack"), rate: 1580, chargeType: "percent", chargeValue: 1.5, minAmount: 1000, maxAmount: 5000000, isActive: false },
+  });
+  const manualBank = await prisma.depositMethod.create({
+    data: {
+      type: "manual", name: "Bank Transfer (NGN)", symbol: "₦", methodCode: "bank-ngn", currencyId: currencyId.get("NGN")!, rate: 1580, chargeType: "fixed", chargeValue: 0, minAmount: 1000, maxAmount: 5000000, isActive: true,
+      instructions: "<p>Transfer to <strong>GTBank 0123456789</strong> (Rebate Bank Ltd), then submit the sender details below. Deposits are credited after review.</p>",
+      fields: { create: [
+        { label: "Sender Name", type: "input", required: true, sortOrder: 0 },
+        { label: "Bank Name", type: "input", required: true, sortOrder: 1 },
+        { label: "Payment Proof", type: "file", required: false, sortOrder: 2 },
+      ] },
+    },
+  });
+  const manualCrypto = await prisma.depositMethod.create({
+    data: {
+      type: "manual", name: "USDT (TRC20) Manual", symbol: "₮", methodCode: "usdt-trc20", currencyId: currencyId.get("USDT")!, rate: 1, chargeType: "percent", chargeValue: 1, minAmount: 10, maxAmount: 100000, isActive: true,
+      instructions: "<p>Send <strong>USDT (TRC20)</strong> to <code>TVxyz…9kQ</code>, then paste your sender address and transaction hash.</p>",
+      fields: { create: [
+        { label: "Sender Wallet Address", type: "input", required: true, sortOrder: 0 },
+        { label: "Transaction Hash", type: "input", required: true, sortOrder: 1 },
+        { label: "Notes", type: "textarea", required: false, sortOrder: 2 },
+      ] },
+    },
+  });
+
+  type DepositSpec = {
+    method: { id: string; type: string; name: string; chargeType: string; chargeValue: unknown };
+    code: string;
+    amount: number;
+    status: string;
+    ageDays: number;
+    fieldValues?: { label: string; value: string }[];
+  };
+  const feeFor = (spec: DepositSpec) =>
+    spec.method.chargeType === "percent"
+      ? (spec.amount * Number(spec.method.chargeValue)) / 100
+      : Number(spec.method.chargeValue);
+
+  const bankValues = (name: string) => [
+    { label: "Sender Name", value: name },
+    { label: "Bank Name", value: "GTBank" },
+  ];
+  const cryptoValues = (seed: number) => [
+    { label: "Sender Wallet Address", value: `TRX${(seed * 7919).toString(36).toUpperCase()}kQ9` },
+    { label: "Transaction Hash", value: `0x${(seed * 104729).toString(16)}ab` },
+  ];
+
+  const depositSpecs: DepositSpec[] = [
+    // Pending manual requests (Tab 1)
+    { method: manualBank, code: "NGN", amount: 250000, status: "pending", ageDays: 1, fieldValues: bankValues("Amara Okafor") },
+    { method: manualCrypto, code: "USDT", amount: 500, status: "pending", ageDays: 1, fieldValues: cryptoValues(3) },
+    { method: manualBank, code: "NGN", amount: 80000, status: "pending", ageDays: 2, fieldValues: bankValues("Kwame Mensah") },
+    { method: manualCrypto, code: "USDT", amount: 1200, status: "pending", ageDays: 2, fieldValues: cryptoValues(7) },
+    { method: manualBank, code: "NGN", amount: 1500000, status: "pending", ageDays: 3, fieldValues: bankValues("Aisha Bello") },
+    // History mix (Tab 4)
+    { method: autoPaypal, code: "USD", amount: 150, status: "completed", ageDays: 4 },
+    { method: autoPaypal, code: "USD", amount: 500, status: "completed", ageDays: 6 },
+    { method: autoStripe, code: "EUR", amount: 320, status: "completed", ageDays: 7 },
+    { method: autoStripe, code: "EUR", amount: 90, status: "failed", ageDays: 8 },
+    { method: manualBank, code: "NGN", amount: 60000, status: "completed", ageDays: 9, fieldValues: bankValues("Liam Brown") },
+    { method: manualCrypto, code: "USDT", amount: 2000, status: "completed", ageDays: 10, fieldValues: cryptoValues(11) },
+    { method: manualBank, code: "NGN", amount: 45000, status: "canceled", ageDays: 11, fieldValues: bankValues("Sofia Rossi") },
+    { method: autoPaypal, code: "USD", amount: 75, status: "pending", ageDays: 12 },
+    { method: autoStripe, code: "EUR", amount: 240, status: "completed", ageDays: 14 },
+    { method: autoPaystack, code: "NGN", amount: 120000, status: "completed", ageDays: 15 },
+    { method: manualCrypto, code: "USDT", amount: 300, status: "canceled", ageDays: 16, fieldValues: cryptoValues(17) },
+    { method: autoPaypal, code: "USD", amount: 1000, status: "completed", ageDays: 20 },
+  ];
+
+  let d = 0;
+  for (const spec of depositSpecs) {
+    const userId = createdIds[(d * 3 + 1) % createdIds.length];
+    await prisma.deposit.create({
+      data: {
+        id: randomUUID(),
+        txnId: `DEP-${randomUUID().slice(0, 8).toUpperCase()}`,
+        userId,
+        depositMethodId: spec.method.id,
+        type: spec.method.type,
+        currency: spec.code,
+        amountMinor: minor(spec.amount),
+        feeMinor: minor(feeFor(spec)),
+        status: spec.status,
+        provider: spec.method.name,
+        description: `${spec.method.type === "auto" ? "Automatic" : "Manual"} deposit via ${spec.method.name}`,
+        fieldValues: spec.fieldValues,
+        reviewedAt: spec.status === "pending" ? null : daysAgo(spec.ageDays - 0.5),
+        reviewedById: spec.status === "pending" ? null : admin.id,
+        createdAt: daysAgo(spec.ageDays),
+      },
+    });
+    d += 1;
+  }
+
+  // ----- Withdraw methods + withdrawals (held funds) + weekly schedule -----------------
+  await prisma.withdraw.deleteMany({});
+  await prisma.withdrawMethod.deleteMany({});
+
+  const wAutoPaypal = await prisma.withdrawMethod.create({
+    data: { type: "auto", name: "PayPal", symbol: "$", logo: "/gateways/paypal.svg", currencyId: currencyId.get("USD")!, paymentGatewayId: gatewayId.get("paypal"), rate: 1, chargeType: "percent", chargeValue: 2, minAmount: 10, maxAmount: 5000, isActive: true },
+  });
+  const wAutoStripe = await prisma.withdrawMethod.create({
+    data: { type: "auto", name: "Stripe Payout", symbol: "€", logo: "/gateways/stripe.svg", currencyId: currencyId.get("EUR")!, paymentGatewayId: gatewayId.get("stripe"), rate: 0.96, chargeType: "percent", chargeValue: 2.5, minAmount: 10, maxAmount: 10000, isActive: true },
+  });
+  const wBank = await prisma.withdrawMethod.create({
+    data: {
+      type: "manual", name: "Bank Transfer", symbol: "$", methodCode: "bank-usd", currencyId: currencyId.get("USD")!, rate: 1, chargeType: "fixed", chargeValue: 2, minAmount: 20, maxAmount: 10000, processTimeValue: 1, processTimeUnit: "day", isActive: true,
+      fields: { create: [
+        { label: "Bank Name", type: "input", required: true, sortOrder: 0 },
+        { label: "Account Number", type: "input", required: true, sortOrder: 1 },
+        { label: "Account Name", type: "input", required: true, sortOrder: 2 },
+        { label: "Routing Number", type: "input", required: false, sortOrder: 3 },
+        { label: "SWIFT/BIC Code", type: "input", required: false, sortOrder: 4 },
+        { label: "Account Type", type: "input", required: false, sortOrder: 5 },
+      ] },
+    },
+  });
+  const wCrypto = await prisma.withdrawMethod.create({
+    data: {
+      type: "manual", name: "USDT (TRC20) Payout", symbol: "₮", methodCode: "usdt-trc20", currencyId: currencyId.get("USDT")!, rate: 1, chargeType: "percent", chargeValue: 1, minAmount: 10, maxAmount: 50000, processTimeValue: 30, processTimeUnit: "minute", isActive: true,
+      fields: { create: [
+        { label: "Wallet Address", type: "input", required: true, sortOrder: 0 },
+        { label: "Network", type: "input", required: true, sortOrder: 1 },
+      ] },
+    },
+  });
+
+  // Debit (hold) a user's wallet, mirroring what a withdrawal request does at submit time.
+  async function holdFunds(userId: string, code: string, amountMinor: bigint, ageDays: number) {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId_currency: { userId, currency: code } },
+    });
+    if (!wallet || wallet.balanceMinor < amountMinor) return null;
+    const balance = wallet.balanceMinor - amountMinor;
+    const txn = await prisma.walletTransaction.create({
+      data: {
+        id: randomUUID(), userId, walletId: wallet.id, currency: code, direction: "debit",
+        amountMinor, source: "withdrawal", idempotencyKey: `seed:${randomUUID()}`,
+        balanceAfterMinor: balance, status: "completed", provider: "Manual",
+        description: "Withdrawal hold", createdAt: daysAgo(ageDays),
+      },
+    });
+    await prisma.wallet.update({ where: { id: wallet.id }, data: { balanceMinor: balance } });
+    return txn.id;
+  }
+
+  const bankFieldValues = (name: string, acct: string) => [
+    { label: "Bank Name", value: "Chase Bank" },
+    { label: "Account Number", value: acct },
+    { label: "Account Name", value: name },
+  ];
+
+  type WSpec = {
+    method: { id: string; type: string; name: string; chargeType: string; chargeValue: unknown };
+    code: string;
+    amount: number;
+    status: string;
+    ageDays: number;
+    held: boolean;
+    fieldValues?: { label: string; value: string }[];
+  };
+  const wFee = (spec: WSpec) =>
+    spec.method.chargeType === "percent"
+      ? (spec.amount * Number(spec.method.chargeValue)) / 100
+      : Number(spec.method.chargeValue);
+
+  const withdrawSpecs: WSpec[] = [
+    // Pending manual requests (Tab 1) — funds held.
+    { method: wBank, code: "USD", amount: 120, status: "pending", ageDays: 1, held: true, fieldValues: bankFieldValues("Amara Okafor", "0123456789") },
+    { method: wBank, code: "USD", amount: 250, status: "pending", ageDays: 1, held: true, fieldValues: bankFieldValues("Kwame Mensah", "5551234567") },
+    { method: wBank, code: "USD", amount: 60, status: "pending", ageDays: 2, held: true, fieldValues: bankFieldValues("Aisha Bello", "9087654321") },
+    { method: wBank, code: "USD", amount: 90, status: "pending", ageDays: 3, held: true, fieldValues: bankFieldValues("Liam Brown", "4445556666") },
+    // Completed (held funds left the wallet).
+    { method: wAutoPaypal, code: "USD", amount: 200, status: "completed", ageDays: 5, held: true },
+    { method: wBank, code: "USD", amount: 75, status: "completed", ageDays: 6, held: true, fieldValues: bankFieldValues("Sofia Rossi", "1112223333") },
+    { method: wAutoPaypal, code: "USD", amount: 150, status: "completed", ageDays: 9, held: true },
+    { method: wBank, code: "USD", amount: 300, status: "completed", ageDays: 12, held: true, fieldValues: bankFieldValues("Noah Smith", "7778889999") },
+    // Rejected/failed (no net ledger impact — seeded standalone).
+    { method: wAutoStripe, code: "EUR", amount: 120, status: "canceled", ageDays: 8, held: false },
+    { method: wCrypto, code: "USDT", amount: 500, status: "failed", ageDays: 10, held: false },
+    { method: wCrypto, code: "USDT", amount: 800, status: "canceled", ageDays: 14, held: false },
+    { method: wAutoStripe, code: "EUR", amount: 60, status: "failed", ageDays: 18, held: false },
+  ];
+
+  let w = 0;
+  for (const spec of withdrawSpecs) {
+    const userId = createdIds[(w * 5 + 2) % createdIds.length];
+    const amountMinor = minor(spec.amount);
+    const heldId = spec.held ? await holdFunds(userId, spec.code, amountMinor, spec.ageDays) : null;
+    await prisma.withdraw.create({
+      data: {
+        id: randomUUID(),
+        txnId: `WDL-${randomUUID().slice(0, 8).toUpperCase()}`,
+        userId,
+        withdrawMethodId: spec.method.id,
+        type: spec.method.type,
+        currency: spec.code,
+        amountMinor,
+        feeMinor: minor(wFee(spec)),
+        status: spec.status,
+        provider: spec.method.name,
+        description: `Withdraw via ${spec.method.name} - ${spec.method.type === "auto" ? "Automatic" : "Manual"}`,
+        fieldValues: spec.fieldValues,
+        heldTransactionId: heldId,
+        reviewedAt: spec.status === "pending" ? null : daysAgo(spec.ageDays - 0.5),
+        reviewedById: spec.status === "pending" ? null : admin.id,
+        createdAt: daysAgo(spec.ageDays),
+      },
+    });
+    w += 1;
+  }
+
+  // Weekly auto-process schedule (Mon/Wed/Fri enabled).
+  for (let day = 0; day < 7; day += 1) {
+    await prisma.withdrawScheduleDay.upsert({
+      where: { day },
+      update: {},
+      create: { day, enabled: day === 1 || day === 3 || day === 5 },
+    });
+  }
+
   const [
     totalUsers,
     totalWallets,
@@ -430,6 +676,8 @@ async function main() {
     totalProducts,
     totalCurrencies,
     totalGateways,
+    totalMethods,
+    totalDeposits,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.wallet.count(),
@@ -437,10 +685,16 @@ async function main() {
     prisma.product.count(),
     prisma.currency.count(),
     prisma.paymentGateway.count(),
+    prisma.depositMethod.count(),
+    prisma.deposit.count(),
+  ]);
+  const [totalWMethods, totalWithdraws] = await Promise.all([
+    prisma.withdrawMethod.count(),
+    prisma.withdraw.count(),
   ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(

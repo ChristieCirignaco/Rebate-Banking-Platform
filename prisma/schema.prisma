@@ -67,6 +67,8 @@ model User {
   transactions  WalletTransaction[]
   notifications Notification[]
   products      Product[]
+  deposits      Deposit[]
+  withdrawals   Withdraw[]
 
   @@index([status])
   @@index([kycStatus])
@@ -191,6 +193,8 @@ model Currency {
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @updatedAt @map("updated_at")
   roles      CurrencyRole[]
+  depositMethods DepositMethod[]
+  withdrawMethods WithdrawMethod[]
 
   @@index([type])
   @@map("currencies")
@@ -230,8 +234,187 @@ model PaymentGateway {
   credentials         String?  @map("credentials") // AES-256-GCM encrypted JSON of the gateway's fields
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
+  depositMethods      DepositMethod[]
+  withdrawMethods     WithdrawMethod[]
 
   @@map("payment_gateways")
+}
+
+// ---------------------------------------------------------------------------
+// Deposits. Design decisions:
+//  - DepositMethod is the ONE config table for both automatic and manual methods
+//    (`type`), so it reuses the shared models instead of duplicating them: an auto
+//    method references an existing PaymentGateway (paymentGatewayId, nullable — used
+//    only for auto; credentials stay on the gateway, never copied here) and an existing
+//    Currency (currencyId). A manual method references only a Currency and owns a set of
+//    ManualMethodField rows (the dynamic form a user fills at deposit time).
+//  - Deposit is the order/request lifecycle (mutable status), separate from the
+//    append-only wallet_transactions ledger. Approving a deposit posts an immutable
+//    ledger credit via postLedgerEntry (idempotency key deposit:<id>) and links it here.
+//    "Manual Requests" = manual deposits still pending; "Deposit History" = all deposits.
+//    History rows are deletable (admin housekeeping) without touching the ledger.
+// ---------------------------------------------------------------------------
+
+model DepositMethod {
+  id               String              @id @default(uuid())
+  type             String // auto | manual
+  name             String
+  symbol           String
+  methodCode       String?             @map("method_code") // slug, manual methods
+  logo             String?
+  currencyId       String              @map("currency_id")
+  currency         Currency            @relation(fields: [currencyId], references: [id], onDelete: Restrict)
+  paymentGatewayId String?             @map("payment_gateway_id") // auto only
+  paymentGateway   PaymentGateway?     @relation(fields: [paymentGatewayId], references: [id], onDelete: SetNull)
+  rate             Decimal             @default(1) @db.Decimal(38, 18)
+  chargeType       String              @default("percent") @map("charge_type") // percent | fixed
+  chargeValue      Decimal             @default(0) @map("charge_value") @db.Decimal(38, 18)
+  minAmount        Decimal             @default(0) @map("min_amount") @db.Decimal(38, 18)
+  maxAmount        Decimal             @default(0) @map("max_amount") @db.Decimal(38, 18)
+  instructions     String? // manual: rich-text (HTML) shown to the user
+  isActive         Boolean             @default(true) @map("is_active")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  fields           ManualMethodField[]
+  deposits         Deposit[]
+
+  @@index([type])
+  @@index([currencyId])
+  @@index([paymentGatewayId])
+  @@map("deposit_methods")
+}
+
+model ManualMethodField {
+  id              String        @id @default(uuid())
+  depositMethodId String        @map("deposit_method_id")
+  method          DepositMethod @relation(fields: [depositMethodId], references: [id], onDelete: Cascade)
+  label           String
+  type            String        @default("input") // input | textarea | file
+  required        Boolean       @default(true)
+  sortOrder       Int           @default(0) @map("sort_order")
+
+  @@index([depositMethodId])
+  @@map("manual_method_fields")
+}
+
+model Deposit {
+  id                  String         @id @default(uuid())
+  txnId               String         @unique @map("txn_id") // human reference, e.g. DEP-XXXXXX
+  userId              String         @map("user_id")
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  depositMethodId     String?        @map("deposit_method_id")
+  method              DepositMethod? @relation(fields: [depositMethodId], references: [id], onDelete: SetNull)
+  type                String // auto | manual (denormalized from the method)
+  currency            String // ISO code (denormalized so the ledger credit is exact)
+  amountMinor         BigInt         @map("amount_minor")
+  feeMinor            BigInt         @default(0) @map("fee_minor")
+  status              String         @default("pending") // pending | completed | canceled | failed
+  provider            String? // gateway/method name shown in history
+  description         String?
+  fieldValues         Json?          @map("field_values") // manual: the custom-field values the user submitted
+  remarks             String? // admin remarks on review
+  reviewedById        String?        @map("reviewed_by_id")
+  reviewedAt          DateTime?      @map("reviewed_at")
+  walletTransactionId String?        @map("wallet_transaction_id") // ledger entry created on approval
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type, status])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("deposits")
+}
+
+// ---------------------------------------------------------------------------
+// Withdrawals. Mirrors the Deposit design (shared PaymentGateway + Currency, no
+// duplicated credentials/ledger) with the money direction reversed and two extras:
+//  - Manual methods carry a Process Time (value + unit) instead of rich-text instructions.
+//  - A weekly WithdrawScheduleDay table drives auto-processing days.
+// Money model (held funds): a withdrawal REQUEST debits the wallet (source "withdrawal",
+// linked as heldTransactionId). Approve just completes it; Reject REFUNDS via a
+// "withdrawal_reversal" credit (refundTransactionId). Both ledger writes are idempotent.
+// ---------------------------------------------------------------------------
+
+model WithdrawMethod {
+  id               String                @id @default(uuid())
+  type             String // auto | manual
+  name             String
+  symbol           String
+  methodCode       String?               @map("method_code")
+  logo             String?
+  currencyId       String                @map("currency_id")
+  currency         Currency              @relation(fields: [currencyId], references: [id], onDelete: Restrict)
+  paymentGatewayId String?               @map("payment_gateway_id")
+  paymentGateway   PaymentGateway?       @relation(fields: [paymentGatewayId], references: [id], onDelete: SetNull)
+  rate             Decimal               @default(1) @db.Decimal(38, 18)
+  chargeType       String                @default("percent") @map("charge_type") // percent | fixed
+  chargeValue      Decimal               @default(0) @map("charge_value") @db.Decimal(38, 18)
+  minAmount        Decimal               @default(0) @map("min_amount") @db.Decimal(38, 18)
+  maxAmount        Decimal               @default(0) @map("max_amount") @db.Decimal(38, 18)
+  processTimeValue Int?                  @map("process_time_value") // manual: value
+  processTimeUnit  String?               @map("process_time_unit") // manual: minute | hour | day
+  isActive         Boolean               @default(true) @map("is_active")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  fields           WithdrawMethodField[]
+  withdrawals      Withdraw[]
+
+  @@index([type])
+  @@index([currencyId])
+  @@index([paymentGatewayId])
+  @@map("withdraw_methods")
+}
+
+model WithdrawMethodField {
+  id               String         @id @default(uuid())
+  withdrawMethodId String         @map("withdraw_method_id")
+  method           WithdrawMethod @relation(fields: [withdrawMethodId], references: [id], onDelete: Cascade)
+  label            String
+  type             String         @default("input") // input | textarea | file
+  required         Boolean        @default(true)
+  sortOrder        Int            @default(0) @map("sort_order")
+
+  @@index([withdrawMethodId])
+  @@map("withdraw_method_fields")
+}
+
+model Withdraw {
+  id                  String          @id @default(uuid())
+  txnId               String          @unique @map("txn_id")
+  userId              String          @map("user_id")
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  withdrawMethodId    String?         @map("withdraw_method_id")
+  method              WithdrawMethod? @relation(fields: [withdrawMethodId], references: [id], onDelete: SetNull)
+  type                String // auto | manual
+  currency            String // ISO code (denormalized)
+  amountMinor         BigInt          @map("amount_minor")
+  feeMinor            BigInt          @default(0) @map("fee_minor")
+  status              String          @default("pending") // pending | completed | canceled | failed
+  provider            String?
+  description         String?
+  fieldValues         Json?           @map("field_values")
+  remarks             String?
+  reviewedById        String?         @map("reviewed_by_id")
+  reviewedAt          DateTime?       @map("reviewed_at")
+  heldTransactionId   String?         @map("held_transaction_id") // the "withdrawal" debit that held the funds
+  refundTransactionId String?         @map("refund_transaction_id") // the "withdrawal_reversal" credit on reject
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type, status])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("withdraws")
+}
+
+model WithdrawScheduleDay {
+  day       Int      @id // 0 = Sunday … 6 = Saturday
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("withdraw_schedule_days")
 }
 
 // ---------------------------------------------------------------------------

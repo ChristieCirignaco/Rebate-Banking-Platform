@@ -21,7 +21,9 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-// Absolute date-time, e.g. "Jul 13, 2026, 2:30 PM".
+// Absolute date-time in UTC, e.g. "Jul 13, 2026, 2:30 PM UTC". Pinned to UTC so the value
+// is deterministic across server render and client hydration (no timezone-dependent
+// mismatch), and unambiguous for a financial admin.
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
     year: "numeric",
@@ -29,6 +31,8 @@ export function formatDateTime(iso: string): string {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
   });
 }
 

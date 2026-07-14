@@ -1,17 +1,41 @@
 import type { Metadata } from "next";
 
 import { AdminSection } from "@/components/admin/admin-section";
-import { PlaceholderPanel } from "@/components/admin/placeholder-panel";
+import { DepositsTabs } from "@/components/admin/deposits/deposits-tabs";
+import {
+  getCurrencyOptions,
+  getDepositHistory,
+  getDepositMethods,
+  getGatewayOptions,
+  getManualRequests,
+} from "@/lib/admin/deposits";
 
 export const metadata: Metadata = { title: "Deposits" };
 
-export default function AdminDepositsPage() {
+export default async function AdminDepositsPage() {
+  const [requests, autoMethods, manualMethods, history, currencies, gateways] =
+    await Promise.all([
+      getManualRequests(),
+      getDepositMethods("auto"),
+      getDepositMethods("manual"),
+      getDepositHistory(),
+      getCurrencyOptions(),
+      getGatewayOptions(),
+    ]);
+
   return (
     <AdminSection
       title="Deposits"
-      description="Inspect deposit history (gated behind the deposits feature flag)."
+      description="Review manual requests, configure deposit methods, and browse history."
     >
-      <PlaceholderPanel>The deposits view lands in Phase 6.</PlaceholderPanel>
+      <DepositsTabs
+        requests={requests}
+        autoMethods={autoMethods}
+        manualMethods={manualMethods}
+        history={history}
+        currencies={currencies}
+        gateways={gateways}
+      />
     </AdminSection>
   );
 }
