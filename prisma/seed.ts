@@ -1018,6 +1018,209 @@ async function main() {
     });
   }
 
+  // ----- Support tickets (categories, tickets, threaded replies with real attachments) --
+  await prisma.ticketMessage.deleteMany({});
+  await prisma.ticket.deleteMany({});
+  await prisma.supportCategory.deleteMany({});
+  await clearNamespace("tickets");
+
+  const categories = await Promise.all(
+    ["Billing", "Technical Support", "Account", "General Inquiry"].map((name) =>
+      prisma.supportCategory.create({ data: { name } }),
+    ),
+  );
+  const categoryByName = new Map(categories.map((c) => [c.name, c]));
+
+  const ticketCode = () => randomUUID().replace(/-/g, "").slice(0, 7).toUpperCase();
+
+  async function screenshotAttachment(label: string) {
+    const key = await putObject("tickets", solidPng(640, 360, [59, 130, 246]), "png");
+    return [{ name: `${label}.png`, key, contentType: "image/png", size: 0 }];
+  }
+  async function invoiceAttachment(label: string) {
+    const key = await putObject("tickets", minimalPdf(label), "pdf");
+    return [{ name: `${label}.pdf`, key, contentType: "application/pdf", size: 0 }];
+  }
+
+  type TicketSpec = {
+    subject: string;
+    body: string;
+    priority: string;
+    status: string;
+    category: string;
+    ageDays: number;
+    // Reply thread: alternating admin/user messages after the opening message.
+    replies?: { from: "admin" | "user"; body: string; attach?: "screenshot" | "invoice" }[];
+  };
+
+  const ticketSpecs: TicketSpec[] = [
+    {
+      subject: "Withdrawal stuck in pending for 2 days",
+      body: "I requested a withdrawal on Monday and it still shows pending. Can you check what's going on?",
+      priority: "high",
+      status: "open",
+      category: "Billing",
+      ageDays: 2,
+    },
+    {
+      subject: "Can't upload KYC document",
+      body: "The upload button doesn't respond when I try to submit my passport photo.",
+      priority: "urgent",
+      status: "open",
+      category: "Technical Support",
+      ageDays: 1,
+    },
+    {
+      subject: "Question about referral bonus",
+      body: "How long does it take for referral bonuses to show up in my wallet?",
+      priority: "low",
+      status: "pending",
+      category: "General Inquiry",
+      ageDays: 3,
+      replies: [
+        { from: "admin", body: "Referral bonuses post within 24 hours of your referral's first approved deposit. Let us know if it's been longer than that." },
+      ],
+    },
+    {
+      subject: "Duplicate charge on my deposit",
+      body: "I think I was charged twice for the same $50 deposit. Here's a screenshot of my bank statement.",
+      priority: "high",
+      status: "pending",
+      category: "Billing",
+      ageDays: 4,
+      replies: [
+        { from: "user", body: "Attaching the screenshot now.", attach: "screenshot" },
+        { from: "admin", body: "Thanks, we're looking into this with our payment provider now." },
+      ],
+    },
+    {
+      subject: "Update my email address",
+      body: "I no longer have access to my old email. Can you help me update it on my account?",
+      priority: "medium",
+      status: "replied",
+      category: "Account",
+      ageDays: 5,
+      replies: [
+        { from: "admin", body: "For security we can only update this after verifying your identity — could you reply with a photo of your government ID?" },
+        { from: "user", body: "Sure, here it is." },
+        { from: "admin", body: "Got it, verified — your email has been updated. You'll need to sign in again." },
+      ],
+    },
+    {
+      subject: "App keeps logging me out",
+      body: "Every few minutes I get logged out and have to sign back in. It's happening on both my phone and laptop.",
+      priority: "medium",
+      status: "replied",
+      category: "Technical Support",
+      ageDays: 6,
+      replies: [
+        { from: "admin", body: "Sorry about that — could you tell us which browser/app version you're using?" },
+        { from: "user", body: "Chrome on desktop, latest version. Started happening yesterday." },
+        { from: "admin", body: "We've identified a session-expiry bug affecting some accounts and pushed a fix. Please try again and let us know if it persists." },
+      ],
+    },
+    {
+      subject: "Refund for canceled withdrawal",
+      body: "I canceled a withdrawal request but the funds haven't returned to my wallet balance yet.",
+      priority: "high",
+      status: "closed",
+      category: "Billing",
+      ageDays: 9,
+      replies: [
+        { from: "admin", body: "Checking now — one moment." },
+        { from: "admin", body: "Confirmed the refund posted to your wallet. Here's the receipt for your records.", attach: "invoice" },
+        { from: "user", body: "Got it, thank you!" },
+      ],
+    },
+    {
+      subject: "How do I close my account?",
+      body: "I'd like to close my account and withdraw my remaining balance first.",
+      priority: "low",
+      status: "closed",
+      category: "Account",
+      ageDays: 12,
+      replies: [
+        { from: "admin", body: "You can withdraw your balance from the Withdraw page first — once that clears, reply here and we'll close the account for you." },
+        { from: "user", body: "Withdrawal is done, please go ahead and close it." },
+        { from: "admin", body: "Done — your account has been closed. Thanks for using Rebate Bank." },
+      ],
+    },
+    {
+      subject: "Feature request: dark mode on mobile",
+      body: "Would love to see a dark mode option in the mobile view too.",
+      priority: "low",
+      status: "closed",
+      category: "General Inquiry",
+      ageDays: 15,
+      replies: [
+        { from: "admin", body: "Thanks for the suggestion! We've passed this along to the product team." },
+      ],
+    },
+    {
+      subject: "Currency conversion rate seems off",
+      body: "The EUR to USD rate shown at checkout didn't match what I saw on the dashboard a minute earlier.",
+      priority: "medium",
+      status: "pending",
+      category: "Billing",
+      ageDays: 1,
+    },
+    {
+      subject: "Two-factor authentication not sending codes",
+      body: "I'm not receiving the SMS code when I try to log in.",
+      priority: "urgent",
+      status: "open",
+      category: "Technical Support",
+      ageDays: 0.5,
+    },
+  ];
+
+  let t = 0;
+  for (const spec of ticketSpecs) {
+    const userId = createdIds[(t * 4 + 3) % createdIds.length];
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    const userName = user?.name ?? "User";
+    const category = categoryByName.get(spec.category)!;
+    const openedAt = daysAgo(spec.ageDays);
+
+    const ticket = await prisma.ticket.create({
+      data: {
+        ticketCode: ticketCode(),
+        userId,
+        categoryId: category.id,
+        categoryName: category.name,
+        subject: spec.subject,
+        body: spec.body,
+        priority: spec.priority,
+        status: spec.status,
+        createdAt: openedAt,
+        lastRepliedAt: spec.replies?.length ? hoursAgo(spec.ageDays * 24 - spec.replies.length) : null,
+      },
+    });
+
+    let r = 0;
+    for (const reply of spec.replies ?? []) {
+      const attachments =
+        reply.attach === "screenshot"
+          ? await screenshotAttachment(`evidence-${t}-${r}`)
+          : reply.attach === "invoice"
+            ? await invoiceAttachment(`Receipt — ${userName}`)
+            : undefined;
+      await prisma.ticketMessage.create({
+        data: {
+          ticketId: ticket.id,
+          senderType: reply.from,
+          senderId: reply.from === "admin" ? admin.id : userId,
+          senderName: reply.from === "admin" ? adminName : userName,
+          body: reply.body,
+          attachments,
+          createdAt: hoursAgo(spec.ageDays * 24 - r * 3 - 1),
+        },
+      });
+      r += 1;
+    }
+    t += 1;
+  }
+
   const [
     totalUsers,
     totalWallets,
@@ -1037,17 +1240,28 @@ async function main() {
     prisma.depositMethod.count(),
     prisma.deposit.count(),
   ]);
-  const [totalWMethods, totalWithdraws, totalNotifications, totalKycTemplates, totalKycSubmissions] =
-    await Promise.all([
-      prisma.withdrawMethod.count(),
-      prisma.withdraw.count(),
-      prisma.notification.count(),
-      prisma.kycTemplate.count(),
-      prisma.kycSubmission.count(),
-    ]);
+  const [
+    totalWMethods,
+    totalWithdraws,
+    totalNotifications,
+    totalKycTemplates,
+    totalKycSubmissions,
+    totalCategories,
+    totalTickets,
+    totalTicketMessages,
+  ] = await Promise.all([
+    prisma.withdrawMethod.count(),
+    prisma.withdraw.count(),
+    prisma.notification.count(),
+    prisma.kycTemplate.count(),
+    prisma.kycSubmission.count(),
+    prisma.supportCategory.count(),
+    prisma.ticket.count(),
+    prisma.ticketMessage.count(),
+  ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications, ${totalKycTemplates} KYC templates, ${totalKycSubmissions} KYC submissions.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications, ${totalKycTemplates} KYC templates, ${totalKycSubmissions} KYC submissions, ${totalCategories} support categories, ${totalTickets} tickets, ${totalTicketMessages} ticket messages.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(

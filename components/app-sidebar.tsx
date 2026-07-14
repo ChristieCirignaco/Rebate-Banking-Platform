@@ -7,6 +7,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Bell,
+  ChevronRight,
   ClipboardCheck,
   Coins,
   CreditCard,
@@ -14,6 +15,7 @@ import {
   Flag,
   Landmark,
   LayoutDashboard,
+  LifeBuoy,
   Megaphone,
   Package,
   Receipt,
@@ -25,6 +27,11 @@ import {
 
 import { NavUser } from "@/components/nav-user";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -35,12 +42,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 
 type NavItem = {
   title: string;
   href: string;
   icon: ComponentType<{ className?: string }>;
+  // Present only on a collapsible parent (e.g. "Support Ticket") — the parent itself is
+  // a toggle, not a link, so `href` on a parent is just used for active-route matching.
+  children?: NavItem[];
 };
 
 type NavGroup = { label: string; items: NavItem[] };
@@ -98,6 +111,28 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    // "Support Category" is a separate, sibling section (not built yet) — it belongs in
+    // this group too once it exists, as a flat item alongside the collapsible ticket item.
+    label: "Support",
+    items: [
+      {
+        title: "Support Ticket",
+        href: "/admin/support-ticket",
+        icon: LifeBuoy,
+        children: [
+          { title: "Pending Ticket", href: "/admin/support-ticket/pending", icon: LifeBuoy },
+          {
+            title: "In Progress Ticket",
+            href: "/admin/support-ticket/inprogress",
+            icon: LifeBuoy,
+          },
+          { title: "Close Ticket", href: "/admin/support-ticket/close", icon: LifeBuoy },
+          { title: "All Ticket", href: "/admin/support-ticket/history", icon: LifeBuoy },
+        ],
+      },
+    ],
+  },
+  {
     label: "Finance & Wallet",
     items: [
       { title: "Transactions", href: "/admin/transaction", icon: Receipt },
@@ -126,19 +161,29 @@ function isActive(pathname: string, href: string): boolean {
 
 // Only the most specific matching nav href wins, so a parent route (e.g.
 // /admin/notifications) doesn't also highlight on a child (/admin/notifications/to-users).
+// A collapsible parent's own href is a toggle target, not a real page, so it never wins —
+// only leaf items (including a collapsible's children) are eligible.
 function mostSpecificActiveHref(pathname: string): string | null {
   let best: string | null = null;
-  for (const group of NAV) {
-    for (const item of group.items) {
-      if (
-        isActive(pathname, item.href) &&
-        (best === null || item.href.length > best.length)
-      ) {
+  function visit(items: NavItem[]) {
+    for (const item of items) {
+      if (item.children) {
+        visit(item.children);
+        continue;
+      }
+      if (isActive(pathname, item.href) && (best === null || item.href.length > best.length)) {
         best = item.href;
       }
     }
   }
+  for (const group of NAV) visit(group.items);
   return best;
+}
+
+// Whether a collapsible parent should render expanded on load — true if the current route
+// is under any of its children.
+function hasActiveChild(item: NavItem, pathname: string): boolean {
+  return !!item.children?.some((child) => isActive(pathname, child.href));
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
@@ -171,20 +216,52 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={item.href === activeHref}
-                      tooltip={item.title}
+                {group.items.map((item) =>
+                  item.children ? (
+                    <Collapsible
+                      key={item.href}
+                      defaultOpen={hasActiveChild(item, pathname)}
+                      className="group/collapsible"
                     >
-                      <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={item.title}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                            <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.children.map((child) => (
+                              <SidebarMenuSubItem key={child.href}>
+                                <SidebarMenuSubButton asChild isActive={child.href === activeHref}>
+                                  <Link href={child.href}>
+                                    <child.icon />
+                                    <span>{child.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={item.href === activeHref}
+                        tooltip={item.title}
+                      >
+                        <Link href={item.href}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ),
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

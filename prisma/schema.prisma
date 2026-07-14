@@ -70,6 +70,7 @@ model User {
   deposits       Deposit[]
   withdrawals    Withdraw[]
   kycSubmissions KycSubmission[]
+  tickets        Ticket[]
 
   @@index([status])
   @@index([kycStatus])
@@ -543,4 +544,63 @@ model KycSubmission {
   @@index([status])
   @@index([createdAt])
   @@map("kyc_submissions")
+}
+
+// ---------------------------------------------------------------------------
+// Support tickets. A user opens a ticket (subject + body); staff reply in a
+// threaded conversation and move it through open -> pending/replied -> closed.
+// Category is a lightweight lookup owned by the separate Support Category
+// section — referenced here, not duplicated. A denormalized name snapshot
+// keeps ticket history readable if a category is later renamed or removed.
+// ---------------------------------------------------------------------------
+
+model SupportCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tickets Ticket[]
+
+  @@map("support_categories")
+}
+
+model Ticket {
+  id            String           @id @default(uuid())
+  ticketCode    String           @unique @map("ticket_code") // human reference, e.g. HQ0HN1H (shown as #HQ0HN1H)
+  userId        String           @map("user_id")
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId    String?          @map("category_id")
+  category      SupportCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryName  String?          @map("category_name") // snapshot; survives category rename/delete
+  subject       String
+  body          String
+  priority      String           @default("medium") // low | medium | high | urgent
+  status        String           @default("open") // open | pending | replied | closed
+  lastRepliedAt DateTime?        @map("last_replied_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  messages TicketMessage[]
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id          String   @id @default(uuid())
+  ticketId    String   @map("ticket_id")
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderType  String   @map("sender_type") // user | admin
+  senderId    String   @map("sender_id") // the ticket's user, or the replying admin
+  senderName  String   @map("sender_name") // snapshot for display without an extra join
+  body        String
+  attachments Json? // [{ name, key, url, contentType, size }]
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([ticketId])
+  @@map("ticket_messages")
 }
