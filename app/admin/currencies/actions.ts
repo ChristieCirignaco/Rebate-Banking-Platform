@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { isAcceptableImageValue } from "@/lib/media";
 import {
   CURRENCY_ROLES,
   type CurrencyFormPayload,
@@ -38,11 +39,9 @@ function validate(payload: CurrencyFormPayload): string | null {
     if (typeof payload.flagUrl !== "string" || payload.flagUrl.length > 512 * 1024) {
       return "Flag image is too large.";
     }
-    const isDataImage = /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(
-      payload.flagUrl,
-    );
-    const isHttpUrl = /^https?:\/\//.test(payload.flagUrl);
-    if (!isDataImage && !isHttpUrl) {
+    // Accepts an uploaded /api/media/… URL (new), plus legacy data-URIs, http(s) URLs,
+    // and static /… paths so existing values keep validating.
+    if (!isAcceptableImageValue(payload.flagUrl)) {
       return "Flag must be an uploaded image or image URL.";
     }
   }

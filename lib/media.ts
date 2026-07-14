@@ -1,0 +1,64 @@
+// Public brand-image (logo / flag) uploads. Unlike KYC documents these are non-sensitive
+// and served publicly + cacheable — but still go through storage + a route (not public/),
+// so the backend stays swappable. The "media" namespace is isolated from private "kyc".
+export const MEDIA_TYPES: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+};
+
+export const MAX_MEDIA_BYTES = 512 * 1024; // brand images are small
+export const MEDIA_ACCEPT = ".png,.jpg,.jpeg,.webp,.gif,.svg";
+
+export function mediaExtForContentType(contentType: string): string | null {
+  const match = Object.entries(MEDIA_TYPES).find(([, ct]) => ct === contentType);
+  return match ? match[0] : null;
+}
+
+export function mediaContentTypeForKey(key: string): string | null {
+  const ext = key.split(".").pop()?.toLowerCase() ?? "";
+  return MEDIA_TYPES[ext] ?? null;
+}
+
+export function mediaKeyBasename(key: string): string {
+  return key.split("/").pop() ?? key;
+}
+
+// The public URL a stored media key is served at.
+export function mediaUrl(key: string): string {
+  return `/api/media/${mediaKeyBasename(key)}`;
+}
+
+// A stored value is one of ours if it points at the media route (new uploads) or is a
+// legacy data-URI / local path / http URL (existing values stay valid). Used by validators.
+export function isAcceptableImageValue(value: string): boolean {
+  return (
+    value.startsWith("/") || // /api/media/… (new) or /gateways/*.svg (static)
+    /^https?:\/\//.test(value) ||
+    /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/.test(value) // legacy
+  );
+}
+
+// Client-side helper: upload one image through the admin endpoint and get its served URL.
+export async function uploadMedia(
+  file: File,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  let res: Response;
+  try {
+    res = await fetch("/api/admin/media", { method: "POST", body: form });
+  } catch {
+    return { ok: false, error: "Network error during upload." };
+  }
+  const data = (await res.json().catch(() => null)) as
+    | { ok?: boolean; url?: string; error?: string }
+    | null;
+  if (!res.ok || !data?.ok || !data.url) {
+    return { ok: false, error: data?.error ?? "Upload failed." };
+  }
+  return { ok: true, url: data.url };
+}

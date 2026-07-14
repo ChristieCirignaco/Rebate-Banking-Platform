@@ -6,11 +6,10 @@ import { ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
+import { MAX_MEDIA_BYTES, MEDIA_ACCEPT, uploadMedia } from "@/lib/media";
 
-const MAX_BYTES = 256 * 1024;
-
-// Reads the chosen image into a data URL (stored on the currency). Storage-agnostic:
-// no upload endpoint / blob service needed yet; swap for object storage in production.
+// Uploads the chosen image to object storage via /api/admin/media and stores the returned
+// URL on the currency (not a base64 data URL). Swap lib/storage for S3/R2 without changes here.
 export function FlagUpload({
   value,
   onChange,
@@ -19,29 +18,23 @@ export function FlagUpload({
   onChange: (value: string | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [reading, setReading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  function handleFile(file?: File) {
+  async function handleFile(file?: File) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image file.");
       return;
     }
-    if (file.size > MAX_BYTES) {
-      toast.error("Image must be under 256 KB.");
+    if (file.size > MAX_MEDIA_BYTES) {
+      toast.error("Image must be under 512 KB.");
       return;
     }
-    setReading(true);
-    const reader = new FileReader();
-    reader.onload = () => {
-      onChange(typeof reader.result === "string" ? reader.result : null);
-      setReading(false);
-    };
-    reader.onerror = () => {
-      toast.error("Could not read that image.");
-      setReading(false);
-    };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    const result = await uploadMedia(file);
+    setUploading(false);
+    if (result.ok) onChange(result.url);
+    else toast.error(result.error);
   }
 
   return (
@@ -61,10 +54,10 @@ export function FlagUpload({
             type="button"
             variant="outline"
             size="sm"
-            disabled={reading}
+            disabled={uploading}
             onClick={() => inputRef.current?.click()}
           >
-            {reading ? "Reading…" : value ? "Replace" : "Upload"}
+            {uploading ? "Uploading…" : value ? "Replace" : "Upload"}
           </Button>
           {value ? (
             <Button
@@ -81,7 +74,8 @@ export function FlagUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept={MEDIA_ACCEPT}
+          aria-label="Upload flag image"
           className="hidden"
           onChange={(event) => {
             handleFile(event.target.files?.[0]);
@@ -89,7 +83,7 @@ export function FlagUpload({
           }}
         />
       </div>
-      <p className="text-muted-foreground text-xs">PNG, SVG or JPG up to 256 KB.</p>
+      <p className="text-muted-foreground text-xs">PNG, SVG or JPG up to 512 KB.</p>
     </div>
   );
 }
