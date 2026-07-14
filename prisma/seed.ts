@@ -670,6 +670,82 @@ async function main() {
     });
   }
 
+  // ----- System alerts for the admin "All Notifications" feed -------------------------
+  // Real inbound alerts derived from the seeded pending records + KYC submissions, fanned
+  // out to every admin (the same shape notifyAdmins() writes at runtime). readAt = null
+  // means unread; the oldest third are pre-marked read for a realistic mix.
+  const fmtAmount = (m: bigint, code: string) =>
+    `${(Number(m) / 100).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} ${code}`;
+
+  const admins = await prisma.user.findMany({
+    where: { role: "admin" },
+    select: { id: true },
+  });
+
+  const [pendingDeposits, pendingWithdrawals, kycPending] = await Promise.all([
+    prisma.deposit.findMany({
+      where: { status: "pending" },
+      include: { user: { select: { name: true } } },
+    }),
+    prisma.withdraw.findMany({
+      where: { status: "pending" },
+      include: { user: { select: { name: true } } },
+    }),
+    prisma.user.findMany({
+      where: { kycStatus: "pending" },
+      select: { id: true, name: true, kycDocumentType: true, createdAt: true },
+      take: 4,
+    }),
+  ]);
+
+  const alertSeeds = [
+    ...pendingDeposits.map((dep) => ({
+      type: "deposit_requested",
+      title: "New deposit request",
+      message: `${dep.user.name} requested a ${fmtAmount(dep.amountMinor, dep.currency)} deposit via ${dep.provider ?? "a payment method"}.`,
+      createdAt: dep.createdAt,
+    })),
+    ...pendingWithdrawals.map((wd) => ({
+      type: "withdraw_requested",
+      title: "New withdrawal request",
+      message: `${wd.user.name} requested a ${fmtAmount(wd.amountMinor, wd.currency)} withdrawal via ${wd.provider ?? "a payment method"}.`,
+      createdAt: wd.createdAt,
+    })),
+    ...kycPending.map((u) => ({
+      type: "kyc_submitted",
+      title: "KYC submitted for review",
+      message: `${u.name} submitted ${u.kycDocumentType ?? "identity documents"} for verification.`,
+      createdAt: u.createdAt,
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  if (admins.length > 0 && alertSeeds.length > 0) {
+    // Idempotent like every sibling block: clear the admins' existing alert rows first so
+    // a repeated `db:seed` doesn't accumulate duplicates on the persistent bootstrap admin.
+    await prisma.notification.deleteMany({
+      where: {
+        userId: { in: admins.map((adm) => adm.id) },
+        type: { in: ["kyc_submitted", "deposit_requested", "withdraw_requested"] },
+      },
+    });
+    const readCutoff = Math.floor((alertSeeds.length * 2) / 3);
+    await prisma.notification.createMany({
+      data: admins.flatMap((adm) =>
+        alertSeeds.map((alert, idx) => ({
+          userId: adm.id,
+          type: alert.type,
+          title: alert.title,
+          message: alert.message,
+          createdAt: alert.createdAt,
+          readAt: idx >= readCutoff ? alert.createdAt : null,
+        })),
+      ),
+    });
+  }
+
   const [
     totalUsers,
     totalWallets,
@@ -689,13 +765,14 @@ async function main() {
     prisma.depositMethod.count(),
     prisma.deposit.count(),
   ]);
-  const [totalWMethods, totalWithdraws] = await Promise.all([
+  const [totalWMethods, totalWithdraws, totalNotifications] = await Promise.all([
     prisma.withdrawMethod.count(),
     prisma.withdraw.count(),
+    prisma.notification.count(),
   ]);
   console.info(`Seeded admin ${adminEmail}; ${NAMES.length} demo users.`);
   console.info(
-    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals.`,
+    `Totals: ${totalUsers} users, ${totalWallets} wallets, ${totalTxns} transactions, ${totalProducts} products, ${totalCurrencies} currencies, ${totalGateways} gateways, ${totalMethods} deposit methods, ${totalDeposits} deposits, ${totalWMethods} withdraw methods, ${totalWithdraws} withdrawals, ${totalNotifications} notifications.`,
   );
   if (!process.env.ADMIN_PASSWORD) {
     console.info(

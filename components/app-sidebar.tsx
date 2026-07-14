@@ -6,11 +6,13 @@ import { usePathname } from "next/navigation";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  Bell,
   Coins,
   CreditCard,
   Flag,
   Landmark,
   LayoutDashboard,
+  Megaphone,
   Package,
   Settings,
   ShieldCheck,
@@ -71,6 +73,17 @@ const NAV: NavGroup[] = [
     items: [{ title: "Users", href: "/admin/users", icon: Users }],
   },
   {
+    label: "Communication",
+    items: [
+      {
+        title: "Notify to Users",
+        href: "/admin/notifications/to-users",
+        icon: Megaphone,
+      },
+      { title: "All Notifications", href: "/admin/notifications", icon: Bell },
+    ],
+  },
+  {
     label: "Finance & Wallet",
     items: [
       { title: "Currencies", href: "/admin/currencies", icon: Coins },
@@ -96,8 +109,26 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+// Only the most specific matching nav href wins, so a parent route (e.g.
+// /admin/notifications) doesn't also highlight on a child (/admin/notifications/to-users).
+function mostSpecificActiveHref(pathname: string): string | null {
+  let best: string | null = null;
+  for (const group of NAV) {
+    for (const item of group.items) {
+      if (
+        isActive(pathname, item.href) &&
+        (best === null || item.href.length > best.length)
+      ) {
+        best = item.href;
+      }
+    }
+  }
+  return best;
+}
+
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const pathname = usePathname();
+  const activeHref = mostSpecificActiveHref(pathname);
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -129,7 +160,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive(pathname, item.href)}
+                      isActive={item.href === activeHref}
                       tooltip={item.title}
                     >
                       <Link href={item.href}>
