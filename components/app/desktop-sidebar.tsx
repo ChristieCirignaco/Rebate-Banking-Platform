@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartColumn, House, Landmark, LogOut, Receipt, Settings, Wallet } from "lucide-react";
+import { ChartColumn, House, LogOut, Receipt, Settings, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
@@ -52,14 +52,7 @@ export function DesktopSidebar({ user }: { user: SidebarUser }) {
       className="hidden w-56 shrink-0 flex-col rounded-2xl text-white lg:flex lg:h-full"
       style={{ background: SIDEBAR_GRADIENT }}
     >
-      <div className="flex items-center gap-2.5 px-6 py-6">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-white/10">
-          <Landmark className="size-5" />
-        </span>
-        <span className="text-base font-bold tracking-tight">Rebate Bank</span>
-      </div>
-
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 px-3 pt-5">
         {NAV.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

@@ -7,11 +7,11 @@ import { DesktopHeader } from "@/components/app/desktop-header";
 
 // Shell for the whole authenticated user area. Full gate runs once here.
 //
-// Desktop (lg+) is a fixed shadcn-style app frame — no page scroll. The right side is a column
-// of two DETACHED layers on the page background: a floating header (transparent, on the page
-// bg) and, below a gap, a light main container that holds the dark content panel — the ONLY
-// scroller. Below lg the lg: utilities are inert, so the mobile phone-hero flow + bottom tab
-// bar are untouched. `children` renders once; each page provides its mobile + desktop view.
+// Desktop (lg+) is a fixed shadcn-style app frame — no page scroll. A full-width header spans
+// the very top (over both the sidebar and the content); below it sit the detached dark sidebar
+// and the light main container, which wraps the dark content panel — the ONLY scroller. Below
+// lg the lg: utilities are inert, so the mobile phone-hero flow + bottom tab bar are untouched.
+// `children` renders once; each page provides its mobile + desktop view.
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { session } = await requireActiveUser();
   const user = {
@@ -21,12 +21,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-svh bg-white lg:flex lg:h-svh lg:gap-3 lg:overflow-hidden lg:bg-slate-200 lg:p-3 dark:bg-slate-950 dark:lg:bg-black">
-      <DesktopSidebar user={user} />
+    <div className="min-h-svh bg-white lg:flex lg:h-svh lg:flex-col lg:overflow-hidden lg:bg-slate-200 dark:bg-slate-950 dark:lg:bg-black">
+      {/* Full-width header across the top — over both sidebar and content */}
+      <DesktopHeader name={user.name} image={user.image} />
 
-      {/* Right side: detached header (on the page bg) + main container below a gap */}
-      <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:gap-3">
-        <DesktopHeader name={user.name} image={user.image} />
+      {/* Body: detached sidebar + main container, below the header */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3 lg:p-3 lg:pt-0">
+        <DesktopSidebar user={user} />
 
         {/* Main container (light card) — does NOT scroll; wraps the dark content panel */}
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:rounded-2xl lg:bg-[#f8fafc] lg:p-3 lg:shadow-sm dark:lg:bg-slate-900">
