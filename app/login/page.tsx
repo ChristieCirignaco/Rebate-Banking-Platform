@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 
-import { LoginForm } from "@/components/login-form";
+import { UserLoginForm } from "@/components/user-login-form";
+import { getAdminSession, getSession } from "@/lib/auth-guards";
+import { getSettings } from "@/lib/settings/store";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Already signed in? Admins belong in the panel; a regular user goes to their dashboard.
+  if (await getAdminSession()) redirect("/admin");
+  if (await getSession()) redirect("/dashboard");
+
+  const branding = await getSettings("branding");
+
+  // UserLoginForm reads ?redirect=, so it needs a Suspense boundary.
   return (
-    <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm md:max-w-4xl">
-        {/* LoginForm reads the ?redirect= param, so it needs a Suspense boundary. */}
-        <Suspense>
-          <LoginForm />
-        </Suspense>
-      </div>
-    </div>
+    <Suspense>
+      <UserLoginForm logoUrl={branding.logoLight} />
+    </Suspense>
   );
 }

@@ -1,11 +1,13 @@
 import type { CSSProperties, ReactNode } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { ScreenLock } from "@/components/admin/settings/screen-lock";
 import { SiteHeader } from "@/components/site-header";
+import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getAdminSession, getSession } from "@/lib/auth-guards";
+import { getAdminSession, getSession, isAdminTierRole } from "@/lib/auth-guards";
 import { screenLockMs } from "@/lib/settings/defs";
 import { getSettings } from "@/lib/settings/store";
 
@@ -25,12 +27,36 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
+  // The admin login lives under /admin but is public and renders standalone — no auth gate,
+  // no sidebar chrome. proxy.ts tags the path so we can branch here without a pathname hook.
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  if (pathname === "/admin/login") {
+    return children;
+  }
+
   const session = await getSession();
   if (!session) {
-    redirect("/login?redirect=/admin");
+    redirect("/admin/login?redirect=/admin");
   }
   if (!(await getAdminSession())) {
-    redirect("/");
+    // An admin-tier account that isn't active (suspended/pending) must NOT bounce to
+    // /dashboard — that page sends admin-tier users back to /admin, which would loop. Show a
+    // terminal notice instead. A genuine non-admin (regular user) goes to their own area.
+    if (isAdminTierRole(session.user.role)) {
+      return (
+        <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+          <div className="max-w-sm">
+            <h1 className="text-xl font-semibold">Account not active</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Your admin account is suspended or pending. Contact a super administrator to
+              restore access.
+            </p>
+          </div>
+          <UserSignOutButton />
+        </div>
+      );
+    }
+    redirect("/dashboard");
   }
 
   const adminUser = { name: session.user.name, email: session.user.email };

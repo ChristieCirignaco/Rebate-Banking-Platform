@@ -110,17 +110,6 @@ export async function updateSecuritySettings(
   ) {
     return { ok: false, error: "Screen-lock idle time is out of range." };
   }
-  if (payload.passwordMinLength < 6 || payload.passwordMinLength > 128) {
-    return { ok: false, error: "Password minimum length must be between 6 and 128." };
-  }
-  const positiveInts = [
-    payload.sessionLifetimeMinutes,
-    payload.loginMaxAttempts,
-    payload.loginLockoutMinutes,
-  ];
-  if (positiveInts.some((n) => !Number.isFinite(n) || n < 1)) {
-    return { ok: false, error: "Session and login values must be at least 1." };
-  }
   await saveSettings("security", payload, session.user.id);
   revalidateSettings();
   return { ok: true };

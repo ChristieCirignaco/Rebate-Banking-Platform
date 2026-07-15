@@ -67,6 +67,18 @@ export const auth = betterAuth({
     autoSignIn: true,
   },
 
+  // Built-in rate limiting (memory store). The global cap covers the whole /api/auth
+  // surface; the custom rule throttles credential sign-in to 5 tries / 15 min per IP so a
+  // failed-login flood is stopped before it reaches argon2 verification.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 900, max: 5 },
+    },
+  },
+
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,

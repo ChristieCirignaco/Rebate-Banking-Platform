@@ -45,8 +45,9 @@ export function NavUser({ user }: NavUserProps) {
   const router = useRouter();
 
   async function handleSignOut() {
+    // This menu lives in the admin sidebar — return to the admin login, not the user one.
     await authClient.signOut();
-    router.push("/login");
+    router.push("/admin/login");
     router.refresh();
   }
 

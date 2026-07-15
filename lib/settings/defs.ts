@@ -54,17 +54,10 @@ export interface PluginsSettings {
 
 export type ScreenLockUnit = "seconds" | "minutes" | "hours";
 
+// Auth policy (2FA, password rules, session lifetime, login throttling) lives in Better
+// Auth config / its built-in rate limiter, not here — so this group is just the Screen
+// Lock, which is the one security control the admin panel actually enforces itself.
 export interface SecuritySettings {
-  require2faAdmins: boolean;
-  require2faWithdrawals: boolean;
-  forceEmailVerification: boolean;
-  sessionLifetimeMinutes: number;
-  passwordMinLength: number;
-  passwordRequireMixedCase: boolean;
-  passwordRequireNumber: boolean;
-  passwordRequireSymbol: boolean;
-  loginMaxAttempts: number;
-  loginLockoutMinutes: number;
   screenLockEnabled: boolean;
   screenLockIdleValue: number;
   screenLockIdleUnit: ScreenLockUnit;
@@ -140,16 +133,6 @@ export const SETTINGS_DEFAULTS: SettingsGroups = {
     analyticsMeasurementId: "",
   },
   security: {
-    require2faAdmins: false,
-    require2faWithdrawals: false,
-    forceEmailVerification: false,
-    sessionLifetimeMinutes: 60 * 24 * 7, // 7 days
-    passwordMinLength: 8,
-    passwordRequireMixedCase: false,
-    passwordRequireNumber: false,
-    passwordRequireSymbol: false,
-    loginMaxAttempts: 5,
-    loginLockoutMinutes: 15,
     screenLockEnabled: false,
     screenLockIdleValue: 15,
     screenLockIdleUnit: "minutes",
