@@ -2,9 +2,12 @@ import type { CSSProperties, ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { ScreenLock } from "@/components/admin/settings/screen-lock";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getAdminSession, getSession } from "@/lib/auth-guards";
+import { screenLockMs } from "@/lib/settings/defs";
+import { getSettings } from "@/lib/settings/store";
 
 // Admin uses the shadcn dashboard-01 shell (inset sidebar + site header). The user
 // and marketing surfaces use bespoke modern Tailwind instead — see design spec §13.
@@ -31,6 +34,7 @@ export default async function AdminLayout({
   }
 
   const adminUser = { name: session.user.name, email: session.user.email };
+  const security = await getSettings("security");
 
   return (
     <SidebarProvider
@@ -48,6 +52,12 @@ export default async function AdminLayout({
           {children}
         </div>
       </SidebarInset>
+      <ScreenLock
+        enabled={security.screenLockEnabled}
+        idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
+        adminName={session.user.name}
+        adminEmail={session.user.email}
+      />
     </SidebarProvider>
   );
 }

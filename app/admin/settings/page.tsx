@@ -1,17 +1,6 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AdminSection } from "@/components/admin/admin-section";
-import { PlaceholderPanel } from "@/components/admin/placeholder-panel";
-
-export const metadata: Metadata = { title: "Settings" };
-
-export default function AdminSettingsPage() {
-  return (
-    <AdminSection
-      title="Settings"
-      description="Operational thresholds and limits."
-    >
-      <PlaceholderPanel>App settings land in later phases.</PlaceholderPanel>
-    </AdminSection>
-  );
+// /admin/settings has no body of its own — it lands on the first tab.
+export default function SettingsIndexPage() {
+  redirect("/admin/settings/general");
 }

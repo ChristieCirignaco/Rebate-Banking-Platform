@@ -101,6 +101,7 @@ export interface ActivityEntry {
   loginAt: string; // ISO
   ip: string;
   country: string;
+  org?: string; // network / operator, when resolved via IPinfo
   browser: string; // "Chrome"
   os: string; // "macOS"
 }

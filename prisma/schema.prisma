@@ -505,6 +505,20 @@ model FeatureFlag {
   @@map("feature_flags")
 }
 
+/// Admin-managed site settings, one JSON row per group (general | branding | plugins |
+/// security | limits | legal). The shape of each group's `value` is typed in
+/// lib/settings; secret fields (API keys/tokens) are stored encrypted inside the JSON.
+/// Adding a field to a group needs no migration — only a defaults/type update.
+model SiteSetting {
+  key       String   @id // the group id
+  value     Json // the group's settings object (secret sub-fields stored encrypted)
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
 // ---------------------------------------------------------------------------
 // KYC: an admin-defined verification template (a set of dynamic fields) that
 // users submit against. A submission snapshots the template title + field values

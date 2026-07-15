@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { isAdminTierRole } from "@/lib/auth-guards";
+import { lookupIps } from "@/lib/ipinfo";
 import { toMajor } from "@/lib/money/money";
 import type {
   ActivityEntry,
@@ -156,6 +157,19 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
       os,
     };
   });
+
+  // Enrich each login's IP with real geolocation via IPinfo when the plugin is enabled;
+  // otherwise the entries keep the raw IP + profile country set above (the fallback).
+  const ipInfo = await lookupIps(activity.map((entry) => entry.ip));
+  if (ipInfo) {
+    for (const entry of activity) {
+      const info = ipInfo.get(entry.ip);
+      if (!info) continue;
+      const location = [info.city, info.region, info.country].filter(Boolean).join(", ");
+      if (location) entry.country = location;
+      if (info.org) entry.org = info.org;
+    }
+  }
 
   const controlState = asControls(dbUser.controls);
   const controls: UserControl[] = CONTROL_META.map((meta) => ({

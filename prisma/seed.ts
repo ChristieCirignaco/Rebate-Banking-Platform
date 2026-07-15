@@ -1278,6 +1278,52 @@ async function main() {
     t += 1;
   }
 
+  // ----- Site settings + feature flags (idempotent) -----
+  // Flag keys/defaults mirror lib/settings/feature-flags.ts (inlined — seed runs under tsx
+  // with relative imports only, so it can't import the "@/"-aliased module).
+  const FLAG_SEED: [string, boolean][] = [
+    ["deposits", true],
+    ["withdrawals", true],
+    ["registration", true],
+    ["product_submission", true],
+    ["kyc_submission", true],
+    ["exchange", true],
+    ["send_money", true],
+    ["request_money", true],
+    ["maintenance_mode", false],
+  ];
+  for (const [key, enabled] of FLAG_SEED) {
+    await prisma.featureFlag.upsert({
+      where: { key },
+      update: { enabled, updatedBy: admin.id },
+      create: { key, enabled, updatedBy: admin.id },
+    });
+  }
+
+  // Reset all setting groups so a reseed clears any test-time edits (security, plugins, …).
+  await prisma.siteSetting.deleteMany({});
+  const generalSettings = {
+    siteTitle: "Rebate Bank",
+    brandName: "Rebate Bank",
+    description: "Turn everyday purchases into wallet cash.",
+    seoKeywords: ["rebate", "cashback", "wallet", "banking"],
+    siteUrl: "https://rebatebank.example.com",
+    timezone: "UTC",
+    defaultCurrency: "USD",
+    supportEmail: "support@rebatebank.example.com",
+    supportPhone: "+1 555 010 2030",
+    address: "1600 Market Street, San Francisco, CA",
+    fromName: "Rebate Bank",
+    fromEmail: "no-reply@rebatebank.example.com",
+    replyTo: "",
+    footerText: "© 2026 Rebate Bank. All rights reserved.",
+  };
+  await prisma.siteSetting.upsert({
+    where: { key: "general" },
+    update: { value: generalSettings, updatedBy: admin.id },
+    create: { key: "general", value: generalSettings, updatedBy: admin.id },
+  });
+
   const [
     totalUsers,
     totalWallets,

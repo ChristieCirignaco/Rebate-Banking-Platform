@@ -80,18 +80,34 @@ export function UserActivityTab({ activity }: { activity: ActivityEntry[] }) {
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono text-sm">{entry.ip}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="size-6"
-                        title="Look up IP"
-                      >
-                        <SearchCode className="size-3.5" />
-                      </Button>
+                      {entry.ip && entry.ip !== "—" ? (
+                        <Button
+                          asChild
+                          size="icon"
+                          variant="ghost"
+                          className="size-6"
+                          title="Look up IP on IPinfo"
+                        >
+                          <a
+                            href={`https://ipinfo.io/${entry.ip}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Look up ${entry.ip} on IPinfo`}
+                          >
+                            <SearchCode className="size-3.5" />
+                            <span className="sr-only">Look up IP on IPinfo</span>
+                          </a>
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{entry.country}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm">{entry.country}</span>
+                      {entry.org ? (
+                        <span className="text-muted-foreground text-xs">{entry.org}</span>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
