@@ -44,6 +44,7 @@ export async function approveDeposit(
           status: "completed",
           remarks: note,
           reviewedById: session.user.id,
+          reviewedByName: session.user.name,
           reviewedAt: new Date(),
         },
       });
@@ -95,6 +96,7 @@ export async function rejectDeposit(
       status: "canceled",
       remarks: remarks?.trim() || null,
       reviewedById: session.user.id,
+      reviewedByName: session.user.name,
       reviewedAt: new Date(),
     },
   });

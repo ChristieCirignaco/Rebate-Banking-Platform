@@ -52,6 +52,7 @@ export async function approveWithdraw(
           status: "completed",
           remarks: note,
           reviewedById: session.user.id,
+          reviewedByName: session.user.name,
           reviewedAt: new Date(),
         },
       });
@@ -125,6 +126,7 @@ export async function rejectWithdraw(
           status: "canceled",
           remarks: note,
           reviewedById: session.user.id,
+          reviewedByName: session.user.name,
           reviewedAt: new Date(),
         },
       });

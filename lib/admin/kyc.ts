@@ -93,7 +93,6 @@ function toSubmissionView(
   row: Prisma.KycSubmissionGetPayload<{
     include: { user: { select: { id: true; name: true; email: true; image: true } } };
   }>,
-  reviewerName: string | null,
 ): KycSubmissionView {
   return {
     id: row.id,
@@ -109,7 +108,7 @@ function toSubmissionView(
     remarks: row.remarks,
     manual: row.manual,
     fields: toFieldViews(row.fieldValues),
-    reviewedBy: reviewerName,
+    reviewedBy: row.reviewedByName, // denormalized snapshot; survives reviewer rename/delete
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };
@@ -160,20 +159,8 @@ export async function getKycSubmissions(
     take: pageSize,
   });
 
-  // Batch-resolve reviewer display names (reviewedById is a plain id, not a relation).
-  const reviewerIds = [...new Set(rows.map((r) => r.reviewedById).filter(Boolean))] as string[];
-  const reviewers = reviewerIds.length
-    ? await prisma.user.findMany({
-        where: { id: { in: reviewerIds } },
-        select: { id: true, name: true },
-      })
-    : [];
-  const reviewerName = new Map(reviewers.map((r) => [r.id, r.name]));
-
   return {
-    rows: rows.map((row) =>
-      toSubmissionView(row, row.reviewedById ? (reviewerName.get(row.reviewedById) ?? null) : null),
-    ),
+    rows: rows.map((row) => toSubmissionView(row)),
     total,
     page,
     pageSize,

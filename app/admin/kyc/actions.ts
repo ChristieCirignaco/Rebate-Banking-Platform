@@ -153,6 +153,7 @@ async function reviewSubmission(
           status: decision,
           remarks: note,
           reviewedById: session.user.id,
+          reviewedByName: session.user.name,
           reviewedAt: new Date(),
         },
       });
@@ -187,6 +188,8 @@ async function reviewSubmission(
   }
 
   revalidate();
+  // The review also flips User.kycStatus, which the /admin/users list surfaces.
+  revalidatePath("/admin/users");
   return { ok: true };
 }
 

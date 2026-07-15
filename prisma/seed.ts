@@ -480,6 +480,7 @@ async function main() {
         adminNote: reviewed ? PRODUCT_NOTES[status] : null,
         reviewedAt: reviewed ? daysAgo(k) : null,
         reviewedBy: reviewed ? admin.id : null,
+        reviewedByName: reviewed ? admin.name : null,
         createdAt: daysAgo(1 + k),
       },
     });
@@ -667,6 +668,7 @@ async function main() {
         fieldValues: spec.fieldValues,
         reviewedAt: spec.status === "pending" ? null : daysAgo(spec.ageDays - 0.5),
         reviewedById: spec.status === "pending" ? null : admin.id,
+        reviewedByName: spec.status === "pending" ? null : admin.name,
         createdAt: daysAgo(spec.ageDays),
       },
     });
@@ -786,6 +788,7 @@ async function main() {
         heldTransactionId: heldId,
         reviewedAt: spec.status === "pending" ? null : daysAgo(spec.ageDays - 0.5),
         reviewedById: spec.status === "pending" ? null : admin.id,
+        reviewedByName: spec.status === "pending" ? null : admin.name,
         createdAt: daysAgo(spec.ageDays),
       },
     });
@@ -978,6 +981,7 @@ async function main() {
         remarks: spec.remarks ?? null,
         manual: spec.manual ?? false,
         reviewedById: reviewed ? admin.id : null,
+        reviewedByName: reviewed ? admin.name : null,
         reviewedAt: reviewed ? daysAgo(spec.ageDays - 0.5) : null,
         createdAt: daysAgo(spec.ageDays),
       },

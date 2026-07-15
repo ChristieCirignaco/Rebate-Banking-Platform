@@ -25,6 +25,8 @@ const NOT_ADMIN_TARGET: ActionResult = {
 
 function revalidate(userId: string) {
   revalidatePath(`/admin/users/${userId}`);
+  // Name / account-status / withdrawal edits here are surfaced on the list too.
+  revalidatePath("/admin/users");
 }
 
 // This whole action file is scoped to REGULAR users only — admin-tier accounts are

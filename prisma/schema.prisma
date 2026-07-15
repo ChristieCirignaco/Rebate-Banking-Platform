@@ -39,13 +39,13 @@ model User {
   timezone        String?
   locale          String?
   currency        String    @default("USD")
-  gender          String    @default("unspecified")
+  gender          String    @default("unspecified") // male | female | other | unspecified
   birthday        DateTime?
   address         String?
   // App admin state
   status            String   @default("active") // active | suspended | pending
   kycStatus         String   @default("not_submitted") // approved | pending | not_submitted | rejected
-  kycDocumentType   String?
+  kycDocumentType   String? // e.g. Passport | National ID | Driver's License (free-form label)
   lastLoginAt       DateTime?
   activationCode    String?
   withdrawalStatus  String   @default("allowed") // allowed | pending | hold | suspended | restricted
@@ -55,7 +55,7 @@ model User {
 
   // Referrals (self relation)
   referredById String?
-  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id])
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals    User[]  @relation("Referrals")
 
   createdAt DateTime @default(now())
@@ -170,6 +170,7 @@ model WalletTransaction {
 
   @@index([userId, createdAt])
   @@index([walletId])
+  @@index([createdAt]) // site-wide /admin/transaction ledger sorts across all users
   @@map("wallet_transactions")
 }
 
@@ -317,6 +318,7 @@ model Deposit {
   fieldValues         Json?          @map("field_values") // manual: the custom-field values the user submitted
   remarks             String? // admin remarks on review
   reviewedById        String?        @map("reviewed_by_id")
+  reviewedByName      String?        @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
   reviewedAt          DateTime?      @map("reviewed_at")
   walletTransactionId String?        @map("wallet_transaction_id") // ledger entry created on approval
   createdAt           DateTime       @default(now()) @map("created_at")
@@ -325,6 +327,7 @@ model Deposit {
   @@index([status])
   @@index([type, status])
   @@index([userId])
+  @@index([depositMethodId])
   @@index([createdAt])
   @@map("deposits")
 }
@@ -399,6 +402,7 @@ model Withdraw {
   fieldValues         Json?           @map("field_values")
   remarks             String?
   reviewedById        String?         @map("reviewed_by_id")
+  reviewedByName      String?         @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
   reviewedAt          DateTime?       @map("reviewed_at")
   heldTransactionId   String?         @map("held_transaction_id") // the "withdrawal" debit that held the funds
   refundTransactionId String?         @map("refund_transaction_id") // the "withdrawal_reversal" credit on reject
@@ -408,6 +412,7 @@ model Withdraw {
   @@index([status])
   @@index([type, status])
   @@index([userId])
+  @@index([withdrawMethodId])
   @@index([createdAt])
   @@map("withdraws")
 }
@@ -435,7 +440,8 @@ model Notification {
   readAt      DateTime?
   createdAt   DateTime  @default(now())
 
-  @@index([userId])
+  // Backs the admin feed query: where {userId, type in ALERT_TYPES} ordered by createdAt.
+  @@index([userId, type, createdAt])
   @@map("notifications")
 }
 
@@ -457,7 +463,8 @@ model Product {
   status     String    @default("pending") // pending | approved | rejected
   adminNote  String?   @map("admin_note")
   reviewedAt DateTime? @map("reviewed_at")
-  reviewedBy String?   @map("reviewed_by")
+  reviewedBy String?   @map("reviewed_by") // reviewing admin's user id
+  reviewedByName String? @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
@@ -481,6 +488,7 @@ model ActivationCode {
 
   @@index([status])
   @@index([type])
+  @@index([createdBy])
   @@index([createdAt])
   @@map("activation_codes")
 }
@@ -544,12 +552,14 @@ model KycSubmission {
   remarks       String? // admin remarks recorded on review
   manual        Boolean      @default(false) // admin-created/manually-approved (no user submission)
   reviewedById  String?      @map("reviewed_by_id")
+  reviewedByName String?     @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
   reviewedAt    DateTime?    @map("reviewed_at")
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([status])
+  @@index([templateId])
   @@index([createdAt])
   @@map("kyc_submissions")
 }
@@ -594,6 +604,7 @@ model Ticket {
 
   @@index([status])
   @@index([userId])
+  @@index([categoryId])
   @@index([createdAt])
   @@map("tickets")
 }

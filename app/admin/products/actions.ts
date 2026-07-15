@@ -36,6 +36,7 @@ export async function updateProductStatus(
       // Reset clears the review audit; approve/reject stamps who/when.
       reviewedAt: reviewed ? new Date() : null,
       reviewedBy: reviewed ? session.user.id : null,
+      reviewedByName: reviewed ? session.user.name : null,
     },
   });
 
