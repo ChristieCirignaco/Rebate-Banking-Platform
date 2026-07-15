@@ -19,6 +19,7 @@ export function MobileHome({ view }: { view: DashboardView }) {
         <DashboardHeader
           greeting={view.greeting}
           name={view.name}
+          email={view.email}
           image={view.image}
           unreadCount={0}
         />

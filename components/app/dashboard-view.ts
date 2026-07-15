@@ -6,6 +6,7 @@ import type { StatWidgetsData } from "@/components/app/stat-widgets";
 // there is a single source of truth and the queries run only once.
 export type DashboardView = {
   name: string;
+  email: string;
   greeting: string;
   image: string | null | undefined;
   balanceLabel: string;

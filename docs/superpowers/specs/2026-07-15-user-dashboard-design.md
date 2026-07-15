@@ -121,6 +121,12 @@ phone-hero is unchanged.
   (`DesktopHome`), transactions, settings, placeholders. Data still fetched once per page.
 - New: `desktop-header.tsx`. Restyled: `desktop-sidebar.tsx` (detached, dark slate). Retired:
   `desktop-topbar.tsx`.
+- Header search is a real search bar (input-style) at md+; the dark content panel has a subtle
+  thin scrollbar.
+- Mobile hamburger (`mobile-menu.tsx`): a menu button in the mobile Home hero opens the sidebar
+  (full nav + user card + sign-out) as a left slide-out `Sheet` — completes the spec's mobile
+  behavior while keeping the phone-hero + bottom tab bar. The hero's stub search icon was
+  dropped to make room (desktop keeps the search bar).
 
 ## Conventions
 - Toasts via `@/lib/toast` (react-hot-toast); no inline alert banners for transient msgs.

@@ -79,6 +79,7 @@ export default async function DashboardPage() {
 
   const view: DashboardView = {
     name: session.user.name ?? "there",
+    email: session.user.email ?? "",
     greeting: greetingForDate(now),
     image: session.user.image,
     balanceLabel: defaultWallet
