@@ -48,6 +48,7 @@ model User {
   kycDocumentType   String? // e.g. Passport | National ID | Driver's License (free-form label)
   lastLoginAt       DateTime?
   activationCode    String?
+  twoFactorEnabled  Boolean?  @default(false) // Better Auth twoFactor plugin (TOTP)
   withdrawalStatus  String   @default("allowed") // allowed | pending | hold | suspended | restricted
   withdrawalMessage String?
   controls          Json? // per-user capability toggles (design spec §9.3 / user controls)
@@ -72,6 +73,8 @@ model User {
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
+  twoFactor      TwoFactor?
+  loginOtps      LoginOtp[]
 
   @@index([status])
   @@index([kycStatus])
@@ -90,6 +93,8 @@ model Session {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  loginOtp LoginOtp?
 
   @@index([userId])
   @@map("session")
@@ -123,6 +128,48 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@map("verification")
+}
+
+// Better Auth twoFactor plugin. TOTP secret + backup codes are stored ENCRYPTED (AES via
+// BETTER_AUTH_SECRET) and never returned to the client. Camelcase columns match the other
+// Better-Auth-owned tables (user/session/account); ids come from the app's generateId hook.
+model TwoFactor {
+  id                      String    @id
+  userId                  String    @unique
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  secret                  String // encrypted TOTP secret
+  backupCodes             String // encrypted JSON of one-time backup codes
+  verified                Boolean?  @default(true) // false until the first TOTP confirm
+  failedVerificationCount Int?      @default(0) // account-lockout counter
+  lockedUntil             DateTime?
+
+  @@map("two_factor")
+}
+
+// App-owned "email OTP on login" challenge: when the admin enables it, every regular-user
+// session gets a one-time email code that must be entered before the dashboard unlocks. The
+// code is stored HASHED (HMAC-SHA256) and is single-use, expiring, and attempt-limited.
+// One pending row per session; deleted on success or when the session is revoked.
+// Email "OTP on login" challenge, one row per session while the gate is on. The row is
+// created lazily when the user reaches /verify-otp (so the session always exists — no race
+// with Better Auth's 2FA throwaway session), and kept after success as a per-session
+// "verified" marker: the gate is fail-closed, so a session with no verifiedAt is blocked.
+model LoginOtp {
+  id         String    @id @default(uuid())
+  sessionId  String    @unique @map("session_id")
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0) // wrong guesses against the CURRENT code
+  sends      Int       @default(0) // codes issued this session (durable brute-force cap)
+  expiresAt  DateTime  @map("expires_at")
+  lastSentAt DateTime? @map("last_sent_at") // server-side resend cooldown
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("login_otps")
 }
 
 // ---------------------------------------------------------------------------

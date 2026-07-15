@@ -16,6 +16,17 @@ import { Label } from "@/components/ui/label";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+// Post-login destinations we'll honor from ?redirect=. Same-origin paths only (a single
+// leading slash, no "//" or "/\" that could become a protocol-relative open redirect), and
+// limited to the user area — anything else falls back to the dashboard.
+const REDIRECT_PREFIXES = ["/dashboard", "/account"];
+
+function safeRedirect(param: string | null): string {
+  if (!param || !/^\/[^/\\]/.test(param)) return "/dashboard";
+  return REDIRECT_PREFIXES.some((p) => param === p || param.startsWith(`${p}/`))
+    ? param
+    : "/dashboard";
+}
 
 // Reference-style input: taller, more rounded, subtle fill, blue focus.
 const FIELD_CLASS =
@@ -27,8 +38,7 @@ const FIELD_CLASS =
 export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectParam = searchParams.get("redirect");
-  const redirectTo = redirectParam?.startsWith("/dashboard") ? redirectParam : "/dashboard";
+  const redirectTo = safeRedirect(searchParams.get("redirect"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +62,7 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
     if (isLoading || !validate()) return;
     setIsLoading(true);
 
-    const { error } = await authClient.signIn.email({
+    const { data, error } = await authClient.signIn.email({
       email: email.trim(),
       password,
       rememberMe: remember,
@@ -66,6 +76,10 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
       );
       return;
     }
+
+    // 2FA-enabled account: no session yet — the twoFactorClient hook navigates to the
+    // challenge page. Bail so we don't race it to the dashboard.
+    if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) return;
 
     // Admins must use the admin login — undo the sign-in so no admin session is created here.
     const session = await authClient.getSession();
@@ -133,7 +147,7 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
               Password
             </Label>
             <Link
-              href="/password/request"
+              href="/forgot-password"
               className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
             >
               Forgot Password?

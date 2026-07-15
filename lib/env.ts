@@ -17,6 +17,11 @@ const schema = z.object({
   // back to BETTER_AUTH_SECRET, but set this to decouple payment secrets from the auth
   // signing secret (and rotate them independently).
   PAYMENT_CREDENTIALS_KEY: z.string().min(32).optional(),
+  // Resend transactional email. When RESEND_API_KEY is unset, sendEmail() logs to the
+  // server console (dev). RESEND_FROM optionally overrides the From identity; otherwise
+  // the General-settings From name/email is used, falling back to a resend.dev sender.
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM: z.string().optional(),
 });
 
 export const env = schema.parse(process.env);

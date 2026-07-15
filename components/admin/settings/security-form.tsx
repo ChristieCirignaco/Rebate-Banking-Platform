@@ -46,8 +46,21 @@ export function SecurityForm({ initial }: { initial: SecuritySettings }) {
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground text-sm">
         Sign-in throttling, sessions, and password rules are handled by the authentication
-        layer. The Screen Lock below is the admin-panel control managed here.
+        layer. The controls below are enforced by the app itself.
       </p>
+
+      <SettingsSection
+        title="Login Verification"
+        description="Owner-verification for regular users."
+      >
+        <SettingsToggle
+          id="email-otp-on-login"
+          label="Require email OTP on login"
+          description="After entering their password, users must enter a one-time code sent to their email before their dashboard unlocks."
+          checked={form.emailOtpOnLogin}
+          onCheckedChange={(v) => set("emailOtpOnLogin", v)}
+        />
+      </SettingsSection>
 
       <SettingsSection
         title="Screen Lock"

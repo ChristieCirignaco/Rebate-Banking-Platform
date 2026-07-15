@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Landmark, Wallet } from "lucide-react";
+import { Landmark, ShieldCheck, Wallet } from "lucide-react";
 
 import { UserSignOutButton } from "@/components/user-sign-out-button";
+import { Button } from "@/components/ui/button";
 import { getSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { needsLoginOtpVerification } from "@/lib/login-otp";
 import { toMajor } from "@/lib/money/money";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -25,6 +28,10 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect("/login?redirect=/dashboard");
   if (isAdminTierRole(session.user.role)) redirect("/admin");
+  // "Email OTP on login" gate: block the dashboard until the emailed code is entered.
+  if (await needsLoginOtpVerification(session.session.id, session.user.role)) {
+    redirect("/verify-otp");
+  }
 
   const wallets = await prisma.wallet.findMany({
     where: { userId: session.user.id },
@@ -42,7 +49,15 @@ export default async function DashboardPage() {
             </div>
             <span className="font-semibold">Rebate Bank</span>
           </div>
-          <UserSignOutButton />
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/account/security">
+                <ShieldCheck className="size-4" />
+                Security
+              </Link>
+            </Button>
+            <UserSignOutButton />
+          </div>
         </div>
       </header>
 

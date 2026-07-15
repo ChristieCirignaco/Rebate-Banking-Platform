@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { admin as adminPlugin } from "better-auth/plugins";
+import { admin as adminPlugin, twoFactor } from "better-auth/plugins";
 
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -56,6 +56,12 @@ export const auth = betterAuth({
         },
       },
     },
+    // Note: the "email OTP on login" gate is intentionally NOT wired as a session-create
+    // hook. Better Auth's 2FA sign-in creates a throwaway session and immediately deletes
+    // it to start the challenge, which races any hook that writes a child row keyed on the
+    // session id. Instead the gate is lazy + fail-closed: see lib/login-otp.ts — a session
+    // needs verification until it carries a `verifiedAt` marker, and the code is minted when
+    // the user reaches /verify-otp (where the session is guaranteed to exist).
   },
 
   emailAndPassword: {
@@ -65,6 +71,14 @@ export const auth = betterAuth({
     // Turn on once a production mailer is configured (see lib/email.ts).
     requireEmailVerification: false,
     autoSignIn: true,
+    // Enables /forgot-password + /reset-password. Fire-and-forget like the verify email.
+    sendResetPassword: async ({ user, url }) => {
+      void sendEmail({
+        to: user.email,
+        subject: "Reset your password",
+        text: `Reset your Rebate Bank password: ${url}\n\nIf you didn't request this, you can ignore this email.`,
+      });
+    },
   },
 
   // Built-in rate limiting (memory store). The global cap covers the whole /api/auth
@@ -94,6 +108,9 @@ export const auth = betterAuth({
 
   plugins: [
     adminPlugin({ ac, roles, defaultRole: "user", adminRoles: ["admin", "super_admin"] }),
+    // TOTP authenticator + 10 encrypted backup codes. The row is created unverified and
+    // only flips twoFactorEnabled once the user confirms a code during enrollment.
+    twoFactor({ issuer: "Rebate Bank", skipVerificationOnEnable: false }),
     nextCookies(), // keep last so server actions can set cookies
   ],
 });
