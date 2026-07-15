@@ -10,7 +10,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const SIDEBAR_GRADIENT = "linear-gradient(180deg,#1e3a7a 0%,#101c3a 100%)";
+const SIDEBAR_GRADIENT = "linear-gradient(180deg,#1e293b 0%,#0f172a 100%)";
 
 const NAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Home", icon: House },
@@ -49,7 +49,7 @@ export function DesktopSidebar({ user }: { user: SidebarUser }) {
 
   return (
     <aside
-      className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col text-white lg:flex"
+      className="hidden w-56 shrink-0 flex-col rounded-2xl text-white lg:flex lg:h-full"
       style={{ background: SIDEBAR_GRADIENT }}
     >
       <div className="flex items-center gap-2.5 px-6 py-6">

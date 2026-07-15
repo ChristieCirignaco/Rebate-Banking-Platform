@@ -16,9 +16,9 @@ const HEADER_BTN =
 
 const HISTORY_LIMIT = 100;
 
-// Transaction History. On mobile it's a pushed detail screen (back header, no bottom tab bar);
-// on desktop it's a normal sidebar page with a titled header. The filter list is one shared
-// client instance either way — only the header differs, by CSS breakpoint.
+// Transaction History. Mobile: a pushed detail screen (back header, no bottom tab bar) on the
+// light flow. Desktop: a dark-scoped card inside the dark content panel. The rows are fetched
+// once and handed to both compositions.
 export default async function TransactionsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -32,31 +32,43 @@ export default async function TransactionsPage() {
   const transactions = rows.map((row) => presentTransaction(row, now));
 
   return (
-    <div className="mx-auto max-w-3xl px-5 pb-20 lg:px-8 lg:pt-4">
-      {/* Mobile: back + centered title + search */}
-      <header className="flex items-center gap-3 py-4 lg:hidden">
-        <Link href="/dashboard" aria-label="Back" className={HEADER_BTN}>
-          <ChevronLeft className="size-5" />
-        </Link>
-        <h1 className="flex-1 text-center text-base font-bold text-slate-900 dark:text-white">
-          Transaction History
-        </h1>
-        <ComingSoonButton ariaLabel="Search" message="Search is coming soon." className={HEADER_BTN}>
-          <Search className="size-5" />
-        </ComingSoonButton>
-      </header>
-
-      {/* Desktop: titled header */}
-      <div className="hidden pt-2 pb-4 lg:block">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Transaction History
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Your full ledger across all wallets.
-        </p>
+    <>
+      {/* Mobile: back + centered title + search, on the light flow */}
+      <div className="mx-auto max-w-3xl px-5 pb-20 lg:hidden">
+        <header className="flex items-center gap-3 py-4">
+          <Link href="/dashboard" aria-label="Back" className={HEADER_BTN}>
+            <ChevronLeft className="size-5" />
+          </Link>
+          <h1 className="flex-1 text-center text-base font-bold text-slate-900 dark:text-white">
+            Transaction History
+          </h1>
+          <ComingSoonButton
+            ariaLabel="Search"
+            message="Search is coming soon."
+            className={HEADER_BTN}
+          >
+            <Search className="size-5" />
+          </ComingSoonButton>
+        </header>
+        <TransactionFilters transactions={transactions} />
       </div>
 
-      <TransactionFilters transactions={transactions} />
-    </div>
+      {/* Desktop: dark-scoped card in the dark content panel */}
+      <div className="dark hidden lg:block">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Transaction History
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Your full ledger across all wallets.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <TransactionFilters transactions={transactions} />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

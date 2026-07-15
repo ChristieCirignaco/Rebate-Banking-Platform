@@ -106,6 +106,22 @@ both views; only the arrangement + chrome differ.
 - New: `desktop-sidebar.tsx`, `desktop-topbar.tsx`, `balance-card.tsx`, `mobile-home.tsx`,
   `desktop-home.tsx`, `dashboard-view.ts`. Retired: `app-frame.tsx`.
 
+## Desktop rebuild — fixed 3-zone shadcn shell (follow-up 2)
+Per a team review, desktop (lg+) was rebuilt into a fixed shadcn-style app frame; the mobile
+phone-hero is unchanged.
+- `(app)/layout.tsx`: `lg:h-svh lg:overflow-hidden` frame with three color zones — a **detached
+  dark-slate sidebar** (~225px, rounded), a **light main container** (#f8fafc) holding a fixed
+  **header** (~80px: greeting + search/bell/avatar), and a **dark content panel** (#0b1120,
+  rounded/inset) that is the ONLY scroller. Below lg the `lg:` utilities are inert, so the
+  mobile flow + bottom tab bar are untouched.
+- Dark content: each page's desktop composition is wrapped in a `dark` scope (Tailwind is
+  class-based: `@custom-variant dark (&:is(.dark *))`), so the shared components' `dark:`
+  styles render light-on-dark automatically. Mobile stays light (not dark-scoped).
+- Pages split mobile (light, `lg:hidden`) vs desktop (`dark hidden lg:block`): home
+  (`DesktopHome`), transactions, settings, placeholders. Data still fetched once per page.
+- New: `desktop-header.tsx`. Restyled: `desktop-sidebar.tsx` (detached, dark slate). Retired:
+  `desktop-topbar.tsx`.
+
 ## Conventions
 - Toasts via `@/lib/toast` (react-hot-toast); no inline alert banners for transient msgs.
 - Any navigation after awaiting a Server Action uses `window.location.href` (router wedge).

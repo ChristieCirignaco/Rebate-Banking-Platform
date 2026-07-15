@@ -11,7 +11,7 @@ import { UpcomingPayment } from "@/components/app/upcoming-payment";
 // Reuses the exact same pieces as mobile; only the arrangement differs.
 export function DesktopHome({ view }: { view: DashboardView }) {
   return (
-    <div className="hidden px-8 py-6 lg:block">
+    <div className="dark hidden lg:block">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="flex flex-col gap-5">
@@ -26,7 +26,7 @@ export function DesktopHome({ view }: { view: DashboardView }) {
           <StatWidgets {...view.stats} />
         </div>
 
-        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/40">
+        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
               Recent Transactions
