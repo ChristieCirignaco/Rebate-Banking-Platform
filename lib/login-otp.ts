@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
 
+// Mirrors lib/auth-guards ADMIN_ROLES; kept local to avoid a circular import (auth-guards
+// imports this module). Any non-admin role — including a null/legacy role — is a regular user.
+const ADMIN_ROLE_SET = new Set(["admin", "super_admin"]);
+
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_ATTEMPTS = 5; // wrong guesses allowed against a single code
 const MAX_SENDS = 5; // codes a session may ever be issued (durable brute-force cap)
@@ -81,7 +85,8 @@ export async function needsLoginOtpVerification(
   sessionId: string,
   role: string | null | undefined,
 ): Promise<boolean> {
-  if (role !== "user") return false;
+  // Gate every non-admin (regular) user, including a null/legacy role — never fail open.
+  if (role && ADMIN_ROLE_SET.has(role)) return false;
   if (!(await isEmailOtpOnLoginEnabled())) return false;
   const row = await prisma.loginOtp.findUnique({
     where: { sessionId },

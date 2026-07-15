@@ -3,9 +3,10 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { AlertTriangle, CheckCircle2, Clock, Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
 
+import { resolveLoginOutcome } from "@/app/login/actions";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -15,7 +16,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ADMIN_ROLES = new Set(["admin", "super_admin"]);
+
+type Notice = {
+  tone: "success" | "info" | "warning";
+  icon: "check" | "mail" | "clock" | "alert";
+  title: string;
+  body: string;
+};
+
+// The persistent banner shown above the form: the registration-complete / email-verified
+// confirmations (from the ?registered / ?verified markers a finished registration lands on)
+// and the pending / suspended notices for an account that isn't active yet.
+function initialNotice(params: URLSearchParams): Notice | null {
+  if (params.get("registered")) {
+    return {
+      tone: "success",
+      icon: "check",
+      title: "Registration complete",
+      body: "Registration completed successfully! We've emailed you a verification link — please confirm your email. Your account is then pending activation, please wait for approval.",
+    };
+  }
+  if (params.get("verified")) {
+    return {
+      tone: "info",
+      icon: "mail",
+      title: "Email verified",
+      body: "Your email is verified. Your account is pending approval — we'll email you once it's active.",
+    };
+  }
+  const notice = params.get("notice") ?? (params.get("error") === "account_suspended" ? "suspended" : null);
+  if (notice === "pending") {
+    return {
+      tone: "info",
+      icon: "clock",
+      title: "Account pending approval",
+      body: "Your account is awaiting approval. We'll email you as soon as it's active.",
+    };
+  }
+  if (notice === "suspended") {
+    return {
+      tone: "warning",
+      icon: "alert",
+      title: "Account not active",
+      body: "Your account isn't active. If you think this is a mistake, please contact support.",
+    };
+  }
+  return null;
+}
 // Post-login destinations we'll honor from ?redirect=. Same-origin paths only (a single
 // leading slash, no "//" or "/\" that could become a protocol-relative open redirect), and
 // limited to the user area — anything else falls back to the dashboard.
@@ -36,7 +83,6 @@ const FIELD_CLASS =
 // signed straight back out and pointed at /admin/login, so an admin session can never be
 // established through the user login.
 export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = safeRedirect(searchParams.get("redirect"));
 
@@ -46,6 +92,7 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
   const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(() => initialNotice(searchParams));
 
   function validate() {
     const next: { email?: string; password?: string } = {};
@@ -81,20 +128,46 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
     // challenge page. Bail so we don't race it to the dashboard.
     if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) return;
 
-    // Admins must use the admin login — undo the sign-in so no admin session is created here.
-    const session = await authClient.getSession();
-    const role = session.data?.user?.role ?? "";
-    if (ADMIN_ROLES.has(role)) {
-      await authClient.signOut();
-      setIsLoading(false);
-      toast.error("Administrators sign in at the admin login.");
-      router.push("/admin/login");
-      return;
+    // A session now exists. Decide server-side whether it's an active regular user; anything
+    // else (admin / pending / suspended) is signed back out in the action and reported here so
+    // no unapproved account ever holds a usable session.
+    const outcome = await resolveLoginOutcome();
+    if (outcome.kind === "active") {
+      toast.success("Signed in");
+      // Hard navigation: a client router.push right after a server action (resolveLoginOutcome)
+      // leaves the router wedged on /login. A full load also guarantees the dashboard renders
+      // with the fresh session.
+      window.location.href = redirectTo;
+      return; // keep the spinner while the page unloads
     }
 
-    toast.success("Signed in");
-    router.push(redirectTo);
-    router.refresh();
+    setIsLoading(false);
+    if (outcome.kind === "admin") {
+      toast.error("Administrators sign in at the admin login.");
+      window.location.href = "/admin/login";
+      return;
+    }
+    if (outcome.kind === "pending") {
+      setNotice({
+        tone: "info",
+        icon: outcome.emailVerified ? "clock" : "mail",
+        title: outcome.emailVerified ? "Account pending approval" : "Verify your email",
+        body: outcome.emailVerified
+          ? "Your account is awaiting approval. We'll email you as soon as it's active."
+          : "Please verify your email to finish signing up (check your inbox for the link). Your account is then reviewed for approval.",
+      });
+      return;
+    }
+    if (outcome.kind === "suspended") {
+      setNotice({
+        tone: "warning",
+        icon: "alert",
+        title: "Account not active",
+        body: "Your account isn't active. If you think this is a mistake, please contact support.",
+      });
+      return;
+    }
+    toast.error("Something went wrong. Please sign in again.");
   }
 
   const footer = (
@@ -108,6 +181,8 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
 
   return (
     <AuthShell logoUrl={logoUrl} footer={footer}>
+      {notice ? <NoticeBanner notice={notice} /> : null}
+
       <div className="mb-6 flex flex-col gap-1 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Welcome Back</h1>
         <p className="text-muted-foreground text-sm">Sign in to continue to your dashboard</p>
@@ -217,5 +292,41 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+const NOTICE_STYLES: Record<Notice["tone"], string> = {
+  success:
+    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+  info: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300",
+  warning:
+    "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
+};
+
+const NOTICE_ICONS = {
+  check: CheckCircle2,
+  mail: MailCheck,
+  clock: Clock,
+  alert: AlertTriangle,
+} as const;
+
+// Persistent inline status banner (registration complete / pending / suspended). Uses an
+// inline alert rather than a toast because these states must stay visible on the page.
+function NoticeBanner({ notice }: { notice: Notice }) {
+  const Icon = NOTICE_ICONS[notice.icon];
+  return (
+    <div
+      role="status"
+      className={cn(
+        "mb-6 flex items-start gap-3 rounded-xl border p-3.5 text-sm",
+        NOTICE_STYLES[notice.tone],
+      )}
+    >
+      <Icon className="mt-0.5 size-5 shrink-0" />
+      <div className="flex flex-col gap-0.5">
+        <p className="font-semibold">{notice.title}</p>
+        <p className="opacity-90">{notice.body}</p>
+      </div>
+    </div>
   );
 }

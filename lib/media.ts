@@ -42,15 +42,15 @@ export function isAcceptableImageValue(value: string): boolean {
   );
 }
 
-// Client-side helper: upload one image through the admin endpoint and get its served URL.
-export async function uploadMedia(
+async function uploadTo(
+  endpoint: string,
   file: File,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const form = new FormData();
   form.append("file", file);
   let res: Response;
   try {
-    res = await fetch("/api/admin/media", { method: "POST", body: form });
+    res = await fetch(endpoint, { method: "POST", body: form });
   } catch {
     return { ok: false, error: "Network error during upload." };
   }
@@ -61,4 +61,15 @@ export async function uploadMedia(
     return { ok: false, error: data?.error ?? "Upload failed." };
   }
   return { ok: true, url: data.url };
+}
+
+// Client-side helper: upload one image through the admin endpoint and get its served URL.
+export async function uploadMedia(file: File) {
+  return uploadTo("/api/admin/media", file);
+}
+
+// Client-side helper for the (session-less) registration product step — authorized by the
+// registration continuation cookie rather than an admin session.
+export async function uploadRegistrationProductImage(file: File) {
+  return uploadTo("/api/register/product-image", file);
 }

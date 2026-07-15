@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { Landmark, ShieldCheck, Wallet } from "lucide-react";
+import { Landmark, ShieldCheck, UserRound, Wallet } from "lucide-react";
 
 import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { Button } from "@/components/ui/button";
-import { getSession, isAdminTierRole } from "@/lib/auth-guards";
+import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
-import { needsLoginOtpVerification } from "@/lib/login-otp";
 import { toMajor } from "@/lib/money/money";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -25,13 +23,9 @@ const CURRENCY_NAMES: Record<string, string> = {
 // full user experience is a later build. Admins are bounced to the admin panel: this area
 // is for regular users only.
 export default async function DashboardPage() {
-  const session = await getSession();
-  if (!session) redirect("/login?redirect=/dashboard");
-  if (isAdminTierRole(session.user.role)) redirect("/admin");
-  // "Email OTP on login" gate: block the dashboard until the emailed code is entered.
-  if (await needsLoginOtpVerification(session.session.id, session.user.role)) {
-    redirect("/verify-otp");
-  }
+  // Full gate: valid session, not admin-tier, account status active, email-OTP cleared.
+  // A pending/suspended account is redirected out before any dashboard data is read.
+  const { session } = await requireActiveUser();
 
   const wallets = await prisma.wallet.findMany({
     where: { userId: session.user.id },
@@ -50,6 +44,12 @@ export default async function DashboardPage() {
             <span className="font-semibold">Rebate Bank</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/account/profile">
+                <UserRound className="size-4" />
+                Profile
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link href="/account/security">
                 <ShieldCheck className="size-4" />

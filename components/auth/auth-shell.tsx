@@ -6,6 +6,13 @@ import { Landmark, Loader2 } from "lucide-react";
 export const AUTH_FIELD_CLASS =
   "h-12 rounded-xl border-slate-200 bg-slate-50/70 px-4 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/40 dark:focus-visible:bg-slate-800";
 
+// shadcn's SelectTrigger sets its height via `data-[size=default]:h-8`, which out-specifies a
+// plain `h-12` — so a Select rendered with AUTH_FIELD_CLASS ends up shorter than the inputs.
+// This forces the same 48px height (and full width) with `!h-12` so selects line up with the
+// text fields. Use on every auth-form Select trigger.
+export const AUTH_SELECT_TRIGGER_CLASS =
+  "!h-12 w-full rounded-xl border-slate-200 bg-slate-50/70 px-4 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/40 dark:focus-visible:bg-slate-800";
+
 // The shared blue→indigo gradient submit button used on every auth form.
 export function AuthSubmitButton({
   loading,

@@ -33,6 +33,15 @@ export function isFeatureFlagKey(key: string): key is FeatureFlagKey {
   return FLAG_KEYS.includes(key);
 }
 
+// Whether a single allowlisted flag is on, using the compile-time fallback when no row
+// exists (fail-closed to the declared default). Used by per-surface enforcement guards, e.g.
+// the /register route gates on "registration".
+export async function isFeatureEnabled(key: FeatureFlagKey): Promise<boolean> {
+  const fallback = FEATURE_FLAGS.find((flag) => flag.key === key)?.defaultEnabled ?? false;
+  const row = await prisma.featureFlag.findUnique({ where: { key } });
+  return row?.enabled ?? fallback;
+}
+
 // The current state of every allowlisted flag, defaulting to the compile-time fallback when
 // no row exists. Merges DB rows over the allowlist so a removed key never leaks into the UI.
 export async function getFeatureFlags(): Promise<FeatureFlagView[]> {

@@ -25,6 +25,16 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // Self-registration must land as `pending` ATOMICALLY, in the same insert as the
+        // account — not via a follow-up update that could be lost to a crash and leave an
+        // unapproved user `active` (the column defaults to "active"). Keyed on the public
+        // sign-up endpoint, so admin-created users (auth.api.createUser, a different path)
+        // keep the default active/approved.
+        before: async (user, context) => {
+          if (context?.path === "/sign-up/email") {
+            return { data: { ...user, status: "pending" } };
+          }
+        },
         after: async (user) => {
           const [defaultCurrency, autoCurrencies] = await Promise.all([
             prisma.currency.findFirst({
@@ -68,9 +78,15 @@ export const auth = betterAuth({
     enabled: true,
     // Use argon2id instead of Better Auth's default scrypt (design spec §4).
     password: { hash: hashPassword, verify: verifyPassword },
-    // Turn on once a production mailer is configured (see lib/email.ts).
+    // Login is never blocked on email verification: an already-approved (active) user reaches
+    // the dashboard even if their email is unverified (we only show an indicator). Email
+    // verification is enforced only as a registration step — see the account lifecycle in
+    // lib/auth-guards.ts (requireActiveUser) and app/register.
     requireEmailVerification: false,
-    autoSignIn: true,
+    // Registration must NOT create a session: a self-registered user is `pending` and has to
+    // verify their email and then be approved by an admin before they can sign in. Login
+    // (sign-in/email) still creates a session normally; the status guard gates access.
+    autoSignIn: false,
     // Enables /forgot-password + /reset-password. Fire-and-forget like the verify email.
     sendResetPassword: async ({ user, url }) => {
       void sendEmail({
@@ -95,7 +111,10 @@ export const auth = betterAuth({
 
   emailVerification: {
     sendOnSignUp: true,
-    autoSignInAfterVerification: true,
+    // Verifying the email must NOT sign the user in — after registration they stay signed
+    // out and their account waits for manual admin approval. Better Auth then just redirects
+    // to the callbackURL (see app/register: /verify-email?registered=1) with no session.
+    autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
       // Fire-and-forget: never await (timing + serverless timeout risk).
       void sendEmail({

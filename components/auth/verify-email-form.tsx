@@ -20,35 +20,41 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Email-verification landing page. Better Auth's verify-email API flips emailVerified and
 // redirects here as its callbackURL, so this page never verifies — it only reports the
-// outcome. Success lands here with no error (and the user is auto-signed-in); failure lands
-// here with ?error=token_expired or ?error=invalid_token, where we offer to resend the link.
+// outcome. Failure lands here with ?error=token_expired|invalid_token (offer a resend).
+// Two success shapes, because verification never signs the user in (autoSignInAfterVerification
+// is off): a REGISTRATION verify carries ?registered=1 and has no session — we show the
+// "pending approval" confirmation; an already-signed-in user re-verifying is recognized by
+// their live session showing emailVerified, and gets a "go to dashboard" confirmation.
 export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
-  const err = useSearchParams().get("error");
+  const params = useSearchParams();
+  const err = params.get("error");
+  const registered = params.get("registered") === "1";
   const { data: sessionData, isPending: sessionPending } = authClient.useSession();
   const sessionEmail = sessionData?.user?.email;
-  // Success is a real state change, not merely the absence of an error param: Better Auth
-  // flips emailVerified and (via autoSignInAfterVerification) signs the user in before
-  // redirecting here, so we confirm the live session actually shows a verified email. A
-  // direct visit by a logged-out or still-unverified user therefore does NOT show success.
   const verified = sessionData?.user?.emailVerified === true;
 
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
-  const footer = (
-    <>
-      <Link href="/dashboard" className="font-bold text-white hover:underline">
-        Go to dashboard
-      </Link>
-    </>
+  const footer = verified ? (
+    <Link href="/dashboard" className="font-bold text-white hover:underline">
+      Go to dashboard
+    </Link>
+  ) : (
+    <Link href="/login" className="font-bold text-white hover:underline">
+      Back to sign in
+    </Link>
   );
 
   async function resend(target: string) {
     setIsLoading(true);
+    // A not-signed-in resend is the registration flow: keep the ?registered=1 marker so the
+    // re-verified link lands on the "pending approval" success (a signed-in profile resend,
+    // which has a session, resolves success via that session's emailVerified instead).
     const { error: sendError } = await authClient.sendVerificationEmail({
       email: target,
-      callbackURL: "/verify-email",
+      callbackURL: sessionEmail ? "/verify-email" : "/verify-email?registered=1",
     });
     setIsLoading(false);
     if (sendError) {
@@ -71,6 +77,34 @@ export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
       return;
     }
     await resend(trimmed);
+  }
+
+  // Registration verify success: no session (autoSignIn-after-verify is off), recognized by
+  // the ?registered=1 marker Better Auth carried back from the callbackURL. The account is now
+  // pending manual approval, so we route them to sign-in rather than the dashboard.
+  if (!err && registered) {
+    return (
+      <AuthShell logoUrl={logoUrl} footer={footer}>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex size-14 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-500/15">
+            <CheckCircle2 className="size-7 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold tracking-tight">Email verified</h1>
+            <p className="text-muted-foreground text-sm">
+              Thanks for confirming your email. Your registration is now under review — we&apos;ll
+              email you once your account is approved, and then you can sign in.
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3.5 text-sm font-bold tracking-wide text-white uppercase shadow-lg shadow-blue-600/25 transition-all hover:from-blue-700 hover:to-indigo-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            Go to sign in
+          </Link>
+        </div>
+      </AuthShell>
+    );
   }
 
   // Success: the live session shows a verified email (Better Auth confirmed it server-side).

@@ -1,23 +1,39 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft, Landmark } from "lucide-react";
 
-import { TwoFactorSetup } from "@/components/auth/two-factor-setup";
+import { ProfileForm } from "@/components/account/profile-form";
 import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { requireActiveUser } from "@/lib/auth-guards";
+import { COUNTRIES } from "@/lib/countries";
 import { prisma } from "@/lib/db";
 
-export const metadata: Metadata = { title: "Security" };
+export const metadata: Metadata = { title: "Profile" };
 
-// Authenticated account page for enrolling in / managing two-factor authentication.
-export default async function SecurityPage() {
-  // Same full gate as the dashboard: active account + email-OTP cleared.
+export default async function ProfilePage() {
   const { session } = await requireActiveUser();
 
-  const dbUser = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { twoFactorEnabled: true },
+    select: {
+      name: true,
+      email: true,
+      emailVerified: true,
+      country: true,
+      phone: true,
+      gender: true,
+      address: true,
+    },
   });
+  // requireActiveUser already guaranteed the session user; this only covers the row vanishing
+  // between the guard and this read.
+  if (!user) redirect("/login");
+
+  const [firstName, ...rest] = (user.name ?? "").split(" ");
+  const lastName = rest.join(" ");
+  // Stored country is the display name; resolve back to its code so the Select can preselect.
+  const countryCode = COUNTRIES.find((c) => c.name === user.country)?.code ?? "";
 
   return (
     <div className="bg-muted/30 min-h-svh">
@@ -42,13 +58,24 @@ export default async function SecurityPage() {
             <ArrowLeft className="size-4" />
             Back to dashboard
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
           <p className="text-muted-foreground text-sm">
-            Manage how you sign in and protect your account.
+            Your personal details and contact information.
           </p>
         </div>
 
-        <TwoFactorSetup initialEnabled={dbUser?.twoFactorEnabled ?? false} />
+        <ProfileForm
+          initial={{
+            firstName: firstName ?? "",
+            lastName,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            countryCode,
+            phone: user.phone ?? "",
+            gender: (user.gender as "male" | "female" | "other" | "unspecified") ?? "unspecified",
+            address: user.address ?? "",
+          }}
+        />
       </main>
     </div>
   );
