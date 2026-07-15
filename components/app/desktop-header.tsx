@@ -28,7 +28,19 @@ export function DesktopHeader({ name, image }: { name: string; image: string | n
         <p className="text-xl font-bold text-slate-900 dark:text-white">{name}</p>
       </div>
       <div className="flex items-center gap-2">
-        <ComingSoonButton ariaLabel="Search" message="Search is coming soon." className={ICON_BTN}>
+        <ComingSoonButton
+          ariaLabel="Search"
+          message="Search is coming soon."
+          className="hidden h-10 w-56 items-center gap-2 rounded-full bg-white px-4 text-sm text-slate-400 shadow-sm transition-colors hover:bg-slate-100 md:flex dark:bg-slate-800 dark:hover:bg-slate-700"
+        >
+          <Search className="size-4 shrink-0" />
+          <span>Search…</span>
+        </ComingSoonButton>
+        <ComingSoonButton
+          ariaLabel="Search"
+          message="Search is coming soon."
+          className={`md:hidden ${ICON_BTN}`}
+        >
           <Search className="size-5" />
         </ComingSoonButton>
         <ComingSoonButton

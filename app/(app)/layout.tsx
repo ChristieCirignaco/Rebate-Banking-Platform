@@ -28,8 +28,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:rounded-2xl lg:bg-[#f8fafc] lg:p-3 lg:shadow-sm dark:lg:bg-slate-900">
         <DesktopHeader name={user.name} image={user.image} />
 
-        {/* Dark content area — the only scrollable region on desktop */}
-        <div className="lg:mt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:rounded-2xl lg:bg-[#0b1120] lg:p-5">
+        {/* Dark content area — the only scrollable region on desktop; subtle scrollbar */}
+        <div className="lg:mt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:rounded-2xl lg:bg-[#0b1120] lg:p-5 lg:[scrollbar-color:#334155_transparent] lg:[scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2">
           {children}
         </div>
       </div>
