@@ -78,7 +78,7 @@ export function BottomTabBar() {
   return (
     <>
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[480px] items-end justify-around border-t border-slate-200/70 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/95"
+        className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[600px] items-end justify-around border-t border-slate-200/70 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-slate-800/80 dark:bg-slate-950/95"
       >
         <TabLink tab={home} active={isActive(pathname, home.href)} />
         <TabLink tab={statistic} active={isActive(pathname, statistic.href)} />

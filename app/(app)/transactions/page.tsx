@@ -16,9 +16,9 @@ const HEADER_BTN =
 
 const HISTORY_LIMIT = 100;
 
-// Transaction History (mockup screen 2). A pushed detail screen — its own back header, and
-// the (app) shell hides the bottom tab bar here. Rows are presented on the server and handed
-// to the client filter component.
+// Transaction History. On mobile it's a pushed detail screen (back header, no bottom tab bar);
+// on desktop it's a normal sidebar page with a titled header. The filter list is one shared
+// client instance either way — only the header differs, by CSS breakpoint.
 export default async function TransactionsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -32,8 +32,9 @@ export default async function TransactionsPage() {
   const transactions = rows.map((row) => presentTransaction(row, now));
 
   return (
-    <div className="px-5 pb-16">
-      <header className="flex items-center gap-3 py-4">
+    <div className="mx-auto max-w-3xl px-5 pb-20 lg:px-8 lg:pt-4">
+      {/* Mobile: back + centered title + search */}
+      <header className="flex items-center gap-3 py-4 lg:hidden">
         <Link href="/dashboard" aria-label="Back" className={HEADER_BTN}>
           <ChevronLeft className="size-5" />
         </Link>
@@ -44,6 +45,16 @@ export default async function TransactionsPage() {
           <Search className="size-5" />
         </ComingSoonButton>
       </header>
+
+      {/* Desktop: titled header */}
+      <div className="hidden pt-2 pb-4 lg:block">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Transaction History
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Your full ledger across all wallets.
+        </p>
+      </div>
 
       <TransactionFilters transactions={transactions} />
     </div>

@@ -13,9 +13,11 @@ export function PlaceholderScreen({
   icon: LucideIcon;
 }) {
   return (
-    <div className="flex min-h-svh flex-col px-5 pb-28">
+    <div className="flex min-h-svh flex-col px-5 pb-28 lg:pb-10">
       <header className="py-4">
-        <h1 className="text-center text-base font-bold text-slate-900 dark:text-white">{title}</h1>
+        <h1 className="text-center text-base font-bold text-slate-900 lg:text-left dark:text-white">
+          {title}
+        </h1>
       </header>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <span className="flex size-16 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">

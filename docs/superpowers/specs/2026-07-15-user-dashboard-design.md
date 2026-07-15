@@ -89,6 +89,23 @@ the Upcoming Payment row.
   30-day delta helpers
 - `scripts/seed-dashboard.ts`
 
+## Responsive desktop view (follow-up)
+Desktop is no longer the centered mobile column — it's a genuine desktop layout, chosen by
+**CSS breakpoint** (`lg`, 1024px), not a JS device switch (avoids the hydration flash the
+`useIsMobile` desktop-first snapshot would cause). Shared content pieces (`BalanceHero`,
+`StatWidgets`, `TransactionRow/List`, `TransactionFilters`, `UpcomingPayment`) are consumed by
+both views; only the arrangement + chrome differ.
+- `(app)/layout.tsx`: responsive shell — `DesktopSidebar` (dark navy rail, nav + user +
+  sign-out, `hidden lg:flex`) + `DesktopTopBar` (`hidden lg:flex`) at lg+, `BottomTabBar`
+  (`lg:hidden`) below. `children` rendered once.
+- Home: page fetches once → `DashboardView` model → renders `MobileHome` (`lg:hidden`) and
+  `DesktopHome` (`hidden lg:block`). Desktop = balance card + Overview cluster (2-col) then a
+  full-width transactions panel.
+- `/transactions`: shared filter list; only the header differs by breakpoint (back-header
+  mobile / titled desktop).
+- New: `desktop-sidebar.tsx`, `desktop-topbar.tsx`, `balance-card.tsx`, `mobile-home.tsx`,
+  `desktop-home.tsx`, `dashboard-view.ts`. Retired: `app-frame.tsx`.
+
 ## Conventions
 - Toasts via `@/lib/toast` (react-hot-toast); no inline alert banners for transient msgs.
 - Any navigation after awaiting a Server Action uses `window.location.href` (router wedge).

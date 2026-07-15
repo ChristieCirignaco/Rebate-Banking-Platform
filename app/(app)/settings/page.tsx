@@ -21,9 +21,11 @@ const LINKS: { href: string; icon: LucideIcon; label: string; description: strin
 // bottom nav stays. More settings screens follow in later passes.
 export default function SettingsPage() {
   return (
-    <div className="flex min-h-svh flex-col px-5 pb-28">
+    <div className="mx-auto flex min-h-svh w-full max-w-2xl flex-col px-5 pb-28 lg:px-8 lg:pb-10">
       <header className="py-4">
-        <h1 className="text-center text-base font-bold text-slate-900 dark:text-white">Settings</h1>
+        <h1 className="text-center text-base font-bold text-slate-900 lg:pt-2 lg:text-left lg:text-2xl lg:tracking-tight dark:text-white">
+          Settings
+        </h1>
       </header>
 
       <div className="mt-2 flex flex-col gap-2">

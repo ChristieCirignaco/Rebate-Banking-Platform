@@ -43,7 +43,7 @@ export function BalanceHero({
   const [hidden, toggle] = useBalanceHidden();
 
   return (
-    <div className="mt-6">
+    <div>
       <p className="text-sm text-white/70">Total Balance</p>
       <div className="mt-1 flex items-center justify-between gap-3">
         <p className="text-4xl font-bold tracking-tight text-white tabular-nums">
