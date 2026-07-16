@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowDownToLine,
+  ArrowLeftRight,
   ArrowUpFromLine,
   Bell,
   ChevronRight,
@@ -83,6 +84,7 @@ const NAV: NavGroup[] = [
         icon: ArrowUpFromLine,
       },
       { title: "Deposits", href: "/admin/deposits", icon: ArrowDownToLine },
+      { title: "Transfers", href: "/admin/transfers", icon: ArrowLeftRight },
     ],
   },
   {
