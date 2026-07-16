@@ -58,10 +58,10 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
   );
 }
 
-const QUICK_ACTIONS: { label: string; icon: LucideIcon; hint: string }[] = [
+const QUICK_ACTIONS: { label: string; icon: LucideIcon; href?: string; hint?: string }[] = [
   { label: "Deposit", icon: ArrowDownToLine, hint: "Deposits are coming soon." },
   { label: "Transfer", icon: ArrowDownUp, hint: "Transfers are coming soon." },
-  { label: "Add product", icon: PackagePlus, hint: "Product submissions are coming soon." },
+  { label: "Add product", icon: PackagePlus, href: "/products/new" },
 ];
 
 // The persistent bottom navigation from the mockup: Home · Statistic · ⊕ · Wallet · Settings.
@@ -106,18 +106,31 @@ export function BottomTabBar() {
           <div className="grid grid-cols-3 gap-3 p-4 pt-0">
             {QUICK_ACTIONS.map((action) => {
               const Icon = action.icon;
+              const className =
+                "flex flex-col items-center gap-2 rounded-2xl border border-slate-200 p-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900";
+              const inner = (
+                <>
+                  <span className="flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                    <Icon className="size-5" />
+                  </span>
+                  {action.label}
+                </>
+              );
               return (
                 <DrawerClose asChild key={action.label}>
-                  <button
-                    type="button"
-                    onClick={() => toast(action.hint)}
-                    className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 p-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
-                  >
-                    <span className="flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                      <Icon className="size-5" />
-                    </span>
-                    {action.label}
-                  </button>
+                  {action.href ? (
+                    <Link href={action.href} className={className}>
+                      {inner}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => action.hint && toast(action.hint)}
+                      className={className}
+                    >
+                      {inner}
+                    </button>
+                  )}
                 </DrawerClose>
               );
             })}

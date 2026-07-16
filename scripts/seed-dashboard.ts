@@ -70,15 +70,14 @@ const WALLETS: { currency: string; isDefault: boolean; entries: Entry[] }[] = [
   },
 ];
 
-// Products feed the "Products" stat widget. adminNote carries a "[dashseed]" marker so re-runs
-// delete only these rows.
-const SEED_MARK = "[dashseed]";
-const PRODUCTS: { name: string; amount: number; status: string; note: string }[] = [
-  { name: "Sony WH-1000XM5 Headphones", amount: 349.99, status: "approved", note: `Verified purchase ${SEED_MARK}` },
-  { name: "Instant Pot Duo 7-in-1", amount: 89.95, status: "approved", note: `Verified purchase ${SEED_MARK}` },
-  { name: "Kindle Paperwhite", amount: 139.99, status: "approved", note: `Verified purchase ${SEED_MARK}` },
-  { name: "Logitech MX Master 3S", amount: 99.99, status: "pending", note: SEED_MARK },
-  { name: "Anker Power Bank", amount: 45.5, status: "rejected", note: `Duplicate submission ${SEED_MARK}` },
+// Products feed the "Products" stat widget. Re-runs delete these by name (they're distinctive
+// enough for a dev preview account), so admin notes stay clean and user-facing.
+const PRODUCTS: { name: string; amount: number; status: string; note: string | null }[] = [
+  { name: "Sony WH-1000XM5 Headphones", amount: 349.99, status: "approved", note: "Verified purchase" },
+  { name: "Instant Pot Duo 7-in-1", amount: 89.95, status: "approved", note: "Verified purchase" },
+  { name: "Kindle Paperwhite", amount: 139.99, status: "approved", note: "Verified purchase" },
+  { name: "Logitech MX Master 3S", amount: 99.99, status: "pending", note: null },
+  { name: "Anker Power Bank", amount: 45.5, status: "rejected", note: "Duplicate — item already claimed" },
 ];
 
 // Withdrawals feed the "Withdrawals" stat widget. Namespaced by txnId (SEED-DASH-WD-*).
@@ -161,7 +160,7 @@ async function main() {
   });
   await prisma.deposit.deleteMany({ where: { userId, txnId: { startsWith: "SEED-DASH-" } } });
   await prisma.withdraw.deleteMany({ where: { userId, txnId: { startsWith: "SEED-DASH-WD-" } } });
-  await prisma.product.deleteMany({ where: { userId, adminNote: { contains: SEED_MARK } } });
+  await prisma.product.deleteMany({ where: { userId, name: { in: PRODUCTS.map((p) => p.name) } } });
   await prisma.$executeRaw`
     UPDATE wallets w
        SET balance_minor = COALESCE((

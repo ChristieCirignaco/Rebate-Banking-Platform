@@ -73,3 +73,8 @@ export async function uploadMedia(file: File) {
 export async function uploadRegistrationProductImage(file: File) {
   return uploadTo("/api/register/product-image", file);
 }
+
+// Client-side helper for a signed-in user submitting a product (the /products/new flow).
+export async function uploadUserProductImage(file: File) {
+  return uploadTo("/api/user/product-image", file);
+}

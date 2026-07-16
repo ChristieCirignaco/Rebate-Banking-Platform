@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartColumn, House, LogOut, Receipt, Settings, Wallet } from "lucide-react";
+import { ChartColumn, House, LogOut, Package, Receipt, Settings, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
@@ -14,9 +14,10 @@ const SIDEBAR_GRADIENT = "linear-gradient(180deg,#1e293b 0%,#0f172a 100%)";
 
 const NAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Home", icon: House },
-  { href: "/statistic", label: "Statistic", icon: ChartColumn },
+  { href: "/products", label: "Products", icon: Package },
   { href: "/wallet", label: "Wallet", icon: Wallet },
   { href: "/transactions", label: "Transactions", icon: Receipt },
+  { href: "/statistic", label: "Statistic", icon: ChartColumn },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

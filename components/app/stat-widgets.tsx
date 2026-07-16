@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDownUp, ArrowUpFromLine, Package } from "lucide-react";
 
 export type StatWidgetsData = {
@@ -34,8 +35,9 @@ export function StatWidgets({ products, withdrawals, transfers }: StatWidgetsDat
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
-        <div
-          className="relative flex flex-col overflow-hidden rounded-2xl p-4 text-white shadow-lg"
+        <Link
+          href="/products"
+          className="relative flex flex-col overflow-hidden rounded-2xl p-4 text-white shadow-lg transition-transform hover:-translate-y-0.5"
           style={{ background: GRADIENTS.products }}
         >
           <Blob />
@@ -49,7 +51,7 @@ export function StatWidgets({ products, withdrawals, transfers }: StatWidgetsDat
               {products.approved} approved · {products.pending} pending
             </p>
           </div>
-        </div>
+        </Link>
 
         <div
           className="relative flex flex-col overflow-hidden rounded-2xl p-4 text-white shadow-lg"
