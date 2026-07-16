@@ -52,6 +52,22 @@ export const getSuperAdminSession = cache(async (): Promise<Session | null> => {
   return session && session.user.role === "super_admin" ? session : null;
 });
 
+// Guard for public auth-entry pages (login, register, forgot-password): don't show a
+// sign-in/up form to someone already signed in. An admin-tier session goes to /admin, an
+// ACTIVE regular user to /dashboard. A pending/suspended session is intentionally NOT
+// redirected — it may still need these pages (e.g. the login "pending"/"suspended" notice),
+// and bouncing it could loop with the dashboard status guard.
+export async function redirectIfAuthenticated(): Promise<void> {
+  if (await getAdminSession()) redirect("/admin");
+  const session = await getSession();
+  if (!session || isAdminTierRole(session.user.role)) return;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { status: true },
+  });
+  if (user?.status === "active") redirect("/dashboard");
+}
+
 // The account lifecycle for regular (non-admin) users, expressed over the existing
 // `user.status` + `emailVerified` columns:
 //   pending  + emailVerified=false -> registered, must verify email

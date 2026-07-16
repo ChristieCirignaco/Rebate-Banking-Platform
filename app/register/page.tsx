@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { RegisterForm } from "@/components/auth/register-form";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { redirectIfAuthenticated } from "@/lib/auth-guards";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getSettings } from "@/lib/settings/store";
 
@@ -22,6 +23,9 @@ account. We may suspend or close accounts that violate these terms or applicable
 These are placeholder terms. The operator can replace them in the admin settings.`;
 
 export default async function RegisterPage() {
+  // Already signed in? Don't show the signup form (admins -> /admin, active users -> /dashboard).
+  await redirectIfAuthenticated();
+
   const [registrationOpen, branding, legal] = await Promise.all([
     isFeatureEnabled("registration"),
     getSettings("branding"),
