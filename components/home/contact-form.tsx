@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 
 import { toast } from "@/lib/toast";
-import { submitContactMessage } from "@/app/(marketing)/contact/actions";
+import { submitContactMessage } from "@/app/(home)/contact/actions";
 
 const EMPTY = { fullName: "", email: "", subject: "", message: "" };
 

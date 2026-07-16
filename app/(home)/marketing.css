@@ -1,4 +1,4 @@
-/* Marketing-only styles. Imported ONLY by app/(marketing)/layout.tsx — never touches
+/* Marketing-only styles. Imported ONLY by app/(home)/layout.tsx — never touches
    app/globals.css, so it can't conflict with the app/admin surfaces or other agents. */
 
 :root {

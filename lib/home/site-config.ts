@@ -1,7 +1,7 @@
 import { cache } from "react";
 
 import { getSettings } from "@/lib/settings/store";
-import type { SocialKey } from "@/components/marketing/social-icons";
+import type { SocialKey } from "@/components/home/social-icons";
 
 // The marketing site's configurable identity — SEO, branding, contact details, socials — comes
 // entirely from the admin System Settings (general + branding + legal groups). The ONLY

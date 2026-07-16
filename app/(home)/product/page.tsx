@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck } from "lucide-react";
 
-import { Reveal } from "@/components/marketing/reveal";
-import { PageHero } from "@/components/marketing/primitives/page-hero";
-import { PROJECTS } from "@/components/marketing/content";
+import { Reveal } from "@/components/home/reveal";
+import { PageHero } from "@/components/home/primitives/page-hero";
+import { PROJECTS } from "@/components/home/content";
 
 export const metadata: Metadata = { title: "Product" };
 

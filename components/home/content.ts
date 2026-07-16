@@ -1,6 +1,6 @@
 // Verbatim reference copy shared across marketing pages (Home / About / Contact / Product).
 // Single source of truth so reused blocks (FAQ, testimonials, projects, stats) stay in sync.
-import type { FaqItem } from "@/components/marketing/faq-accordion";
+import type { FaqItem } from "@/components/home/faq-accordion";
 
 export const CASHOUT_STEPS = [
   {

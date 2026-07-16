@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display, Great_Vibes } from "next/font/google";
 
 import "./marketing.css";
-import { SiteHeader } from "@/components/marketing/site-header";
-import { SiteFooter } from "@/components/marketing/site-footer";
-import { getMarketingConfig } from "@/lib/marketing/site-config";
+import { SiteHeader } from "@/components/home/site-header";
+import { SiteFooter } from "@/components/home/site-footer";
+import { getMarketingConfig } from "@/lib/home/site-config";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],

@@ -11,9 +11,9 @@ import {
   Zap,
 } from "lucide-react";
 
-import { Reveal } from "@/components/marketing/reveal";
-import { PageHero } from "@/components/marketing/primitives/page-hero";
-import { CASHOUT_STEPS, FEATURES } from "@/components/marketing/content";
+import { Reveal } from "@/components/home/reveal";
+import { PageHero } from "@/components/home/primitives/page-hero";
+import { CASHOUT_STEPS, FEATURES } from "@/components/home/content";
 
 export const metadata: Metadata = { title: "Service" };
 

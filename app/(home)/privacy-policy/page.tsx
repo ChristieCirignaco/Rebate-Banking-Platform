@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { Reveal } from "@/components/marketing/reveal";
-import { PageHero } from "@/components/marketing/primitives/page-hero";
-import { getMarketingConfig } from "@/lib/marketing/site-config";
+import { Reveal } from "@/components/home/reveal";
+import { PageHero } from "@/components/home/primitives/page-hero";
+import { getMarketingConfig } from "@/lib/home/site-config";
 
 export const metadata: Metadata = { title: "Privacy Policy" };
 

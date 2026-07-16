@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { MapPin, Phone, Mail } from "lucide-react";
 
-import { Reveal } from "@/components/marketing/reveal";
-import { FaqAccordion } from "@/components/marketing/faq-accordion";
-import { ContactForm } from "@/components/marketing/contact-form";
-import { FAQ } from "@/components/marketing/content";
-import { getMarketingConfig } from "@/lib/marketing/site-config";
+import { Reveal } from "@/components/home/reveal";
+import { FaqAccordion } from "@/components/home/faq-accordion";
+import { ContactForm } from "@/components/home/contact-form";
+import { FAQ } from "@/components/home/content";
+import { getMarketingConfig } from "@/lib/home/site-config";
 
 export const metadata: Metadata = { title: "Contact Us" };
 

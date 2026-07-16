@@ -14,9 +14,9 @@ import {
   Star,
 } from "lucide-react";
 
-import { Reveal } from "@/components/marketing/reveal";
-import { VideoPlayer } from "@/components/marketing/video-player";
-import { FaqAccordion } from "@/components/marketing/faq-accordion";
+import { Reveal } from "@/components/home/reveal";
+import { VideoPlayer } from "@/components/home/video-player";
+import { FaqAccordion } from "@/components/home/faq-accordion";
 import {
   CASHOUT_STEPS,
   FEATURES,
@@ -26,8 +26,8 @@ import {
   TESTIMONIALS,
   BLOG,
   FAQ,
-} from "@/components/marketing/content";
-import { getLatestNews, type NewsItem } from "@/lib/marketing/news";
+} from "@/components/home/content";
+import { getLatestNews, type NewsItem } from "@/lib/home/news";
 
 const HERO_STEPS = [
   { icon: IdCard, title: "Register Account", text: "Create your portal access and set up your secure profile" },

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Phone, Mail } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SOCIAL_ICONS } from "@/components/marketing/social-icons";
-import type { MarketingConfig } from "@/lib/marketing/site-config";
+import { SOCIAL_ICONS } from "@/components/home/social-icons";
+import type { MarketingConfig } from "@/lib/home/site-config";
 
 const QUICK_LINKS = [
   { label: "About Us", href: "/about" },
