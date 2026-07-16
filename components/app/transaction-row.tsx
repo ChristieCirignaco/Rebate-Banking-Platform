@@ -1,12 +1,15 @@
 import {
   ArrowDownLeft,
   ArrowLeftRight,
+  ArrowRightLeft,
   ArrowUpRight,
   BadgePercent,
   Gift,
+  HandCoins,
   Receipt,
   RotateCcw,
   SlidersHorizontal,
+  Ticket,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -15,24 +18,34 @@ import type { TransactionView, TxnIconKey } from "@/lib/dashboard/transactions";
 
 // The icon each ledger source maps to. Colocated with the row so the view object stays a
 // plain serializable value (it carries only the string `iconKey`, never a component).
-const ICONS: Record<TxnIconKey, LucideIcon> = {
+export const TXN_ICONS: Record<TxnIconKey, LucideIcon> = {
   deposit: ArrowDownLeft,
   withdrawal: ArrowUpRight,
   reversal: RotateCcw,
   adjustment: SlidersHorizontal,
   fee: Receipt,
   transfer: ArrowLeftRight,
+  exchange: ArrowRightLeft,
+  voucher: Ticket,
+  request: HandCoins,
   rebate: BadgePercent,
   reward: Gift,
 };
 
 // One ledger row: circular source icon (green tint for credit, slate for debit), name +
-// subtitle, and a right-aligned signed amount + relative time. Pure presentational — no
-// hooks — so it renders inside both the server Home preview and the client History list.
-export function TransactionRow({ txn }: { txn: TransactionView }) {
-  const Icon = ICONS[txn.iconKey];
-  return (
-    <div className="flex items-center gap-3 py-3">
+// subtitle, and a right-aligned signed amount + relative time. When `onSelect` is passed (the
+// History list) the row is a button that opens the details modal; without it (the server Home
+// preview) it stays a plain, non-interactive div.
+export function TransactionRow({
+  txn,
+  onSelect,
+}: {
+  txn: TransactionView;
+  onSelect?: (id: string) => void;
+}) {
+  const Icon = TXN_ICONS[txn.iconKey];
+  const content = (
+    <>
       <span
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full",
@@ -67,6 +80,19 @@ export function TransactionRow({ txn }: { txn: TransactionView }) {
         </p>
         <p className="text-[11px] text-slate-400 dark:text-slate-500">{txn.timeLabel}</p>
       </div>
-    </div>
+    </>
   );
+
+  if (onSelect) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSelect(txn.id)}
+        className="-mx-2 flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+      >
+        {content}
+      </button>
+    );
+  }
+  return <div className="flex items-center gap-3 py-3">{content}</div>;
 }

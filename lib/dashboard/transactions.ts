@@ -14,6 +14,9 @@ export type TxnSource =
   | "adjustment"
   | "fee"
   | "transfer"
+  | "exchange"
+  | "voucher"
+  | "money_request"
   | "rebate"
   | "reward";
 
@@ -26,12 +29,23 @@ export type TxnIconKey =
   | "adjustment"
   | "fee"
   | "transfer"
+  | "exchange"
+  | "voucher"
+  | "request"
   | "rebate"
   | "reward";
 
-// The filter chips on the Transaction History screen. Adapted from the mockup to this
-// app's ledger (the mockup's "Request" has no analog here).
-export type TxnFilter = "all" | "income" | "sent" | "transfer" | "rebate";
+// The filter chips on the Transaction History screen — one per transaction type in the app
+// (rebate/reward roll up under "Product"). A row belongs to "all" plus its type's chip.
+export type TxnFilter =
+  | "all"
+  | "deposit"
+  | "withdraw"
+  | "transfer"
+  | "exchange"
+  | "voucher"
+  | "request"
+  | "product";
 
 export type TransactionView = {
   id: string;
@@ -49,24 +63,30 @@ export type TransactionView = {
   filters: TxnFilter[];
 };
 
-const ICON_BY_SOURCE: Record<TxnSource, TxnIconKey> = {
+export const ICON_BY_SOURCE: Record<TxnSource, TxnIconKey> = {
   deposit: "deposit",
   withdrawal: "withdrawal",
   withdrawal_reversal: "reversal",
   adjustment: "adjustment",
   fee: "fee",
   transfer: "transfer",
+  exchange: "exchange",
+  voucher: "voucher",
+  money_request: "request",
   rebate: "rebate",
   reward: "reward",
 };
 
-const LABEL_BY_SOURCE: Record<TxnSource, string> = {
+export const LABEL_BY_SOURCE: Record<TxnSource, string> = {
   deposit: "Deposit",
   withdrawal: "Withdrawal",
   withdrawal_reversal: "Withdrawal reversed",
   adjustment: "Adjustment",
   fee: "Fee",
   transfer: "Transfer",
+  exchange: "Exchange",
+  voucher: "Voucher",
+  money_request: "Money request",
   rebate: "Rebate",
   reward: "Reward",
 };
@@ -90,12 +110,23 @@ type LedgerRow = {
   createdAt: Date;
 };
 
-function filtersFor(source: TxnSource | null, positive: boolean): TxnFilter[] {
-  const filters: TxnFilter[] = ["all"];
-  filters.push(positive ? "income" : "sent");
-  if (source === "transfer") filters.push("transfer");
-  if (source === "rebate" || source === "reward") filters.push("rebate");
-  return filters;
+const FILTER_BY_SOURCE: Record<TxnSource, TxnFilter | null> = {
+  deposit: "deposit",
+  withdrawal: "withdraw",
+  withdrawal_reversal: "withdraw",
+  adjustment: null,
+  fee: null,
+  transfer: "transfer",
+  exchange: "exchange",
+  voucher: "voucher",
+  money_request: "request",
+  rebate: "product",
+  reward: "product",
+};
+
+function filtersFor(source: TxnSource | null): TxnFilter[] {
+  const chip = source ? FILTER_BY_SOURCE[source] : null;
+  return chip ? ["all", chip] : ["all"];
 }
 
 // Turn a raw ledger row into a serializable view object for the row component. `now` drives
@@ -125,7 +156,7 @@ export function presentTransaction(txn: LedgerRow, now: Date = new Date()): Tran
     createdAtISO: txn.createdAt.toISOString(),
     timeLabel: formatTxnTime(txn.createdAt),
     groupLabel: dayLabel(txn.createdAt, now),
-    filters: filtersFor(source, positive),
+    filters: filtersFor(source),
   };
 }
 
