@@ -49,6 +49,7 @@ model User {
   lastLoginAt       DateTime?
   activationCode    String?
   twoFactorEnabled  Boolean?  @default(false) // Better Auth twoFactor plugin (TOTP)
+  transactionPin    String? @map("transaction_pin") // argon2id-hashed transfer PIN (never returned to client)
   withdrawalStatus  String   @default("allowed") // allowed | pending | hold | suspended | restricted
   withdrawalMessage String?
   controls          Json? // per-user capability toggles (design spec §9.3 / user controls)

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Landmark } from "lucide-react";
 
 import { TwoFactorSetup } from "@/components/auth/two-factor-setup";
+import { TransactionPinForm } from "@/components/account/transaction-pin-form";
 import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
@@ -16,7 +17,7 @@ export default async function SecurityPage() {
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { twoFactorEnabled: true },
+    select: { twoFactorEnabled: true, transactionPin: true },
   });
 
   return (
@@ -49,6 +50,7 @@ export default async function SecurityPage() {
         </div>
 
         <TwoFactorSetup initialEnabled={dbUser?.twoFactorEnabled ?? false} />
+        <TransactionPinForm hasPin={Boolean(dbUser?.transactionPin)} />
       </main>
     </div>
   );
