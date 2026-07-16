@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getSupportCategories, getUserTickets } from "@/lib/support";
 import { SupportView } from "@/components/app/support/support-view";
 
@@ -14,6 +15,8 @@ export const metadata: Metadata = { title: "Support" };
 export default async function SupportPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Hiding the nav entry isn't enough — the URL is still typeable.
+  if (!(await isFeatureEnabled("support"))) redirect("/dashboard");
 
   const [tickets, categories] = await Promise.all([
     getUserTickets(session.user.id),

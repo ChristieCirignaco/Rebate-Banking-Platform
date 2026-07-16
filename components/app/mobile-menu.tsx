@@ -16,7 +16,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { APP_NAV } from "@/components/app/app-nav";
+import { visibleNav } from "@/components/app/app-nav";
 
 const DRAWER_GRADIENT = "linear-gradient(180deg,#1e293b 0%,#0f172a 100%)";
 
@@ -36,7 +36,19 @@ type MenuUser = { name: string; email: string; image: string | null | undefined 
 // drags-to-dismiss on touch. Styled to our dark gradient panel — not the raw shadcn look — and
 // mirrors the desktop sidebar (full nav + user card + sign-out) so mobile reaches everything the
 // bottom tab bar doesn't cover. Shown only within the mobile header; desktop uses the fixed sidebar.
-export function MobileMenu({ user, triggerClassName }: { user: MenuUser; triggerClassName: string }) {
+// Mirrors the desktop sidebar: the server sends enabled flag KEYS (plain strings) and the
+// filtering happens here, because a NavItem's `icon` is a React component and can't cross the
+// server→client boundary.
+export function MobileMenu({
+  user,
+  triggerClassName,
+  enabled = [],
+}: {
+  user: MenuUser;
+  triggerClassName: string;
+  enabled?: string[];
+}) {
+  const nav = visibleNav(enabled);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -80,7 +92,7 @@ export function MobileMenu({ user, triggerClassName }: { user: MenuUser; trigger
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-          {APP_NAV.map((item) => {
+          {nav.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (

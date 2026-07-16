@@ -24,13 +24,16 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 
-type Tab = { href: string; label: string; icon: LucideIcon };
+type Tab = { href: string; label: string; icon: LucideIcon; flag?: string };
 
+// Home has no flag — every feature guard redirects to /dashboard, so it can't be switchable.
+// A tab whose feature is off is dropped; the bar keeps its shape because the remaining tabs
+// flex, and the FAB stays centred.
 const TABS: Tab[] = [
   { href: "/dashboard", label: "Home", icon: House },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/send", label: "Send", icon: Send },
-  { href: "/support", label: "Support", icon: LifeBuoy },
+  { href: "/products", label: "Products", icon: Package, flag: "products" },
+  { href: "/send", label: "Send", icon: Send, flag: "send_money" },
+  { href: "/support", label: "Support", icon: LifeBuoy, flag: "support" },
 ];
 
 // Detail screens (their own back header, no tab bar) — the bar hides on these.
@@ -57,30 +60,37 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
   );
 }
 
-const QUICK_ACTIONS: { label: string; icon: LucideIcon; href: string }[] = [
-  { label: "Deposit", icon: ArrowDownToLine, href: "/deposit" },
-  { label: "Transfer", icon: ArrowDownUp, href: "/send" },
-  { label: "Add product", icon: PackagePlus, href: "/products/new" },
+const QUICK_ACTIONS: { label: string; icon: LucideIcon; href: string; flag?: string }[] = [
+  { label: "Deposit", icon: ArrowDownToLine, href: "/deposit", flag: "deposits" },
+  { label: "Transfer", icon: ArrowDownUp, href: "/send", flag: "send_money" },
+  { label: "Add product", icon: PackagePlus, href: "/products/new", flag: "product_submission" },
 ];
 
 // The persistent bottom navigation: Home · Products · ⊕ · Send · Support. Fixed and centered so
 // it overlays the phone-width column on desktop and spans the screen on mobile. The center FAB
 // opens a quick-action sheet; every destination is a real page.
-export function BottomTabBar() {
+export function BottomTabBar({ enabled = [] }: { enabled?: string[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   if (HIDE_ON.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
 
-  const [home, products, send, support] = TABS;
+  const on = new Set(enabled);
+  const tabs = TABS.filter((tab) => !tab.flag || on.has(tab.flag));
+  const actions = QUICK_ACTIONS.filter((action) => !action.flag || on.has(action.flag));
+  // Split evenly around the centre FAB, whatever survived the flags.
+  const half = Math.ceil(tabs.length / 2);
+  const left = tabs.slice(0, half);
+  const right = tabs.slice(half);
 
   return (
     <>
       <nav
         className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[600px] items-end justify-around rounded-t-2xl border-t border-slate-200/70 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur lg:hidden dark:border-slate-800/80 dark:bg-slate-950/95"
       >
-        <TabLink tab={home} active={isActive(pathname, home.href)} />
-        <TabLink tab={products} active={isActive(pathname, products.href)} />
+        {left.map((tab) => (
+          <TabLink key={tab.href} tab={tab} active={isActive(pathname, tab.href)} />
+        ))}
 
         <div className="flex w-14 shrink-0 justify-center">
           <button
@@ -93,8 +103,9 @@ export function BottomTabBar() {
           </button>
         </div>
 
-        <TabLink tab={send} active={isActive(pathname, send.href)} />
-        <TabLink tab={support} active={isActive(pathname, support.href)} />
+        {right.map((tab) => (
+          <TabLink key={tab.href} tab={tab} active={isActive(pathname, tab.href)} />
+        ))}
       </nav>
 
       <Drawer open={open} onOpenChange={setOpen}>
@@ -103,7 +114,7 @@ export function BottomTabBar() {
             <DrawerTitle>Quick actions</DrawerTitle>
           </DrawerHeader>
           <div className="grid grid-cols-3 gap-3 p-4 pt-0">
-            {QUICK_ACTIONS.map((action) => {
+            {actions.map((action) => {
               const Icon = action.icon;
               const className =
                 "flex flex-col items-center gap-2 rounded-2xl border border-slate-200 p-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900";

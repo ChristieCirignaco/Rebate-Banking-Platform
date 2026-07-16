@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { getEnabledFlags } from "@/lib/settings/feature-flags";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
 import {
@@ -126,9 +127,12 @@ export default async function DashboardPage() {
       : null,
   };
 
+  // Shared with the shell's nav — React-cached, so this is the layout's query, not a new one.
+  const enabled = [...(await getEnabledFlags())];
+
   return (
     <>
-      <MobileHome view={view} />
+      <MobileHome view={view} enabled={enabled} />
       <DesktopHome view={view} />
     </>
   );

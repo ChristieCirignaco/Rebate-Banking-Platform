@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getStatisticData } from "@/lib/statistic";
 import { StatisticView } from "@/components/app/statistic/statistic-view";
 
@@ -15,6 +16,8 @@ export const metadata: Metadata = { title: "Statistic" };
 export default async function StatisticPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Hiding the nav entry isn't enough — the URL is still typeable.
+  if (!(await isFeatureEnabled("statistic"))) redirect("/dashboard");
 
   const data = await getStatisticData(session.user.id);
 

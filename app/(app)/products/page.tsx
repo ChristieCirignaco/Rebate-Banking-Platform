@@ -17,6 +17,8 @@ export default async function ProductsPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+  // The page itself; submitting is separately gated by product_submission (below + /new).
+  if (!(await isFeatureEnabled("products"))) redirect("/dashboard");
 
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);

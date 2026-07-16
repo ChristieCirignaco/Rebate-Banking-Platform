@@ -12,7 +12,7 @@ const HERO_GRADIENT = "linear-gradient(165deg,#2748a0 0%,#1a2f66 46%,#0f1a38 100
 
 // The mobile Home composition (shown below lg): dark hero → white sheet, capped width so it
 // centers nicely on tablets and is full-bleed on phones. Consumes the shared view model.
-export function MobileHome({ view }: { view: DashboardView }) {
+export function MobileHome({ view, enabled = [] }: { view: DashboardView; enabled?: string[] }) {
   return (
     <div className="mx-auto flex min-h-svh w-full max-w-[600px] flex-col bg-white lg:hidden dark:bg-slate-950">
       <section className="px-5 pt-6 pb-10 text-white" style={{ background: HERO_GRADIENT }}>
@@ -21,6 +21,7 @@ export function MobileHome({ view }: { view: DashboardView }) {
           name={view.name}
           email={view.email}
           image={view.image}
+          enabled={enabled}
         />
         <div className="mt-6">
           <BalanceHero balanceLabel={view.balanceLabel} delta={view.delta} />

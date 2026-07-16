@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { prisma } from "@/lib/db";
 import { presentTransaction } from "@/lib/dashboard/transactions";
 import { TransactionFilters } from "@/components/app/transaction-filters";
@@ -18,6 +19,8 @@ const HISTORY_LIMIT = 100;
 export default async function TransactionsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Hiding the nav entry isn't enough — the URL is still typeable.
+  if (!(await isFeatureEnabled("transactions"))) redirect("/dashboard");
 
   const now = new Date();
   const rows = await prisma.walletTransaction.findMany({

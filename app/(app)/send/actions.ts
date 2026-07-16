@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
+import { TRANSFER_TYPE_FLAGS, type TransferKind } from "@/components/app/app-nav";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
@@ -152,6 +153,12 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
   if (!sender) return { ok: false, error: "Account not found." };
   if (!controlAllows(sender.controls, "send_money")) {
     return { ok: false, error: "Transfers are disabled on your account. Please contact support." };
+  }
+  // Per-type flag. The form only renders enabled tabs, but that's presentation — a crafted
+  // payload can still name a disabled type, so the authority is here.
+  const kindFlag = TRANSFER_TYPE_FLAGS[input.type as TransferKind];
+  if (!kindFlag || !(await isFeatureEnabled(kindFlag))) {
+    return { ok: false, error: "That transfer type is currently unavailable." };
   }
   const blocked = requirementBlock(sender);
   if (blocked) return { ok: false, error: blocked };

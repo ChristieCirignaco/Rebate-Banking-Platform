@@ -8,7 +8,7 @@ import { LogOut } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { APP_NAV } from "@/components/app/app-nav";
+import { visibleNav } from "@/components/app/app-nav";
 
 const SIDEBAR_GRADIENT = "linear-gradient(180deg,#1e293b 0%,#0f172a 100%)";
 
@@ -27,7 +27,11 @@ type SidebarUser = { name: string; email: string; image: string | null | undefin
 // The desktop-only left navigation rail (shown at lg+). Dark navy gradient to echo the mobile
 // hero, blue-tinted active state, and the signed-in user (links to Settings) + sign-out at the
 // foot. The nav scrolls if the menu is taller than the rail.
-export function DesktopSidebar({ user }: { user: SidebarUser }) {
+// Takes the ENABLED FLAG KEYS, not a prebuilt nav: each NavItem carries an `icon` React
+// component, and a component can't cross the server→client boundary (only plain objects can).
+// So the server sends strings and the filtering happens here, where the icons already live.
+export function DesktopSidebar({ user, enabled = [] }: { user: SidebarUser; enabled?: string[] }) {
+  const nav = visibleNav(enabled);
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
@@ -44,7 +48,7 @@ export function DesktopSidebar({ user }: { user: SidebarUser }) {
       style={{ background: SIDEBAR_GRADIENT }}
     >
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {APP_NAV.map((item) => {
+        {nav.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (

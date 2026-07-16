@@ -19,16 +19,19 @@ export function DashboardHeader({
   name,
   email,
   image,
+  enabled = [],
 }: {
   greeting: string;
   name: string;
   email: string;
   image: string | null | undefined;
+  // Enabled feature-flag keys, forwarded to the drawer so its nav matches the sidebar's.
+  enabled?: string[];
 }) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex min-w-0 items-center gap-2.5">
-        <MobileMenu user={{ name, email, image }} triggerClassName={ICON_BTN} />
+        <MobileMenu user={{ name, email, image }} triggerClassName={ICON_BTN} enabled={enabled} />
         <Avatar size="lg" className="ring-2 ring-white/20">
           {image ? <AvatarImage src={image} alt={name} /> : null}
           <AvatarFallback className="bg-white/15 text-sm font-semibold text-white">

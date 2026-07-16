@@ -7,7 +7,8 @@ import { getSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
-import { isFeatureEnabled } from "@/lib/settings/feature-flags";
+import { getEnabledFlags, isFeatureEnabled } from "@/lib/settings/feature-flags";
+import { enabledTransferKinds } from "@/components/app/app-nav";
 import { SendForm } from "@/components/app/send-form";
 
 export const metadata: Metadata = { title: "Send money" };
@@ -18,6 +19,10 @@ export default async function SendPage() {
   const session = await getSession();
   if (!session) redirect("/login");
   if (!(await isFeatureEnabled("send_money"))) redirect("/dashboard");
+  // Each transfer type is separately switchable; with every one off there is no form to show,
+  // so treat it the same as Send Money being off rather than rendering an empty tab strip.
+  const kinds = enabledTransferKinds(await getEnabledFlags());
+  if (kinds.length === 0) redirect("/dashboard");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -46,7 +51,7 @@ export default async function SendPage() {
             <p className="text-sm text-slate-500">Transfer to a user, a domestic bank, or by wire.</p>
           </div>
         </div>
-        <SendForm balanceLabel={balanceLabel} currency={currency} />
+        <SendForm balanceLabel={balanceLabel} currency={currency} kinds={kinds} />
       </div>
     </div>
   );

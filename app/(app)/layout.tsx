@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { requireActiveUser } from "@/lib/auth-guards";
+import { getEnabledFlags } from "@/lib/settings/feature-flags";
 import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopHeader } from "@/components/app/desktop-header";
@@ -14,6 +15,10 @@ import { DesktopHeader } from "@/components/app/desktop-header";
 // `children` renders once; each page provides its mobile + desktop view.
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { session } = await requireActiveUser();
+  // One batched read for the whole shell — the nav asks about a dozen flags, and each page
+  // re-checks its own (React cache makes that the same round-trip). Only the keys cross into
+  // the client components; the nav itself can't (its icons are React components).
+  const enabled = [...(await getEnabledFlags())];
   const user = {
     name: session.user.name ?? "there",
     email: session.user.email ?? "",
@@ -27,7 +32,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Body: detached sidebar + main container, below the header */}
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3 lg:p-3 lg:pt-0">
-        <DesktopSidebar user={user} />
+        <DesktopSidebar user={user} enabled={enabled} />
 
         {/* Main container (light card) — does NOT scroll; wraps the dark content panel */}
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:rounded-2xl lg:bg-[#f8fafc] lg:p-3 lg:shadow-sm dark:lg:bg-slate-900">
@@ -38,7 +43,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <BottomTabBar />
+      <BottomTabBar enabled={enabled} />
     </div>
   );
 }

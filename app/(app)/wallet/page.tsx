@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getWalletPageData } from "@/lib/wallet-page";
 import { addableCurrencies, MAX_WALLETS } from "@/lib/wallets";
 import { AddWalletDialog } from "@/components/app/wallet/add-wallet-dialog";
@@ -18,6 +19,8 @@ export const metadata: Metadata = { title: "Wallets" };
 export default async function WalletPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Hiding the nav entry isn't enough — the URL is still typeable.
+  if (!(await isFeatureEnabled("wallets"))) redirect("/dashboard");
 
   const [data, addable] = await Promise.all([
     getWalletPageData(session.user.id),

@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { Globe, Landmark, Users } from "lucide-react";
 
 import { beginTransfer, type SendInput } from "@/app/(app)/send/actions";
+import type { TransferKind } from "@/components/app/app-nav";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { PasscodeDialog } from "@/components/app/passcode-dialog";
 const FIELD =
   "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
 
-type TransferType = "internal" | "domestic" | "wire";
+type TransferType = TransferKind;
 
 const TYPES: { key: TransferType; label: string; icon: LucideIcon }[] = [
   { key: "internal", label: "Internal", icon: Users },
@@ -24,14 +25,19 @@ const TYPES: { key: TransferType; label: string; icon: LucideIcon }[] = [
   { key: "wire", label: "Wire", icon: Globe },
 ];
 
+// `kinds` is resolved from the per-type feature flags on the server. The form renders only
+// those tabs; beginTransfer re-checks, since a hidden tab is presentation, not a constraint.
 export function SendForm({
   balanceLabel,
   currency,
+  kinds,
 }: {
   balanceLabel: string;
   currency: string;
+  kinds: TransferKind[];
 }) {
-  const [type, setType] = useState<TransferType>("internal");
+  const available = TYPES.filter((t) => kinds.includes(t.key));
+  const [type, setType] = useState<TransferType>(available[0]?.key ?? "internal");
   const [values, setValues] = useState<Record<string, string>>({ amount: "" });
   const [pinOpen, setPinOpen] = useState(false);
 
@@ -78,8 +84,8 @@ export function SendForm({
   return (
     <>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <div className="grid grid-cols-3 gap-2">
-          {TYPES.map((t) => {
+        <div className={cn("grid gap-2", available.length === 3 ? "grid-cols-3" : available.length === 2 ? "grid-cols-2" : "grid-cols-1")}>
+          {available.map((t) => {
             const Icon = t.icon;
             const active = type === t.key;
             return (
