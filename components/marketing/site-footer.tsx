@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Phone, Mail } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+import { SOCIAL_ICONS } from "@/components/marketing/social-icons";
+import type { MarketingConfig } from "@/lib/marketing/site-config";
+
 const QUICK_LINKS = [
   { label: "About Us", href: "/about" },
   { label: "Privacy policy", href: "/privacy-policy" },
@@ -8,23 +12,46 @@ const QUICK_LINKS = [
   { label: "Support", href: "/support" },
 ];
 
-export function SiteFooter() {
+const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+
+export function SiteFooter({ config }: { config: MarketingConfig }) {
   return (
     <footer className="bg-[var(--trb-blue)] text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:px-8 md:grid-cols-3">
         <div className="max-w-sm">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/marketing/logo.svg" alt="TRB Payout System" className="h-10 w-auto brightness-0 invert" />
-          <p className="mt-5 text-sm leading-relaxed text-white/75">
-            The TRB Payout System is the only verified system where holders of TRB products can
-            register and validate their items.
-          </p>
+          <img
+            src={config.logo}
+            alt={config.brandName}
+            className={cn("h-10 w-auto", config.logoIsFallback && "brightness-0 invert")}
+          />
+          <p className="mt-5 text-sm leading-relaxed text-white/75">{config.footerText}</p>
           <Link
             href="/register"
             className="mt-6 inline-flex rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-[var(--trb-blue)] transition-colors hover:bg-white/90"
           >
             Join Now
           </Link>
+
+          {config.socials.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              {config.socials.map(({ key, label, href }) => {
+                const Icon = SOCIAL_ICONS[key];
+                return (
+                  <a
+                    key={key}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="md:justify-self-center">
@@ -48,8 +75,8 @@ export function SiteFooter() {
               <span>
                 Support
                 <br />
-                <a href="tel:+16032331119" className="transition-colors hover:text-white">
-                  +1603-233-1119
+                <a href={telHref(config.supportPhone)} className="transition-colors hover:text-white">
+                  {config.supportPhone}
                 </a>
               </span>
             </li>
@@ -58,8 +85,8 @@ export function SiteFooter() {
               <span>
                 Email us any time:
                 <br />
-                <a href="mailto:info@trbpayoutsystem.us" className="transition-colors hover:text-white">
-                  info@trbpayoutsystem.us
+                <a href={`mailto:${config.supportEmail}`} className="transition-colors hover:text-white">
+                  {config.supportEmail}
                 </a>
               </span>
             </li>
@@ -69,7 +96,7 @@ export function SiteFooter() {
 
       <div className="border-t border-white/15">
         <p className="mx-auto max-w-7xl px-6 py-5 text-center text-xs text-white/60 sm:px-8">
-          © 2026 TRBPAYOUTSYSTEM. All Rights Reserved.
+          © 2026 {config.brandName}. All Rights Reserved.
         </p>
       </div>
     </footer>

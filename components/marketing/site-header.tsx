@@ -15,7 +15,13 @@ const NAV = [
   { label: "Contact Us", href: "/contact" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({
+  logoUrl,
+  brandName,
+}: {
+  logoUrl: string;
+  brandName: string;
+}) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -57,9 +63,9 @@ export function SiteHeader() {
         )}
       >
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="flex items-center" aria-label="TRB Payout System home">
+          <Link href="/" className="flex items-center" aria-label={`${brandName} home`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/marketing/logo.svg" alt="TRB Payout System" className="h-9 w-auto" />
+            <img src={logoUrl} alt={brandName} className="h-9 w-auto" />
           </Link>
 
           {/* desktop pill nav */}

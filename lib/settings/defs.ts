@@ -89,6 +89,8 @@ export interface LegalSettings {
   socialLinkedin: string;
   socialYoutube: string;
   socialTiktok: string;
+  socialWhatsapp: string;
+  socialTelegram: string;
 }
 
 export interface SettingsGroups {
@@ -161,6 +163,8 @@ export const SETTINGS_DEFAULTS: SettingsGroups = {
     socialLinkedin: "",
     socialYoutube: "",
     socialTiktok: "",
+    socialWhatsapp: "",
+    socialTelegram: "",
   },
 };
 

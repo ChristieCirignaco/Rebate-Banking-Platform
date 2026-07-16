@@ -128,6 +128,22 @@ export function LegalForm({ initial }: { initial: LegalSettings }) {
               placeholder="https://tiktok.com/"
             />
           </SettingsField>
+          <SettingsField label="WhatsApp" htmlFor="social-whatsapp">
+            <Input
+              id="social-whatsapp"
+              value={form.socialWhatsapp}
+              onChange={(event) => set("socialWhatsapp", event.target.value)}
+              placeholder="https://wa.me/16032331119"
+            />
+          </SettingsField>
+          <SettingsField label="Telegram" htmlFor="social-telegram">
+            <Input
+              id="social-telegram"
+              value={form.socialTelegram}
+              onChange={(event) => set("socialTelegram", event.target.value)}
+              placeholder="https://t.me/yourchannel"
+            />
+          </SettingsField>
         </div>
       </SettingsSection>
 

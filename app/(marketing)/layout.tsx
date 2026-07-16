@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, Playfair_Display, Great_Vibes } from "next/font/goog
 import "./marketing.css";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { getMarketingConfig } from "@/lib/marketing/site-config";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -27,24 +28,54 @@ const greatVibes = Great_Vibes({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "TRBPAYOUTSYSTEM — Trump Rebate Banking System",
-    template: "%s · TRB Payout System",
-  },
-  description:
-    "The only verified system where holders of TRB products can register and validate their items.",
-};
+// SEO/OG/title/favicon all come from the admin System Settings (general + branding).
+function safeUrl(value: string): URL | undefined {
+  try {
+    return value ? new URL(value) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+export async function generateMetadata(): Promise<Metadata> {
+  const c = await getMarketingConfig();
+  return {
+    metadataBase: safeUrl(c.siteUrl),
+    title: { default: c.siteTitle, template: `%s · ${c.brandName}` },
+    description: c.description,
+    keywords: c.keywords,
+    icons: { icon: c.favicon },
+    openGraph: {
+      type: "website",
+      title: c.siteTitle,
+      description: c.description,
+      siteName: c.brandName,
+      url: c.siteUrl || undefined,
+      images: [{ url: c.ogImage }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: c.siteTitle,
+      description: c.description,
+      images: [c.ogImage],
+    },
+  };
+}
+
+export default async function MarketingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const config = await getMarketingConfig();
   return (
     <div
       className={`${jakarta.variable} ${playfair.variable} ${greatVibes.variable} flex min-h-screen flex-col bg-[var(--trb-dark)] text-white`}
       style={{ fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif" }}
     >
-      <SiteHeader />
+      <SiteHeader logoUrl={config.logo} brandName={config.brandName} />
       <div className="flex-1">{children}</div>
-      <SiteFooter />
+      <SiteFooter config={config} />
     </div>
   );
 }
