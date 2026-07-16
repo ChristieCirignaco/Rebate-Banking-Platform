@@ -9,7 +9,7 @@ const QUICK_LINKS = [
   { label: "About Us", href: "/about" },
   { label: "Privacy policy", href: "/privacy-policy" },
   { label: "Contact Us", href: "/contact" },
-  { label: "Support", href: "/support" },
+  { label: "Support", href: "/help" },
 ];
 
 export function SiteFooter({ config }: { config: MarketingConfig }) {
