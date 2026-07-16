@@ -31,6 +31,7 @@ export const CONTROL_META: { key: ControlKey; label: string; description: string
   { key: "exchange_money", label: "Exchange Money", description: "Allows currency conversion within the wallet." },
   { key: "send_money", label: "Send Money", description: "Allows sending money to other users." },
   { key: "request_money", label: "Request Money", description: "Allows users to request money from others." },
+  { key: "voucher", label: "Voucher", description: "Allows generating and redeeming vouchers." },
   { key: "withdraw", label: "Withdraw", description: "Allows withdrawal to linked bank accounts." },
 ];
 

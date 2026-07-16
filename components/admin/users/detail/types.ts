@@ -43,6 +43,7 @@ export type ControlKey =
   | "exchange_money"
   | "send_money"
   | "request_money"
+  | "voucher"
   | "withdraw";
 
 export interface UserControl {

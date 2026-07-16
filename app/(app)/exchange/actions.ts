@@ -48,7 +48,7 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
     select: { controls: true, transactionPin: true },
   });
   if (!sender) return { ok: false, error: "Account not found." };
-  if (!controlAllows(sender.controls, "exchange")) {
+  if (!controlAllows(sender.controls, "exchange_money")) {
     return { ok: false, error: "Exchange is disabled on your account. Please contact support." };
   }
   if (!sender.transactionPin) {

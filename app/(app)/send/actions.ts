@@ -236,6 +236,7 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   await setAuthCookie({
     payload,
+    transferId: randomUUID(),
     sequence,
     verified: [],
     otpHash: hashOtp(otp),
@@ -253,9 +254,8 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
 // Finalize once every step is cleared: debit the sender on request (held) and create the
 // pending Transfer, then clear the session. Mirrors the withdraw hold pattern.
 async function finalize(userId: string, state: TransferAuthState): Promise<StepResult> {
-  const { payload } = state;
+  const { payload, transferId } = state;
   const amountMinor = toMinor(Number(payload.amount));
-  const transferId = randomUUID();
   const txnId = txnCode();
   const codesVerified = state.sequence.some((s) => s !== "otp") &&
     state.sequence.filter((s) => s !== "otp").every((s) => state.verified.includes(s));

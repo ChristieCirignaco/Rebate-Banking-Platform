@@ -25,6 +25,9 @@ export type TransferAuthPayload = {
 
 export type TransferAuthState = {
   payload: TransferAuthPayload;
+  transferId: string; // minted at begin; finalize uses it as the Transfer id + ledger ref so a
+  // concurrent double-submit of the final step collides on one primary key instead of
+  // creating two transfers / two debits (single-use consumption at the DB layer).
   sequence: TransferStep[]; // steps AFTER the PIN, in order
   verified: TransferStep[]; // cleared so far (a prefix of sequence)
   otpHash?: string; // HMAC of the emailed OTP
