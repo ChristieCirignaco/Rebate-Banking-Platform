@@ -2,24 +2,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Package, Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { ProductRowView, ProductStats, UserProductsPage } from "@/lib/products";
-
-const STATUS_BADGE: Record<ProductRowView["status"], { label: string; className: string }> = {
-  pending: {
-    label: "Pending",
-    className:
-      "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
-  },
-  approved: {
-    label: "Approved",
-    className:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
-  },
-  rejected: {
-    label: "Rejected",
-    className: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
-  },
-};
+import type { ProductStats, UserProductsPage } from "@/lib/products-view";
+import { ProductList } from "@/components/app/product-list";
 
 function StatChip({
   label,
@@ -38,66 +22,19 @@ function StatChip({
   );
 }
 
-function ProductRow({ product }: { product: ProductRowView }) {
-  const badge = STATUS_BADGE[product.status];
-  return (
-    <div className="flex gap-3 rounded-2xl border border-slate-200 p-3 dark:border-slate-800">
-      {product.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="size-14 shrink-0 rounded-xl border border-slate-200 object-cover dark:border-slate-700"
-        />
-      ) : (
-        <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
-          <Package className="size-6" />
-        </span>
-      )}
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-            {product.name}
-          </p>
-          <p className="shrink-0 text-sm font-bold tabular-nums text-slate-900 dark:text-white">
-            {product.totalLabel}
-          </p>
-        </div>
-        <div className="mt-0.5 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-            {product.quantity} × {product.unitLabel} · {product.dateLabel}
-          </p>
-          <span
-            className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-              badge.className,
-            )}
-          >
-            {badge.label}
-          </span>
-        </div>
-        {product.adminNote ? (
-          <p className="mt-1 truncate text-xs text-slate-400 italic dark:text-slate-500">
-            {product.adminNote}
-          </p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-// The Products hub content: header + a "New submission" button, the count-by-status chips,
-// and the paginated submissions list. Pure server component — rendered by both the mobile
-// (light) and desktop (dark-scoped) wrappers on the page.
+// The Products hub content: header + a "New submission" button, the count-by-status chips, and
+// the paginated submissions list (rows open a detail drawer/dialog). Rendered by both the
+// mobile (light) and desktop (dark-scoped) wrappers; `variant` picks the detail surface.
 export function ProductsContent({
   stats,
   page,
   canSubmit,
+  variant,
 }: {
   stats: ProductStats;
   page: UserProductsPage;
   canSubmit: boolean;
+  variant: "mobile" | "desktop";
 }) {
   return (
     <div>
@@ -142,11 +79,7 @@ export function ProductsContent({
 
       <div className="mt-4">
         {page.items.length > 0 ? (
-          <div className="flex flex-col gap-2.5">
-            {page.items.map((product) => (
-              <ProductRow key={product.id} product={product} />
-            ))}
-          </div>
+          <ProductList items={page.items} variant={variant} />
         ) : (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-slate-200 py-14 text-center dark:border-slate-800">
             <span className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">

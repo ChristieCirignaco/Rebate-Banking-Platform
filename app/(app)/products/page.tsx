@@ -31,13 +31,13 @@ export default async function ProductsPage({
     <>
       {/* Mobile */}
       <div className="mx-auto max-w-2xl px-5 pb-24 lg:hidden">
-        <ProductsContent stats={stats} page={products} canSubmit={canSubmit} />
+        <ProductsContent stats={stats} page={products} canSubmit={canSubmit} variant="mobile" />
       </div>
 
       {/* Desktop */}
       <div className="dark hidden lg:block">
         <div className="mx-auto max-w-4xl">
-          <ProductsContent stats={stats} page={products} canSubmit={canSubmit} />
+          <ProductsContent stats={stats} page={products} canSubmit={canSubmit} variant="desktop" />
         </div>
       </div>
     </>

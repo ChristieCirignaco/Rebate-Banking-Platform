@@ -3,39 +3,19 @@ import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
+import {
+  USER_PRODUCTS_PAGE_SIZE,
+  type ProductRowView,
+  type ProductStats,
+  type ProductStatus,
+  type UserProductsPage,
+} from "@/lib/products-view";
 
-// User-facing product (rebate claim) reads. Ownership-scoped: every query is keyed by the
-// caller's userId, never a client-supplied one.
-
-export const USER_PRODUCTS_PAGE_SIZE = 10;
-
-export type ProductStatus = "pending" | "approved" | "rejected";
-
-export type ProductStats = {
-  total: number;
-  pending: number;
-  approved: number;
-  rejected: number;
-};
-
-export type ProductRowView = {
-  id: string;
-  name: string;
-  quantity: number;
-  unitLabel: string; // formatted unit price
-  totalLabel: string; // unit price × quantity
-  status: ProductStatus;
-  imageUrl: string | null;
-  adminNote: string | null;
-  dateLabel: string; // submitted date, "Nov 4, 2026"
-};
-
-export type UserProductsPage = {
-  items: ProductRowView[];
-  total: number;
-  page: number;
-  pageCount: number;
-};
+// Server-only product (rebate claim) reads. Ownership-scoped: every query is keyed by the
+// caller's userId, never a client-supplied one. The client-safe view types + constants live in
+// lib/products-view (imported by client components); re-exported here so server callers get
+// both from one place.
+export * from "@/lib/products-view";
 
 function toStatus(value: string): ProductStatus {
   return value === "approved" || value === "rejected" ? value : "pending";
@@ -51,8 +31,11 @@ function present(row: {
   status: string;
   adminNote: string | null;
   createdAt: Date;
+  reviewedAt: Date | null;
 }): ProductRowView {
   const lineTotalMinor = row.priceMinor * BigInt(row.quantity);
+  const dateFmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
   return {
     id: row.id,
     name: row.name,
@@ -62,12 +45,8 @@ function present(row: {
     status: toStatus(row.status),
     imageUrl: row.imageUrl,
     adminNote: row.adminNote,
-    dateLabel: row.createdAt.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    }),
+    dateLabel: dateFmt(row.createdAt),
+    reviewedLabel: row.reviewedAt ? dateFmt(row.reviewedAt) : null,
   };
 }
 
