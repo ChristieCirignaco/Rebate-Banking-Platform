@@ -42,15 +42,17 @@ const CASHOUT_OFFSET = ["md:mr-auto", "md:mx-auto", "md:ml-auto"];
 export default async function Home() {
   // Real Trump/markets/investing headlines, merged from several feeds and cached 5 min.
   // Falls back to the static cards if every source is unreachable.
-  const news = await getLatestNews(6);
+  const news = await getLatestNews(3);
   const updates: NewsItem[] = news.length
     ? news
     : BLOG.map((b) => ({
+        id: "",
         title: b.title,
         excerpt: b.excerpt,
         category: b.category,
         url: "",
         source: "TRB Payout System",
+        image: "",
         publishedAt: 0,
         publishedLabel: "",
       }));
@@ -360,17 +362,24 @@ export default async function Home() {
             <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Trump, Investments &amp; Market News</h2>
           </Reveal>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {updates.map((item, i) => (
-              <Reveal key={`${item.title}-${i}`} delay={i * 100} className="h-full">
-                <a
-                  href={item.url || undefined}
-                  target={item.url ? "_blank" : undefined}
-                  rel={item.url ? "noopener noreferrer" : undefined}
-                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-transform duration-300 hover:-translate-y-1"
-                >
-                  <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[var(--trb-blue)] to-[var(--trb-blue-2)] px-4">
-                    <span className="text-center text-lg font-bold text-white/80">{item.source}</span>
-                  </div>
+            {updates.map((item, i) => {
+              const cardClass =
+                "group flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-transform duration-300 hover:-translate-y-1";
+              const inner = (
+                <>
+                  {item.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image}
+                      alt=""
+                      loading="lazy"
+                      className="aspect-[16/10] w-full bg-slate-100 object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[var(--trb-blue)] to-[var(--trb-blue-2)] px-4">
+                      <span className="text-center text-lg font-bold text-white/80">{item.source || "TRB"}</span>
+                    </div>
+                  )}
                   <div className="flex flex-1 flex-col p-6">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--trb-blue)]">
                       <span>{item.category}</span>
@@ -384,10 +393,24 @@ export default async function Home() {
                     {item.excerpt && (
                       <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{item.excerpt}</p>
                     )}
+                    {item.source && (
+                      <span className="mt-4 text-xs font-medium text-slate-400">{item.source}</span>
+                    )}
                   </div>
-                </a>
-              </Reveal>
-            ))}
+                </>
+              );
+              return (
+                <Reveal key={item.id || item.title} delay={i * 100} className="h-full">
+                  {item.id ? (
+                    <Link href={`/news/${item.id}`} className={cardClass}>
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div className={cardClass}>{inner}</div>
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>
