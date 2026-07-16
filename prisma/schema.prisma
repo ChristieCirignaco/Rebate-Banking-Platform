@@ -74,6 +74,7 @@ model User {
   sentTransfers     Transfer[] @relation("SentTransfers")
   receivedTransfers Transfer[] @relation("ReceivedTransfers")
   moneyRequests     MoneyRequest[]
+  exchanges         Exchange[]
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
@@ -553,6 +554,31 @@ model MoneyRequest {
   @@index([userId])
   @@index([createdAt])
   @@map("money_requests")
+}
+
+// An instant currency conversion between two of a user's own wallets (Exchange Money). Settled
+// immediately at the admin-configured Currency.rate cross-rate: one atomic transaction debits the
+// `from` wallet and credits the `to` wallet (two "exchange" ledger legs, linked here). `rate` is
+// the applied cross-rate snapshot (toCurrency units per 1 fromCurrency). Always "completed" on
+// success — there is no pending state.
+model Exchange {
+  id                  String   @id @default(uuid())
+  txnId               String   @unique @map("txn_id") // human reference, e.g. EXC-XXXXXX
+  userId              String   @map("user_id")
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromCurrency        String   @map("from_currency")
+  toCurrency          String   @map("to_currency")
+  fromAmountMinor     BigInt   @map("from_amount_minor")
+  toAmountMinor       BigInt   @map("to_amount_minor")
+  rate                Decimal  @db.Decimal(38, 18) // applied cross-rate: toCurrency per 1 fromCurrency
+  status              String   @default("completed")
+  debitTransactionId  String?  @map("debit_transaction_id") // ledger leg on the from-wallet
+  creditTransactionId String?  @map("credit_transaction_id") // ledger leg on the to-wallet
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("exchanges")
 }
 
 // ---------------------------------------------------------------------------
