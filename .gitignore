@@ -30,8 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — real values never get committed. The .example is the TEMPLATE and must be,
+# otherwise a deploy has no record of which vars to set; it holds placeholders only.
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -42,6 +44,8 @@ next-env.d.ts
 
 # claude code local runtime
 .claude/
+# throwaway merge/build test worktrees
+/.mergetest*
 
 # local object storage (uploaded files; served via access-controlled route)
 /storage
