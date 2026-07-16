@@ -7,6 +7,8 @@ import { getAdminSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { hashPassword } from "@/lib/password";
+import { isValidPin } from "@/lib/transaction-pin";
 import { toMajor } from "@/lib/money/money";
 import { deliverEmailNotices, notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
 import { addWalletFor, removeWalletFor } from "@/lib/wallets";
@@ -280,4 +282,144 @@ export async function removeUserWallet(userId: string, walletId: string): Promis
   const result = await removeWalletFor(userId, walletId);
   if (result.ok) revalidate(userId);
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Security (admin-managed)
+// ---------------------------------------------------------------------------
+// These bypass the proofs the user themself must provide — an admin sets a password without the
+// old one and a PIN without the current one. That's the point (support resets), but it also means
+// each of these is an account-takeover primitive, so they share three mitigations:
+//
+//   1. assertRegularUserTarget — an admin can never aim these at another admin-tier account.
+//   2. Every session is revoked, so the change can't be made quietly around a live attacker (and
+//      the real user is forced to re-authenticate with the new credential).
+//   3. The user is EMAILED. A silent credential change on a banking account is the thing you
+//      never want; if it wasn't them, the mail is how they find out.
+
+export async function adminSetUserPassword(
+  userId: string,
+  newPassword: string,
+): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  if (typeof newPassword !== "string" || newPassword.length < 8) {
+    return { ok: false, error: "Password must be at least 8 characters." };
+  }
+  if (newPassword.length > 200) return { ok: false, error: "Password is too long." };
+
+  // Better Auth keeps the password on the credential Account row, not on User. A user who only
+  // ever signed in with a social provider has no such row to update.
+  const credential = await prisma.account.findFirst({
+    where: { userId, providerId: "credential" },
+    select: { id: true },
+  });
+  if (!credential) {
+    return { ok: false, error: "This account has no password sign-in to reset." };
+  }
+
+  const hashed = await hashPassword(newPassword);
+  await prisma.$transaction(async (tx) => {
+    await tx.account.update({ where: { id: credential.id }, data: { password: hashed } });
+    // Revoke every session: a password reset must not leave an existing login alive.
+    await tx.session.deleteMany({ where: { userId } });
+  });
+
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Your password was changed",
+    message:
+      "An administrator set a new password on your account and signed you out everywhere. If you didn't request this, contact support immediately.",
+  });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Set or replace the transaction PIN without knowing the current one (the user's own
+// setTransactionPin requires it). Works whether or not they already have one.
+export async function adminSetUserPin(userId: string, newPin: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  if (!isValidPin(newPin)) return { ok: false, error: "PIN must be 4–6 digits." };
+
+  // Same hash as the user's own path (lib/transaction-pin verifies against it), so a PIN set
+  // here behaves identically to one the user chose.
+  const hashed = await hashPassword(newPin);
+  await prisma.user.update({ where: { id: userId }, data: { transactionPin: hashed } });
+
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Your transaction PIN was changed",
+    message:
+      "An administrator set a new transaction PIN on your account. If you didn't request this, contact support immediately.",
+  });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Remove the PIN entirely. The user is then prompted to create one at their next money action
+// (every action returns needPin when transactionPin is null), so this is the "they forgot it"
+// escape hatch rather than a way to disable the gate.
+export async function adminClearUserPin(userId: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { transactionPin: true } });
+  if (!user?.transactionPin) return { ok: false, error: "This user has no PIN set." };
+
+  await prisma.user.update({ where: { id: userId }, data: { transactionPin: null } });
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Your transaction PIN was removed",
+    message:
+      "An administrator removed the transaction PIN on your account. You'll be asked to create a new one the next time you move money.",
+  });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Turn two-factor OFF. There is deliberately no "enable" counterpart: TOTP requires the secret to
+// be enrolled on the user's own authenticator app, which an admin cannot do for them. This is the
+// lockout escape hatch — the user re-enrols from Security.
+export async function adminDisableTwoFactor(userId: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { twoFactorEnabled: true },
+  });
+  if (!user?.twoFactorEnabled) return { ok: false, error: "Two-factor is not enabled." };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.twoFactor.deleteMany({ where: { userId } });
+    await tx.user.update({ where: { id: userId }, data: { twoFactorEnabled: false } });
+  });
+
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Two-factor authentication disabled",
+    message:
+      "An administrator disabled two-factor authentication on your account. You can set it up again from Settings → Security. If you didn't request this, contact support immediately.",
+  });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Sign the user out everywhere without changing a credential.
+export async function adminRevokeSessions(userId: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const { count } = await prisma.session.deleteMany({ where: { userId } });
+  if (count === 0) return { ok: false, error: "This user has no active sessions." };
+  revalidate(userId);
+  return { ok: true };
 }

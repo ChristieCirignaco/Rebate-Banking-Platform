@@ -7,7 +7,6 @@ import {
   Banknote,
   CheckCircle2,
   Clock,
-  CreditCard,
   Gift,
   HandCoins,
   Package,
@@ -36,10 +35,10 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { DateRangeSelect, StatTile } from "../shared";
-import type { TxnSummaryPoint, UserStat } from "../types";
+import type { TxnSummaryPoint, UserStat, StatLabel } from "../types";
 
 // Static stat definitions (icons + labels stay client-side; values arrive as data).
-const STAT_DEFS: { label: string; icon: UserStat["icon"]; isCurrency?: boolean }[] = [
+const STAT_DEFS: { label: StatLabel; icon: UserStat["icon"]; isCurrency?: boolean }[] = [
   { label: "Total Trx", icon: ArrowLeftRight },
   { label: "Completed Trx", icon: CheckCircle2 },
   { label: "Pending Trx", icon: Clock },
@@ -48,7 +47,6 @@ const STAT_DEFS: { label: string; icon: UserStat["icon"]; isCurrency?: boolean }
   { label: "Send Money", icon: Send, isCurrency: true },
   { label: "Request Money", icon: HandCoins, isCurrency: true },
   { label: "Exchange Money", icon: ArrowLeftRight, isCurrency: true },
-  { label: "Payment", icon: CreditCard, isCurrency: true },
   { label: "Withdraw", icon: Banknote, isCurrency: true },
   { label: "Voucher", icon: Ticket, isCurrency: true },
   { label: "Reward", icon: Gift, isCurrency: true },

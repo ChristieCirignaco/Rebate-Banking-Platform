@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Activity, BarChart3, ListOrdered, Share2, User } from "lucide-react";
+import { Activity, BarChart3, ListOrdered, Share2, ShieldCheck, User } from "lucide-react";
 
 import {
   manageFunds,
@@ -21,6 +21,7 @@ import { WalletList } from "./wallet-list";
 import { UserActivityTab } from "./tabs/user-activity-tab";
 import { UserInfoTab } from "./tabs/user-info-tab";
 import { UserReferralsTab } from "./tabs/user-referrals-tab";
+import { UserSecurityTab } from "./tabs/user-security-tab";
 import { UserStatsTab } from "./tabs/user-stats-tab";
 import { UserTransactionsTab } from "./tabs/user-transactions-tab";
 import type {
@@ -142,6 +143,10 @@ export function UserDetailView({
               <Activity className="size-4" />
               <span className="hidden sm:inline">Activity Log</span>
             </TabsTrigger>
+            <TabsTrigger value="security">
+              <ShieldCheck className="size-4" />
+              <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="statistics">
@@ -165,6 +170,9 @@ export function UserDetailView({
           </TabsContent>
           <TabsContent value="activity">
             <UserActivityTab activity={activity} />
+          </TabsContent>
+          <TabsContent value="security">
+            <UserSecurityTab user={user} />
           </TabsContent>
         </Tabs>
       </div>

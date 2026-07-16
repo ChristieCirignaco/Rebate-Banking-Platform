@@ -27,6 +27,12 @@ export interface UserDetail {
   lastLogin?: string; // ISO
   browser: string; // e.g. "Chrome on macOS"
   withdrawalStatus: WithdrawalStatus;
+  // Security state (admin-managed from the Security tab). Never the secrets themselves — only
+  // whether each is set, so the UI can offer the right action.
+  hasPassword: boolean;
+  hasPin: boolean;
+  twoFactorEnabled: boolean;
+  activeSessions: number;
   withdrawalMessage: string; // message shown to the user when withdrawals are restricted
 }
 
@@ -63,6 +69,34 @@ export interface UserControl {
   kind: ControlKind;
   enabled: boolean;
 }
+
+// The stat tiles, in render order. This list is the CONTRACT between the computation
+// (lib/admin/user-detail) and the grid: statValues is keyed by it, so a metric with no
+// computation is a compile error rather than a silent 0.00 — which is how nine of these
+// shipped reading zero.
+export const STAT_LABELS = [
+  "Total Trx",
+  "Completed Trx",
+  "Pending Trx",
+  "Failed Trx",
+  "Deposit",
+  "Send Money",
+  "Request Money",
+  "Exchange Money",
+  "Withdraw",
+  "Voucher",
+  "Reward",
+  "Total Wallets",
+  "Total Balance",
+  "Total Products",
+  "Pending Products",
+  "Approved Products",
+  "Rejected Products",
+  "Support Tickets",
+  "Referrals Made",
+] as const;
+
+export type StatLabel = (typeof STAT_LABELS)[number];
 
 export interface UserStat {
   label: string;

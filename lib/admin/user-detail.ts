@@ -4,6 +4,7 @@ import { controlDefault, type ControlKind } from "@/lib/controls";
 import { lookupIps } from "@/lib/ipinfo";
 import { toMajor } from "@/lib/money/money";
 import { MAX_WALLETS, MIN_WALLETS } from "@/lib/wallets";
+import { getUserProductStats } from "@/lib/admin/products";
 import type {
   ActivityEntry,
   ControlKey,
@@ -13,6 +14,7 @@ import type {
   ReferralUser,
   TransferCodes,
   TxnSummaryPoint,
+  StatLabel,
   UserControl,
   UserDetail,
 } from "@/components/admin/users/detail/types";
@@ -91,7 +93,7 @@ export type UserDetailData = {
   activity: ActivityEntry[];
   controls: UserControl[];
   transferCodes: TransferCodes;
-  statValues: Record<string, number>;
+  statValues: Record<StatLabel, number>;
   statCurrency: string;
   txnSummary: TxnSummaryPoint[];
 };
@@ -101,6 +103,8 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     where: { id },
     include: {
       wallets: { orderBy: [{ isDefault: "desc" }, { currency: "asc" }] },
+      // providerId "credential" is Better Auth's password row; a social-only account has none.
+      accounts: { select: { providerId: true } },
       transactions: { orderBy: { createdAt: "desc" }, take: 100 },
       referrals: { select: { id: true, name: true, email: true, image: true, createdAt: true } },
       sessions: { orderBy: { createdAt: "desc" }, take: 25 },
@@ -133,6 +137,10 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     browser: latestSession ? Object.values(parseUserAgent(latestSession.userAgent)).join(" on ") : "Unknown",
     withdrawalStatus: (dbUser.withdrawalStatus as UserDetail["withdrawalStatus"]) ?? "allowed",
     withdrawalMessage: dbUser.withdrawalMessage ?? "",
+    hasPassword: dbUser.accounts.some((account) => account.providerId === "credential"),
+    hasPin: Boolean(dbUser.transactionPin),
+    twoFactorEnabled: dbUser.twoFactorEnabled ?? false,
+    activeSessions: dbUser.sessions.length,
   };
 
   // Which wallets carry ledger history — one grouped count rather than a query per wallet.
@@ -242,7 +250,8 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
   since.setUTCHours(0, 0, 0, 0);
   since.setUTCDate(since.getUTCDate() - 29);
 
-  const [statusGroups, sourceGroups, recentTxns] = await Promise.all([
+  const [statusGroups, sourceGroups, recentTxns, productStats, ticketCount, pendingRows, failedRows] =
+    await Promise.all([
     prisma.walletTransaction.groupBy({
       by: ["status"],
       where: { userId: id },
@@ -257,6 +266,22 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
       where: { userId: id, createdAt: { gte: since } },
       select: { createdAt: true, status: true },
     }),
+    getUserProductStats(id),
+    prisma.ticket.count({ where: { userId: id } }),
+    // "Pending"/"Failed" mean nothing on the ledger — postLedgerEntry only ever writes
+    // `completed`, so counting WalletTransaction.status left both tiles permanently at 0. The
+    // states an admin actually means live on the domain rows, so count those instead.
+    Promise.all([
+      prisma.deposit.count({ where: { userId: id, status: "pending" } }),
+      prisma.withdraw.count({ where: { userId: id, status: "pending" } }),
+      prisma.transfer.count({ where: { userId: id, status: "pending" } }),
+      prisma.moneyRequest.count({ where: { userId: id, status: "pending" } }),
+    ]),
+    Promise.all([
+      prisma.deposit.count({ where: { userId: id, status: "failed" } }),
+      prisma.withdraw.count({ where: { userId: id, status: "failed" } }),
+      prisma.transfer.count({ where: { userId: id, status: "failed" } }),
+    ]),
   ]);
 
   const statusCount = (status: string) =>
@@ -268,14 +293,25 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
         .reduce((total, group) => total + (group._sum.amountMinor ?? 0n), 0n),
     );
 
-  const statValues: Record<string, number> = {
+  const sum = (values: number[]) => values.reduce((total, n) => total + n, 0);
+
+  const statValues: Record<StatLabel, number> = {
     "Total Trx": statusGroups.reduce((total, group) => total + group._count._all, 0),
     "Completed Trx": statusCount("completed"),
-    "Pending Trx": statusCount("pending"),
-    "Failed Trx": statusCount("failed"),
+    "Pending Trx": sum(pendingRows),
+    "Failed Trx": sum(failedRows),
     Deposit: sourceSum("deposit", "credit"),
-    Withdraw: sourceSum("withdrawal"),
-    "Exchange Money": sourceSum("exchange"),
+    // The user's own outgoing transfers. Both legs of an internal transfer carry source
+    // "transfer", so without the direction this would also count money they RECEIVED.
+    "Send Money": sourceSum("transfer", "debit"),
+    "Request Money": sourceSum("money_request", "credit"),
+    // Debit leg only: an exchange writes both legs as `exchange`, and _sum is unsigned, so
+    // summing both added the money leaving to the money arriving and reported ~2x the volume.
+    "Exchange Money": sourceSum("exchange", "debit"),
+    // Withdrawals net of refunds: a rejected withdrawal posts a `withdrawal_reversal` credit,
+    // and ignoring it overstated the total by every refunded attempt.
+    Withdraw: Math.max(0, sourceSum("withdrawal", "debit") - sourceSum("withdrawal_reversal", "credit")),
+    Voucher: sourceSum("voucher", "debit"),
     Reward: sourceSum("reward"),
     "Total Wallets": dbUser.wallets.length,
     "Total Balance": toMajor(
@@ -283,6 +319,11 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
         .filter((w) => w.currency === primaryCurrency)
         .reduce((total, w) => total + w.balanceMinor, 0n),
     ),
+    "Total Products": productStats.total,
+    "Pending Products": productStats.pending,
+    "Approved Products": productStats.approved,
+    "Rejected Products": productStats.rejected,
+    "Support Tickets": ticketCount,
     "Referrals Made": dbUser.referrals.length,
   };
 
