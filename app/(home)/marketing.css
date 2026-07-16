@@ -1,0 +1,116 @@
+/* Marketing-only styles. Imported ONLY by app/(home)/layout.tsx — never touches
+   app/globals.css, so it can't conflict with the app/admin surfaces or other agents. */
+
+:root {
+  --trb-blue: #1e3a8a;
+  --trb-blue-2: #1e40af;
+  --trb-gold: #facc15;
+  --trb-gold-2: #d4af37;
+  --trb-red: #ef4444;
+  --trb-dark: #050810;
+}
+
+/* ---- scroll-reveal (driven by <Reveal> + IntersectionObserver) ---- */
+.reveal { will-change: opacity, transform; }
+.fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.fade-left { opacity: 0; transform: translateX(-60px); transition: opacity 0.8s ease, transform 0.8s ease; }
+.fade-right { opacity: 0; transform: translateX(60px); transition: opacity 0.8s ease, transform 0.8s ease; }
+.fade-up.visible,
+.fade-left.visible,
+.fade-right.visible { opacity: 1; transform: none; }
+
+/* ---- hero sparkles ---- */
+.sparkle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+  animation: floatSparkle 4s infinite alternate ease-in-out;
+  opacity: 0;
+  pointer-events: none;
+}
+.sparkle.s1 { top: 20%; left: 10%; animation-delay: 0s; }
+.sparkle.s2 { top: 60%; left: 80%; animation-delay: 1s; }
+.sparkle.s3 { top: 80%; left: 30%; animation-delay: 2s; }
+.sparkle.s4 { top: 15%; left: 60%; animation-delay: 3s; }
+.sparkle.s5 { top: 50%; left: 50%; animation-delay: 1.5s; }
+@keyframes floatSparkle {
+  0% { transform: translateY(0) scale(0.8); opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { transform: translateY(-30px) scale(1.2); opacity: 0.5; }
+}
+
+/* ---- hero headline glow (matches reference text-shadow) ---- */
+.hero-headline { text-shadow: 0 0 24px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0, 0, 0, 0.4); }
+
+/* ---- reusable glow utilities ---- */
+.glow-blue { box-shadow: 0 0 30px rgba(30, 58, 138, 0.35); }
+.glow-gold { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+
+/* ---- Cash-Out Process: snaking blue line connecting the staggered cards ---- */
+.process-list { position: relative; }
+.process-card { position: relative; z-index: 2; }
+.process-card.step-1,
+.process-card.step-3 { align-self: flex-start; }
+.process-card.step-2 { align-self: flex-end; }
+
+/* the hooking line segment from each card down to the next */
+.process-card.step-1::after,
+.process-card.step-2::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(17.6% + 30px);
+  height: calc(100% + 60px);
+  border-top: 2px solid var(--trb-blue);
+  border-bottom: 2px solid var(--trb-blue);
+  z-index: -1;
+}
+.process-card.step-1::after {
+  left: 100%;
+  border-right: 2px solid var(--trb-blue);
+  border-radius: 0 12px 12px 0;
+}
+.process-card.step-2::after {
+  right: 100%;
+  border-left: 2px solid var(--trb-blue);
+  border-radius: 12px 0 0 12px;
+}
+/* arrowhead pointing into the next card */
+.process-card.step-1::before,
+.process-card.step-2::before {
+  content: "";
+  position: absolute;
+  top: calc(150% + 60px - 6px);
+  width: 12px;
+  height: 12px;
+  z-index: 0;
+}
+.process-card.step-1::before {
+  left: calc(100% + 17.6% - 2px);
+  border-top: 2px solid var(--trb-blue);
+  border-left: 2px solid var(--trb-blue);
+  transform: rotate(-45deg);
+}
+.process-card.step-2::before {
+  right: calc(100% + 17.6% - 2px);
+  border-top: 2px solid var(--trb-blue);
+  border-right: 2px solid var(--trb-blue);
+  transform: rotate(45deg);
+}
+@media (max-width: 640px) {
+  .process-card.step-1::after,
+  .process-card.step-2::after {
+    width: calc(17.6% + 15px);
+    height: calc(100% + 40px);
+  }
+  .process-card.step-1::before,
+  .process-card.step-2::before { top: calc(150% + 40px - 6px); }
+}
+
+/* ---- respect reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .fade-left, .fade-right { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .sparkle { animation: none; opacity: 0.4; }
+}

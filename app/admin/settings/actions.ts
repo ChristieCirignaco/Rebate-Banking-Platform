@@ -159,6 +159,8 @@ export async function updateLegalSettings(
     payload.socialLinkedin,
     payload.socialYoutube,
     payload.socialTiktok,
+    payload.socialWhatsapp,
+    payload.socialTelegram,
   ];
   if (urls.some((url) => !isStorableUrl(url))) {
     return { ok: false, error: "Links must start with http:// or https://." };

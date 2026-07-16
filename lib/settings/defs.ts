@@ -92,6 +92,8 @@ export interface LegalSettings {
   socialLinkedin: string;
   socialYoutube: string;
   socialTiktok: string;
+  socialWhatsapp: string;
+  socialTelegram: string;
 }
 
 export type ReferralTrigger = "signup" | "first_deposit";
@@ -178,6 +180,8 @@ export const SETTINGS_DEFAULTS: SettingsGroups = {
     socialLinkedin: "",
     socialYoutube: "",
     socialTiktok: "",
+    socialWhatsapp: "",
+    socialTelegram: "",
   },
   referrals: {
     trigger: "first_deposit",
