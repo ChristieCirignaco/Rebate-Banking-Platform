@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { getSettings } from "@/lib/settings/store";
 import type { SocialKey } from "@/components/marketing/social-icons";
 
@@ -49,7 +51,8 @@ export type MarketingConfig = {
 const pick = (value: string | null | undefined, fallback: string) =>
   value && value.trim() ? value.trim() : fallback;
 
-export async function getMarketingConfig(): Promise<MarketingConfig> {
+// Memoized per request so generateMetadata and the layout share one read + merge.
+export const getMarketingConfig = cache(async (): Promise<MarketingConfig> => {
   const [general, branding, legal] = await Promise.all([
     getSettings("general"),
     getSettings("branding"),
@@ -70,7 +73,7 @@ export async function getMarketingConfig(): Promise<MarketingConfig> {
   ];
   const socials = socialDefs.filter((s) => s.href && s.href.trim());
 
-  const logo = pick(branding.logoDark ?? branding.logoLight, FALLBACK.logo);
+  const logo = pick(branding.logoDark || branding.logoLight, FALLBACK.logo);
 
   return {
     brandName: pick(general.brandName, FALLBACK.brandName),
@@ -88,4 +91,4 @@ export async function getMarketingConfig(): Promise<MarketingConfig> {
     favicon: pick(branding.favicon, FALLBACK.favicon),
     socials,
   };
-}
+});

@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { sendEmail } from "@/lib/email";
+import { getSettings } from "@/lib/settings/store";
 
 export type ContactInput = {
   fullName: string;
@@ -42,9 +43,16 @@ export async function submitContactMessage(
 
   const { fullName, email, subject, message } = parsed.data;
 
+  // Route to the admin-configured support inbox (falls back to From email, then a default).
+  const general = await getSettings("general");
+  const to =
+    general.supportEmail?.trim() ||
+    general.fromEmail?.trim() ||
+    "info@trbpayoutsystem.us";
+
   try {
     await sendEmail({
-      to: "info@trbpayoutsystem.us",
+      to,
       subject: `[Contact] ${subject}`,
       text: `From: ${fullName} <${email}>\n\n${message}`,
     });

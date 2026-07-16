@@ -24,6 +24,7 @@ export function CountUp({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let raf = 0;
     const obs = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -35,15 +36,18 @@ export function CountUp({
             // easeOutCubic
             const eased = 1 - Math.pow(1 - p, 3);
             setN(Math.round(eased * target));
-            if (p < 1) requestAnimationFrame(tick);
+            if (p < 1) raf = requestAnimationFrame(tick);
           };
-          requestAnimationFrame(tick);
+          raf = requestAnimationFrame(tick);
         }
       },
       { threshold: 0.5 },
     );
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => {
+      obs.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [target, durationMs]);
 
   return (
