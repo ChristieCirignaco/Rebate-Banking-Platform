@@ -91,7 +91,7 @@ export async function broadcastNotification(
 
   // Nothing admin-facing needs revalidation: broadcast rows are user-owned email/push
   // notices, which the admin alert feed never shows, and the composer's audience count
-  // is unchanged by a send. The rows surface on the (future) user-facing notification UI.
+  // is unchanged by a send. The rows surface on the user-facing notification UI (app/(app)/notifications).
   return { ok: true, recipients: users.length, scheduled: scheduledAt !== null };
 }
 
@@ -156,7 +156,10 @@ export async function getAdminRecentAlertsAction(): Promise<AdminNotificationIte
   try {
     const rows = await prisma.notification.findMany({
       where: { userId: session.user.id, type: { in: ALERT_TYPES } },
-      orderBy: { createdAt: "desc" },
+      select: { id: true, type: true, title: true, message: true, createdAt: true, readAt: true },
+      // Same tiebreaker as getAdminNotifications, so the panel and the full feed can't disagree
+      // on the order of rows written in the same tick.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 50,
     });
     return rows.map((row) => ({

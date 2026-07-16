@@ -13,8 +13,10 @@ export async function notifyAdmins(args: {
   title: string;
   message: string;
 }): Promise<number> {
+  // Active admins only — a deactivated account would otherwise keep accruing alerts nobody
+  // will ever read.
   const admins = await prisma.user.findMany({
-    where: { role: { in: [...ADMIN_ROLES] } },
+    where: { role: { in: [...ADMIN_ROLES] }, status: "active" },
     select: { id: true },
   });
   if (admins.length === 0) return 0;

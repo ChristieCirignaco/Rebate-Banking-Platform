@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor } from "@/lib/money/money";
-import { notifyUserOf } from "@/lib/notifications";
+import { notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
 import { addWalletFor, removeWalletFor } from "@/lib/wallets";
 import type {
   ControlKey,
@@ -178,19 +178,31 @@ export async function updateWithdrawalControl(
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
   const targetError = await assertRegularUserTarget(userId);
   if (targetError) return targetError;
+
+  // Read the current values first: re-saving the dialog unchanged is a non-event, and the user
+  // shouldn't get a fresh bell notice for it.
+  const before = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { withdrawalStatus: true, withdrawalMessage: true },
+  });
+  const userMessage = input.userMessage?.trim() || null;
+  const changed =
+    before?.withdrawalStatus !== input.status || (before?.withdrawalMessage ?? null) !== userMessage;
+
   await prisma.user.update({
     where: { id: userId },
-    data: { withdrawalStatus: input.status, withdrawalMessage: input.userMessage ?? null },
+    data: { withdrawalStatus: input.status, withdrawalMessage: userMessage },
   });
 
   // Best-effort notice, post-commit. `userMessage` is already an admin-authored message TO
   // this user — persisting it to User.withdrawalMessage never actually delivered it, so send
   // it verbatim when there is one and fall back to stating the new status when there isn't.
-  const userMessage = input.userMessage?.trim();
-  await notifyUserOf(userId, {
-    title: "Withdrawal status updated",
-    message: userMessage || `Your withdrawal status is now "${input.status}".`,
-  });
+  if (changed) {
+    await notifyUserOf(userId, {
+      title: "Withdrawal status updated",
+      message: userMessage || `Your withdrawal status is now "${input.status}".`,
+    });
+  }
   revalidate(userId);
   return { ok: true };
 }
@@ -202,13 +214,33 @@ export async function notifyUser(userId: string, input: NotifyPayload): Promise<
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
   const targetError = await assertRegularUserTarget(userId);
   if (targetError) return targetError;
+
+  // Validate the same things broadcastNotification does. NotifyPayload's type is compile-time
+  // only, and a Server Action's payload is caller-controlled at runtime: without this check an
+  // alert type could be written onto a USER's row, which is the one way to violate the invariant
+  // the whole audience split rests on (user reads filter to email|push, the admin feed filters to
+  // its own userId — such a row would be visible to nobody).
+  if (!USER_NOTICE_TYPES.includes(input.type)) {
+    return { ok: false, error: "Invalid notification type." };
+  }
+  if (!input.message?.trim()) return { ok: false, error: "Message is required." };
+
+  let scheduledAt: Date | null = null;
+  if (input.scheduleAt) {
+    const when = new Date(input.scheduleAt);
+    // An unparsed date would reach Prisma as Invalid Date and throw — the dialog call site
+    // doesn't try/catch, so that would surface as a crash rather than a message.
+    if (Number.isNaN(when.getTime())) return { ok: false, error: "Invalid schedule time." };
+    scheduledAt = when;
+  }
+
   await prisma.notification.create({
     data: {
       userId,
       type: input.type,
       title: input.title ?? null,
       message: input.message,
-      scheduledAt: input.scheduleAt ? new Date(input.scheduleAt) : null,
+      scheduledAt,
     },
   });
   revalidate(userId);
