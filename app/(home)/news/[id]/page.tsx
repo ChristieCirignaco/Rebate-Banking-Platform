@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
 
 import { decodeNewsId, fetchArticleMeta } from "@/lib/home/news";
 
@@ -37,32 +35,26 @@ export default async function NewsArticlePage({ params }: Params) {
   const meta = await fetchArticleMeta(url);
   if (!meta || !meta.title) notFound();
 
-  const host = new URL(url).hostname.replace(/^www\./, "");
-  const source = meta.siteName || host;
+  const source = meta.siteName || new URL(url).hostname.replace(/^www\./, "");
   const dateLabel = longDate(meta.publishedAt);
 
   return (
     <main>
-      {/* ===== hero ===== */}
+      {/* ===== title ===== */}
       <section className="bg-[var(--trb-dark)]">
         <div className="mx-auto max-w-3xl px-6 pt-36 pb-12 sm:px-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-white/60 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" /> Latest Updates
-          </Link>
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--trb-gold)]">
-            <span>{source}</span>
-            {dateLabel && <span className="text-white/50">· {dateLabel}</span>}
-          </div>
-          <h1 className="hero-headline mt-4 text-3xl font-extrabold leading-tight text-white sm:text-4xl">
+          {dateLabel && (
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--trb-gold)]">
+              {dateLabel}
+            </p>
+          )}
+          <h1 className="hero-headline mt-3 text-3xl font-extrabold leading-tight text-white sm:text-4xl">
             {meta.title}
           </h1>
         </div>
       </section>
 
-      {/* ===== preview ===== */}
+      {/* ===== image + summary ===== */}
       <section className="bg-white text-[var(--trb-dark)]">
         <div className="mx-auto max-w-3xl px-6 py-12 sm:px-8">
           {meta.image && (
@@ -78,29 +70,19 @@ export default async function NewsArticlePage({ params }: Params) {
             <p className="mt-8 text-lg leading-relaxed text-slate-700">{meta.description}</p>
           )}
 
-          <div className="mt-10 rounded-2xl border border-black/5 bg-slate-50 p-6 sm:p-8">
-            <p className="text-sm leading-relaxed text-slate-600">
-              This is a preview of a story published by <span className="font-semibold">{source}</span>.
-              Read the full article at the source.
-            </p>
+          {/* Required attribution: the headline, image, and summary are the publisher's
+              copyrighted content, so we credit and link back to the original source. */}
+          <p className="mt-10 border-t border-black/5 pt-6 text-xs text-slate-400">
+            Source:{" "}
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--trb-blue)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--trb-blue-2)]"
+              className="underline transition-colors hover:text-[var(--trb-blue)]"
             >
-              Read the full story at {source} <ExternalLink className="h-4 w-4" />
+              {source}
             </a>
-          </div>
-
-          <div className="mt-10 border-t border-black/5 pt-8">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--trb-blue)] transition-colors hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to home
-            </Link>
-          </div>
+          </p>
         </div>
       </section>
     </main>

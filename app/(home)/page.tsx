@@ -37,7 +37,6 @@ const HERO_STEPS = [
 
 const CASHOUT_ICONS = [DollarSign, Upload, Banknote];
 const FEATURE_ICONS = [ShieldCheck, BadgeCheck, Headphones, Zap];
-const CASHOUT_OFFSET = ["md:mr-auto", "md:mx-auto", "md:ml-auto"];
 
 export default async function Home() {
   // Real Trump/markets/investing headlines, merged from several feeds and cached 5 min.
@@ -154,18 +153,23 @@ export default async function Home() {
       </section>
 
       {/* ================= CASH-OUT PROCESS ================= */}
-      <section className="bg-[var(--trb-dark)]">
-        <div className="mx-auto max-w-5xl px-6 py-24 sm:px-8">
+      <section className="overflow-hidden bg-[var(--trb-dark)]">
+        <div className="mx-auto max-w-[800px] px-6 py-24 sm:px-8">
           <Reveal>
             <h2 className="text-center text-3xl font-bold text-white sm:text-4xl">The Cash-Out Process</h2>
           </Reveal>
-          <div className="mt-14 space-y-6">
+          <div className="process-list mt-16 flex flex-col gap-[60px]">
             {CASHOUT_STEPS.map((s, i) => {
               const Icon = CASHOUT_ICONS[i];
               return (
-                <Reveal key={s.title} delay={i * 100} className={`md:max-w-xl ${CASHOUT_OFFSET[i]}`}>
-                  <div className="flex gap-5 rounded-2xl bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
+                <Reveal
+                  key={s.title}
+                  variant={i === 1 ? "right" : "left"}
+                  delay={i * 120}
+                  className={`process-card step-${i + 1} w-[85%]`}
+                >
+                  <div className="flex items-center gap-6 rounded-xl bg-white p-6 shadow-[0_10px_30px_rgba(0,0,0,0.25)] sm:p-8">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--trb-blue)] text-[var(--trb-blue)]">
                       <Icon className="h-6 w-6" />
                     </div>
                     <div>
@@ -377,7 +381,7 @@ export default async function Home() {
                     />
                   ) : (
                     <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[var(--trb-blue)] to-[var(--trb-blue-2)] px-4">
-                      <span className="text-center text-lg font-bold text-white/80">{item.source || "TRB"}</span>
+                      <span className="text-center text-lg font-bold text-white/80">TRB</span>
                     </div>
                   )}
                   <div className="flex flex-1 flex-col p-6">
@@ -392,9 +396,6 @@ export default async function Home() {
                     </h3>
                     {item.excerpt && (
                       <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{item.excerpt}</p>
-                    )}
-                    {item.source && (
-                      <span className="mt-4 text-xs font-medium text-slate-400">{item.source}</span>
                     )}
                   </div>
                 </>

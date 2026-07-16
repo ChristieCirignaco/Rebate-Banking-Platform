@@ -48,6 +48,67 @@
 .glow-blue { box-shadow: 0 0 30px rgba(30, 58, 138, 0.35); }
 .glow-gold { box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
 
+/* ---- Cash-Out Process: snaking blue line connecting the staggered cards ---- */
+.process-list { position: relative; }
+.process-card { position: relative; z-index: 2; }
+.process-card.step-1,
+.process-card.step-3 { align-self: flex-start; }
+.process-card.step-2 { align-self: flex-end; }
+
+/* the hooking line segment from each card down to the next */
+.process-card.step-1::after,
+.process-card.step-2::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: calc(17.6% + 30px);
+  height: calc(100% + 60px);
+  border-top: 2px solid var(--trb-blue);
+  border-bottom: 2px solid var(--trb-blue);
+  z-index: -1;
+}
+.process-card.step-1::after {
+  left: 100%;
+  border-right: 2px solid var(--trb-blue);
+  border-radius: 0 12px 12px 0;
+}
+.process-card.step-2::after {
+  right: 100%;
+  border-left: 2px solid var(--trb-blue);
+  border-radius: 12px 0 0 12px;
+}
+/* arrowhead pointing into the next card */
+.process-card.step-1::before,
+.process-card.step-2::before {
+  content: "";
+  position: absolute;
+  top: calc(150% + 60px - 6px);
+  width: 12px;
+  height: 12px;
+  z-index: 0;
+}
+.process-card.step-1::before {
+  left: calc(100% + 17.6% - 2px);
+  border-top: 2px solid var(--trb-blue);
+  border-left: 2px solid var(--trb-blue);
+  transform: rotate(-45deg);
+}
+.process-card.step-2::before {
+  right: calc(100% + 17.6% - 2px);
+  border-top: 2px solid var(--trb-blue);
+  border-right: 2px solid var(--trb-blue);
+  transform: rotate(45deg);
+}
+@media (max-width: 640px) {
+  .process-card.step-1::after,
+  .process-card.step-2::after {
+    width: calc(17.6% + 15px);
+    height: calc(100% + 40px);
+  }
+  .process-card.step-1::before,
+  .process-card.step-2::before { top: calc(150% + 40px - 6px); }
+}
+
 /* ---- respect reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .fade-up, .fade-left, .fade-right { opacity: 1 !important; transform: none !important; transition: none !important; }

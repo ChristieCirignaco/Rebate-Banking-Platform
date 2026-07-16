@@ -29,11 +29,12 @@ export type ArticleMeta = {
 
 type Feed = { url: string; name: string; category: string };
 
-// Real-URL feeds (Google News RSS uses redirect links that can't be scraped server-side).
+// Market-analysis–focused, real-URL feeds (CNBC Markets / Investing / Economy). Real URLs so
+// each article has a scrapeable share image + metadata; Google News redirect links can't be.
 const FEEDS: Feed[] = [
   { url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", name: "CNBC", category: "Market Analysis" },
+  { url: "https://www.cnbc.com/id/15839069/device/rss/rss.html", name: "CNBC", category: "Markets" },
   { url: "https://www.cnbc.com/id/20910258/device/rss/rss.html", name: "CNBC", category: "Economy" },
-  { url: "https://finance.yahoo.com/news/rssindex", name: "Yahoo Finance", category: "Wealth Building" },
 ];
 
 const UA =
