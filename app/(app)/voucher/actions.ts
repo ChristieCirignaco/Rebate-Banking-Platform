@@ -7,6 +7,7 @@ import { controlAllows } from "@/lib/controls";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { notifyUserOf } from "@/lib/notifications";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor, toMinor } from "@/lib/money/money";
 import { AmountSchema } from "@/lib/money/txn";
@@ -149,6 +150,13 @@ export async function generateVoucher(input: GenerateVoucherInput): Promise<Vouc
     return { ok: false, error: "Could not generate the voucher. Please try again." };
   }
 
+  // The wallet is already debited — tell the user. Best-effort (notifyUserOf swallows its own
+  // errors), so it can never undo a minted voucher.
+  await notifyUserOf(userId, {
+    title: "Voucher created",
+    message: `Your voucher ${code} for ${formatCurrency(amountMajor, wallet.currency)} is ready to share.`,
+  });
+
   return {
     ok: true,
     message: `Voucher ${code} created for ${formatCurrency(amountMajor, wallet.currency)}.`,
@@ -230,6 +238,21 @@ export async function redeemVoucher(rawCode: string): Promise<VoucherActionResul
       return { ok: false, error: "This voucher has already been redeemed." };
     }
     return { ok: false, error: "Could not redeem the voucher. Please try again." };
+  }
+
+  // The credit is committed. Both notices are best-effort (notifyUserOf swallows its own errors).
+  const amountLabel = formatCurrency(toMajor(voucher.amountMinor), voucher.currency);
+  await notifyUserOf(userId, {
+    title: "Voucher redeemed",
+    message: `You redeemed voucher ${voucher.code} for ${amountLabel} into your ${voucher.currency} wallet.`,
+  });
+  // Tell the creator their voucher was used — skipped when they redeemed it themselves, which is
+  // allowed and would otherwise show them the same event twice.
+  if (voucher.creatorId !== userId) {
+    await notifyUserOf(voucher.creatorId, {
+      title: "Your voucher was redeemed",
+      message: `${user.name} redeemed your voucher ${voucher.code} for ${amountLabel}.`,
+    });
   }
 
   return {

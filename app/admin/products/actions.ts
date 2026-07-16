@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 import type { ProductStatus } from "@/components/admin/products/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -19,9 +22,10 @@ export async function updateProductStatus(
   if (!session) return { ok: false, error: "Not authorized." };
   if (!VALID_STATUSES.includes(status)) return { ok: false, error: "Invalid status." };
 
+  // userId/name/price are read for the user-facing notice below, not the existence check.
   const existing = await prisma.product.findUnique({
     where: { id: productId },
-    select: { id: true },
+    select: { id: true, userId: true, name: true, priceMinor: true, currency: true },
   });
   if (!existing) return { ok: false, error: "Submission not found." };
 
@@ -39,6 +43,18 @@ export async function updateProductStatus(
       reviewedByName: reviewed ? session.user.name : null,
     },
   });
+
+  // Best-effort notice, post-commit. Only approve/reject is news to the user; a reset back to
+  // pending is silent housekeeping.
+  if (reviewed) {
+    await notifyUserOf(existing.userId, {
+      title: status === "approved" ? "Product approved" : "Product rejected",
+      message: `Your product "${existing.name}" (${formatCurrency(
+        toMajor(existing.priceMinor),
+        existing.currency,
+      )}) was ${status}.${note ? ` Remarks: ${note}` : ""}`,
+    });
+  }
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${productId}`);

@@ -679,7 +679,12 @@ model Notification {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String // user notices: email | push — admin alerts: kyc_submitted | deposit_requested | withdraw_requested
+  // user notices: email | push — admin alerts: kyc_submitted | deposit_requested |
+  // withdraw_requested | transfer_requested | money_requested | products_submitted |
+  // ticket_opened | ticket_reply. The alert list is owned by SYSTEM_ALERT_TYPES in
+  // components/admin/notifications/types.ts; this is a plain String, so adding one needs no
+  // migration — but keep this comment in step with that array.
+  type        String
   title       String?
   message     String
   scheduledAt DateTime?

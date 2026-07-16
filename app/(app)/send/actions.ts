@@ -10,8 +10,10 @@ import { controlAllows } from "@/lib/controls";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { formatCurrency } from "@/lib/format";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { postLedgerEntry } from "@/lib/money/ledger";
-import { toMinor } from "@/lib/money/money";
+import { toMajor, toMinor } from "@/lib/money/money";
 import { txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { verifyTransactionPin } from "@/lib/transaction-pin";
@@ -249,6 +251,12 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
   return { ok: true, next: `/send/verify/${sequence[0]}` };
 }
 
+const TRANSFER_LABEL: Record<TransferAuthPayload["type"], string> = {
+  internal: "Internal",
+  domestic: "Domestic",
+  wire: "Wire",
+};
+
 // Finalize once every step is cleared: debit the sender on request (held) and create the
 // pending Transfer, then clear the session. Mirrors the withdraw hold pattern.
 async function finalize(userId: string, state: TransferAuthState): Promise<StepResult> {
@@ -301,6 +309,33 @@ async function finalize(userId: string, state: TransferAuthState): Promise<StepR
     if (message === "NOWALLET") return { ok: false, error: "You have no wallet in this currency." };
     if (message === "INSUFFICIENT") return { ok: false, error: "Insufficient wallet balance for this transfer." };
     return { ok: false, error: "Could not submit the transfer. Please try again." };
+  }
+
+  // Best-effort: the transfer + its hold are committed, so a notify failure must never surface as
+  // a failed transfer.
+  const amountLabel = formatCurrency(toMajor(amountMinor), payload.currency);
+  try {
+    await notifyAdmins({
+      type: "transfer_requested",
+      title: "New transfer request",
+      message: `${TRANSFER_LABEL[payload.type]} transfer ${txnId} of ${amountLabel} to ${payload.recipientLabel} is pending review.`,
+    });
+
+    // Internal transfer: let the recipient know it's coming. The funds are NOT theirs yet — an
+    // admin approval is what credits their wallet (app/admin/transfers/actions.ts) — so this says
+    // "incoming", not "received", or they'd check a balance that hasn't moved.
+    if (payload.recipientUserId) {
+      const sender = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+      await notifyUserOf(payload.recipientUserId, {
+        title: "Incoming transfer",
+        message: `${sender?.name ?? "Someone"} sent you ${amountLabel} (${txnId}) — it will land in your wallet once approved.`,
+      });
+    }
+  } catch {
+    // ignored — the admin queue still shows the transfer.
   }
 
   await clearAuthCookie();

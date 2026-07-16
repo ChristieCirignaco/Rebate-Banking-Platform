@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { getTicketList, TICKET_PAGE_SIZE } from "@/lib/admin/support-tickets";
+import { notifyUserOf } from "@/lib/notifications";
 import { notifyUser } from "@/app/admin/users/[id]/actions";
 import type {
   ReplyPayload,
@@ -52,10 +53,24 @@ export async function updateTicketStatus(
     return { ok: false, error: "Invalid status." };
   }
 
-  const existing = await prisma.ticket.findUnique({ where: { id }, select: { id: true } });
+  // userId/code/subject are read for the user-facing notice below, not the existence check.
+  const existing = await prisma.ticket.findUnique({
+    where: { id },
+    select: { id: true, userId: true, ticketCode: true, subject: true },
+  });
   if (!existing) return { ok: false, error: "Ticket not found." };
 
   await prisma.ticket.update({ where: { id }, data: { status } });
+
+  // Best-effort notice, post-commit. Closing is the only status change that's news to the
+  // user — open/pending/replied are internal queue movements they don't need a bell for.
+  if (status === "closed") {
+    await notifyUserOf(existing.userId, {
+      title: "Ticket closed",
+      message: `Your ticket #${existing.ticketCode} "${existing.subject}" has been closed.`,
+    });
+  }
+
   revalidate(id);
   return { ok: true };
 }

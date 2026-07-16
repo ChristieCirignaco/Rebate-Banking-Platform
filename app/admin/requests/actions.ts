@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -70,6 +73,14 @@ export async function approveRequest(id: string, remarks?: string): Promise<Acti
     }
     return { ok: false, error: "Could not credit the wallet. Please try again." };
   }
+  // Best-effort notice: the credit already committed, so this must never fail the action.
+  await notifyUserOf(request.userId, {
+    title: "Request approved",
+    message: `Your money request ${request.txnId} for ${formatCurrency(
+      toMajor(request.amountMinor),
+      request.currency,
+    )} was approved and credited to your wallet.${note ? ` Remarks: ${note}` : ""}`,
+  });
   revalidate();
   return { ok: true };
 }
@@ -79,12 +90,13 @@ export async function approveRequest(id: string, remarks?: string): Promise<Acti
 export async function rejectRequest(id: string, remarks?: string): Promise<ActionResult> {
   const session = await getAdminSession();
   if (!session) return NOT_AUTHORIZED;
+  const note = remarks?.trim() || null;
 
   const claim = await prisma.moneyRequest.updateMany({
     where: { id, status: "pending" },
     data: {
       status: "rejected",
-      remarks: remarks?.trim() || null,
+      remarks: note,
       reviewedById: session.user.id,
       reviewedByName: session.user.name,
       reviewedAt: new Date(),
@@ -96,6 +108,22 @@ export async function rejectRequest(id: string, remarks?: string): Promise<Actio
       ok: false,
       error: exists ? "This request has already been reviewed." : "Request not found.",
     };
+  }
+
+  // Only this reviewer won the claim, so only this call notifies. The updateMany above left
+  // no row in scope — read back the details the notice needs (best-effort, post-commit).
+  const request = await prisma.moneyRequest.findUnique({
+    where: { id },
+    select: { userId: true, txnId: true, amountMinor: true, currency: true },
+  });
+  if (request) {
+    await notifyUserOf(request.userId, {
+      title: "Request rejected",
+      message: `Your money request ${request.txnId} for ${formatCurrency(
+        toMajor(request.amountMinor),
+        request.currency,
+      )} was rejected.${note ? ` Remarks: ${note}` : ""}`,
+    });
   }
   revalidate();
   return { ok: true };

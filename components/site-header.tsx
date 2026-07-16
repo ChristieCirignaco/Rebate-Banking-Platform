@@ -1,7 +1,9 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { AdminNotificationBell } from "@/components/admin/notifications/admin-notification-bell";
 
-// Top chrome bar for the admin surface.
+// Top chrome bar for the admin surface. The bell is self-fetching, so this stays a server
+// component.
 export function SiteHeader() {
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -12,6 +14,9 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         <h1 className="text-base font-medium">Administration</h1>
+        <div className="ml-auto">
+          <AdminNotificationBell />
+        </div>
       </div>
     </header>
   );

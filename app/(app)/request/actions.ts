@@ -6,6 +6,8 @@ import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
+import { notifyAdmins } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
@@ -47,11 +49,12 @@ export async function createMoneyRequest(input: RequestInput): Promise<RequestRe
   if (!wallet) return { ok: false, error: "Select a valid wallet." };
 
   const reason = (input.reason ?? "").trim().slice(0, 500) || null;
+  const txnId = txnCode("REQ");
 
   await prisma.moneyRequest.create({
     data: {
       id: randomUUID(),
-      txnId: txnCode("REQ"),
+      txnId,
       userId,
       currency: wallet.currency,
       amountMinor: toMinor(amount.data),
@@ -59,6 +62,18 @@ export async function createMoneyRequest(input: RequestInput): Promise<RequestRe
       status: "pending",
     },
   });
+
+  // Best-effort: the request is already committed, so a notify failure must never surface as a
+  // failed request. This is user→platform: there is no recipient user to notify.
+  try {
+    await notifyAdmins({
+      type: "money_requested",
+      title: "New money request",
+      message: `Money request ${txnId} for ${formatCurrency(amount.data, wallet.currency)} is pending approval.`,
+    });
+  } catch {
+    // ignored — the admin queue still shows the request.
+  }
 
   return { ok: true, message: "Request submitted — pending admin approval." };
 }

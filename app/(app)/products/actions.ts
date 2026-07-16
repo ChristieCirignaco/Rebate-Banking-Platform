@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { notifyAdmins } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
@@ -92,6 +93,18 @@ export async function submitProducts(products: ProductInput[]): Promise<SubmitRe
       imageUrl: row.imageUrl,
     })),
   });
+
+  // Best-effort: the rows are already committed, so a notify failure must never surface as a
+  // failed submission.
+  try {
+    await notifyAdmins({
+      type: "products_submitted",
+      title: "New product submission",
+      message: `${session.user.name} submitted ${rows.length} product${rows.length === 1 ? "" : "s"} for rebate review.`,
+    });
+  } catch {
+    // ignored — the admin queue still shows the products.
+  }
 
   return { ok: true, count: rows.length };
 }

@@ -3,9 +3,14 @@
 import { useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   ArrowDownToLine,
+  ArrowLeftRight,
   ArrowUpFromLine,
   Bell,
   CheckCheck,
+  HandCoins,
+  LifeBuoy,
+  MessageCircle,
+  Package,
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +51,31 @@ const ALERT_META: Record<
     icon: ArrowUpFromLine,
     label: "Withdrawal",
     className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  },
+  transfer_requested: {
+    icon: ArrowLeftRight,
+    label: "Transfer",
+    className: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  money_requested: {
+    icon: HandCoins,
+    label: "Money request",
+    className: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
+  products_submitted: {
+    icon: Package,
+    label: "Products",
+    className: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  },
+  ticket_opened: {
+    icon: LifeBuoy,
+    label: "Support",
+    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  },
+  ticket_reply: {
+    icon: MessageCircle,
+    label: "Support reply",
+    className: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
   },
 };
 
@@ -160,7 +190,7 @@ export function NotificationsFeed({
             <div>
               <p className="font-medium">You&apos;re all caught up</p>
               <p className="text-muted-foreground text-sm">
-                System alerts for KYC, deposit and withdrawal requests will show
+                System alerts for deposits, withdrawals, transfers, KYC, products and support will show
                 up here.
               </p>
             </div>

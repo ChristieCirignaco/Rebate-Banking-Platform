@@ -30,6 +30,37 @@ export async function notifyAdmins(args: {
   return admins.length;
 }
 
+// Notify ONE user. The counterpart to notifyAdmins and, like it, deliberately session-free:
+// most notices are raised by the user's own action (their deposit landed, their voucher was
+// redeemed), so an authorization check here would be wrong — the caller has already
+// established who may act. `notifyUser` in app/admin/users/[id]/actions.ts is the admin-facing
+// wrapper that adds the admin-session + regular-target checks on top of this.
+//
+// Callers treat notifications as best-effort: a failure here must never roll back the money
+// action that triggered it, so this swallows its own errors and reports success as a boolean
+// rather than throwing into someone's transaction.
+export async function notifyUserOf(
+  userId: string,
+  args: { type?: UserNoticeType; title: string; message: string },
+): Promise<boolean> {
+  try {
+    if (!userId) return false;
+    await prisma.notification.create({
+      data: {
+        userId,
+        // "push" is the in-app default: these are events the user sees in their bell, not mail
+        // we actually send (neither type is wired to a delivery channel yet).
+        type: args.type ?? "push",
+        title: args.title,
+        message: args.message,
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // User read layer
 // ---------------------------------------------------------------------------

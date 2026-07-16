@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -85,6 +88,21 @@ export async function approveTransfer(id: string, remarks?: string): Promise<Act
     if (message === "NORECIPIENT") return { ok: false, error: "Internal transfer has no recipient." };
     return { ok: false, error: "Could not approve the transfer. Please try again." };
   }
+  // Best-effort notices: the money already moved, so these must never fail the action.
+  const amountLabel = formatCurrency(toMajor(transfer.amountMinor), transfer.currency);
+  await notifyUserOf(transfer.userId, {
+    title: "Transfer approved",
+    message: `Your transfer ${transfer.txnId} of ${amountLabel} was approved.${
+      note ? ` Remarks: ${note}` : ""
+    }`,
+  });
+  // Internal only: the recipient's wallet was actually credited above, so tell them too.
+  if (transfer.type === "internal" && transfer.recipientUserId) {
+    await notifyUserOf(transfer.recipientUserId, {
+      title: "Money received",
+      message: `You received ${amountLabel} from a transfer (${transfer.txnId}).`,
+    });
+  }
   revalidate();
   return { ok: true };
 }
@@ -145,6 +163,14 @@ export async function rejectTransfer(id: string, remarks?: string): Promise<Acti
     if (message === "ALREADY") return { ok: false, error: "This transfer has already been reviewed." };
     return { ok: false, error: "Could not reject the transfer. Please try again." };
   }
+  // Best-effort notice: the refund already committed, so this must never fail the action.
+  await notifyUserOf(transfer.userId, {
+    title: "Transfer rejected",
+    message: `Your transfer ${transfer.txnId} of ${formatCurrency(
+      toMajor(transfer.amountMinor),
+      transfer.currency,
+    )} was rejected and the funds were returned to your wallet.${note ? ` Remarks: ${note}` : ""}`,
+  });
   revalidate();
   return { ok: true };
 }

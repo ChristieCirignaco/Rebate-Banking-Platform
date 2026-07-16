@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { notifyAdmins } from "@/lib/notifications";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor, toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
@@ -250,6 +251,18 @@ export async function createWithdraw(input: WithdrawInput, pin: string): Promise
       return { ok: false, error: "Insufficient wallet balance." };
     }
     return { ok: false, error: "Could not submit the withdrawal. Please try again." };
+  }
+
+  // Best-effort: the withdrawal (and its hold) is already committed, so a notify failure must
+  // never surface as a failed request.
+  try {
+    await notifyAdmins({
+      type: "withdraw_requested",
+      title: "New withdrawal request",
+      message: `Withdrawal ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} to ${account.label} is pending review.`,
+    });
+  } catch {
+    // ignored — the admin queue still shows the withdrawal.
   }
 
   return {

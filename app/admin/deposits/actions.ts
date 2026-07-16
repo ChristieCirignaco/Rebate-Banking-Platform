@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
 import { methodFieldCreateData, validateMethodFields } from "@/lib/method-fields";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 import { awardReferral } from "@/lib/referrals";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { DepositMethodPayload } from "@/components/admin/deposits/types";
@@ -87,6 +90,14 @@ export async function approveDeposit(
     depositAmountMinor: deposit.amountMinor,
     depositCurrency: deposit.currency,
   });
+  // Best-effort notice: the credit already committed, so this must never fail the action.
+  await notifyUserOf(deposit.userId, {
+    title: "Deposit approved",
+    message: `Your deposit ${deposit.txnId} of ${formatCurrency(
+      toMajor(deposit.amountMinor),
+      deposit.currency,
+    )} was approved and credited to your wallet.${note ? ` Remarks: ${note}` : ""}`,
+  });
   revalidate();
   return { ok: true };
 }
@@ -97,13 +108,14 @@ export async function rejectDeposit(
 ): Promise<ActionResult> {
   const session = await getAdminSession();
   if (!session) return NOT_AUTHORIZED;
+  const note = remarks?.trim() || null;
 
   // Compare-and-set so it can't clobber a concurrent approval (no ledger effect on reject).
   const claim = await prisma.deposit.updateMany({
     where: { id, status: "pending" },
     data: {
       status: "canceled",
-      remarks: remarks?.trim() || null,
+      remarks: note,
       reviewedById: session.user.id,
       reviewedByName: session.user.name,
       reviewedAt: new Date(),
@@ -115,6 +127,22 @@ export async function rejectDeposit(
       ok: false,
       error: exists ? "This deposit has already been reviewed." : "Deposit not found.",
     };
+  }
+
+  // Only this reviewer won the claim, so only this call notifies. The updateMany above left
+  // no row in scope — read back the details the notice needs (best-effort, post-commit).
+  const deposit = await prisma.deposit.findUnique({
+    where: { id },
+    select: { userId: true, txnId: true, amountMinor: true, currency: true },
+  });
+  if (deposit) {
+    await notifyUserOf(deposit.userId, {
+      title: "Deposit rejected",
+      message: `Your deposit ${deposit.txnId} of ${formatCurrency(
+        toMajor(deposit.amountMinor),
+        deposit.currency,
+      )} was rejected.${note ? ` Remarks: ${note}` : ""}`,
+    });
   }
   revalidate();
   return { ok: true };

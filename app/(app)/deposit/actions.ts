@@ -7,6 +7,8 @@ import { controlAllows } from "@/lib/controls";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { isDepositProofUrl } from "@/lib/deposit-proof";
+import { formatCurrency } from "@/lib/format";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { awardReferral } from "@/lib/referrals";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMinor } from "@/lib/money/money";
@@ -127,6 +129,17 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
         fieldValues,
       },
     });
+    // Best-effort: the deposit is already committed, so a notify failure must never surface as a
+    // failed request.
+    try {
+      await notifyAdmins({
+        type: "deposit_requested",
+        title: "New deposit request",
+        message: `Deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} via ${method.name} is pending approval.`,
+      });
+    } catch {
+      // ignored — the admin queue still shows the deposit.
+    }
     return {
       ok: true,
       next: "/transactions",
@@ -179,6 +192,12 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
     trigger: "first_deposit",
     depositAmountMinor: amountMinor,
     depositCurrency: wallet.currency,
+  });
+  // The funds are already credited — tell the user. Best-effort (notifyUserOf swallows its own
+  // errors), so it can never undo a completed deposit.
+  await notifyUserOf(userId, {
+    title: "Deposit received",
+    message: `Your deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} via ${method.name} has been credited to your ${wallet.currency} wallet.`,
   });
   return { ok: true, next: "/transactions", message: "Deposit successful." };
 }

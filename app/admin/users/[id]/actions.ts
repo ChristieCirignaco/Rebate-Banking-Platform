@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 import { addWalletFor, removeWalletFor } from "@/lib/wallets";
 import type {
   ControlKey,
@@ -139,6 +142,19 @@ export async function manageFunds(
           : "Could not update balance.",
     };
   }
+
+  // Best-effort notice, post-commit — and only here: the duplicate branch above returns ok
+  // without having posted anything this time, so notifying there would re-announce an
+  // adjustment the user was already told about.
+  await notifyUserOf(userId, {
+    title: input.op === "credit" ? "Wallet credited" : "Wallet debited",
+    message: `An admin ${input.op === "credit" ? "credited" : "debited"} ${formatCurrency(
+      toMajor(amountMinor),
+      wallet.currency,
+    )} ${input.op === "credit" ? "to" : "from"} your ${wallet.currency} wallet.${
+      input.description ? ` Note: ${input.description}` : ""
+    }`,
+  });
   revalidate(userId);
   return { ok: true };
 }
@@ -165,6 +181,15 @@ export async function updateWithdrawalControl(
   await prisma.user.update({
     where: { id: userId },
     data: { withdrawalStatus: input.status, withdrawalMessage: input.userMessage ?? null },
+  });
+
+  // Best-effort notice, post-commit. `userMessage` is already an admin-authored message TO
+  // this user — persisting it to User.withdrawalMessage never actually delivered it, so send
+  // it verbatim when there is one and fall back to stating the new status when there isn't.
+  const userMessage = input.userMessage?.trim();
+  await notifyUserOf(userId, {
+    title: "Withdrawal status updated",
+    message: userMessage || `Your withdrawal status is now "${input.status}".`,
   });
   revalidate(userId);
   return { ok: true };

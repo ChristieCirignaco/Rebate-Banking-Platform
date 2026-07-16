@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
 import { methodFieldCreateData, validateMethodFields } from "@/lib/method-fields";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 import {
   getWithdrawHistory,
   type WithdrawHistoryParams,
@@ -99,6 +102,14 @@ export async function approveWithdraw(
     }
     return { ok: false, error: "Could not process the withdrawal. Please try again." };
   }
+  // Best-effort notice: the debit already committed, so this must never fail the action.
+  await notifyUserOf(withdraw.userId, {
+    title: "Withdrawal approved",
+    message: `Your withdrawal ${withdraw.txnId} of ${formatCurrency(
+      toMajor(withdraw.amountMinor),
+      withdraw.currency,
+    )} was approved and is being processed.${note ? ` Remarks: ${note}` : ""}`,
+  });
   revalidate();
   return { ok: true };
 }
@@ -164,6 +175,14 @@ export async function rejectWithdraw(
     }
     return { ok: false, error: "Could not refund the held funds. Please try again." };
   }
+  // Best-effort notice: the refund already committed, so this must never fail the action.
+  await notifyUserOf(withdraw.userId, {
+    title: "Withdrawal rejected",
+    message: `Your withdrawal ${withdraw.txnId} of ${formatCurrency(
+      toMajor(withdraw.amountMinor),
+      withdraw.currency,
+    )} was rejected and the funds were returned to your wallet.${note ? ` Remarks: ${note}` : ""}`,
+  });
   revalidate();
   return { ok: true };
 }

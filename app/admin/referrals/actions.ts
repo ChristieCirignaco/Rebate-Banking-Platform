@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
+import { notifyUserOf } from "@/lib/notifications";
 import type { ReferralSettings } from "@/lib/settings/defs";
 import { saveSettings } from "@/lib/settings/store";
 
@@ -102,6 +105,14 @@ export async function payReferralEarning(id: string): Promise<ActionResult> {
     }
     return { ok: false, error: "Could not pay the reward. Please try again." };
   }
+  // Best-effort notice: the credit already committed, so this must never fail the action.
+  await notifyUserOf(earning.referrerId, {
+    title: "Referral reward paid",
+    message: `Your referral reward of ${formatCurrency(
+      toMajor(earning.amountMinor),
+      earning.currency,
+    )} was paid and credited to your wallet.`,
+  });
   revalidate();
   return { ok: true };
 }
@@ -118,6 +129,22 @@ export async function rejectReferralEarning(id: string): Promise<ActionResult> {
   if (claim.count === 0) {
     const exists = await prisma.referralEarning.count({ where: { id } });
     return { ok: false, error: exists ? "This earning has already been reviewed." : "Not found." };
+  }
+
+  // Only this reviewer won the claim, so only this call notifies. The updateMany above left
+  // no row in scope — read back the details the notice needs (best-effort, post-commit).
+  const earning = await prisma.referralEarning.findUnique({
+    where: { id },
+    select: { referrerId: true, amountMinor: true, currency: true },
+  });
+  if (earning) {
+    await notifyUserOf(earning.referrerId, {
+      title: "Referral reward rejected",
+      message: `Your referral reward of ${formatCurrency(
+        toMajor(earning.amountMinor),
+        earning.currency,
+      )} was reviewed and will not be paid.`,
+    });
   }
   revalidate();
   return { ok: true };

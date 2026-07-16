@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { notifyAdmins } from "@/lib/notifications";
 import { shortCode } from "@/lib/short-code";
 import { verifyAttachment } from "@/lib/tickets/attachment-token";
 import { isImageContentType } from "@/lib/tickets/files";
@@ -136,6 +137,18 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     }),
   ]);
 
+  // Best-effort: the ticket is already committed, so a notify failure must never surface as a
+  // failed open.
+  try {
+    await notifyAdmins({
+      type: "ticket_opened",
+      title: "New support ticket",
+      message: `${session.user.name} opened ${data.priority}-priority ticket ${code}: "${data.subject}".`,
+    });
+  } catch {
+    // ignored — the admin queue still shows the ticket.
+  }
+
   return { ok: true, ticketId };
 }
 
@@ -154,7 +167,9 @@ export async function sendTicketMessage(
 
   const ticket = await prisma.ticket.findFirst({
     where: { id: ticketId, userId },
-    select: { id: true, status: true },
+    // ticketCode rides along on the row we already load so the admin notice names the ticket the
+    // way the admin queue does, without a second query.
+    select: { id: true, status: true, ticketCode: true },
   });
   if (!ticket) return { ok: false, error: "Ticket not found." };
   if (ticket.status === "closed") {
@@ -180,6 +195,18 @@ export async function sendTicketMessage(
     }),
     prisma.ticket.update({ where: { id: ticketId }, data: { status: "pending" } }),
   ]);
+
+  // Best-effort: the reply is already committed, so a notify failure must never surface as a
+  // failed send.
+  try {
+    await notifyAdmins({
+      type: "ticket_reply",
+      title: "New ticket reply",
+      message: `${session.user.name} replied to ticket ${ticket.ticketCode}.`,
+    });
+  } catch {
+    // ignored — the admin queue still shows the reply.
+  }
 
   return {
     ok: true,

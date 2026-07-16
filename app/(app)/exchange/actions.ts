@@ -7,6 +7,7 @@ import { controlAllows } from "@/lib/controls";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import { notifyUserOf } from "@/lib/notifications";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor, toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
@@ -148,6 +149,13 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
     }
     return { ok: false, error: "Could not complete the exchange. Please try again." };
   }
+
+  // Both wallets are already moved — tell the user. Best-effort (notifyUserOf swallows its own
+  // errors), so it can never undo a completed exchange.
+  await notifyUserOf(userId, {
+    title: "Exchange completed",
+    message: `You exchanged ${formatCurrency(toMajor(fromAmountMinor), fromWallet.currency)} to ${formatCurrency(toMajor(toAmountMinor), toWallet.currency)} (${txnId}).`,
+  });
 
   return {
     ok: true,

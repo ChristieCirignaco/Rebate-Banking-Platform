@@ -5,10 +5,19 @@
 // email/push notifications (see the Notification model). Following the repo's
 // String-enum convention (a String column + inline comment, no Prisma enums), an admin
 // alert is just a Notification row whose `type` is one of these values, owned by an admin.
+// Adding a value here propagates automatically to the feed query and both mark-read scopes
+// (each spreads this array) and needs no migration — Notification.type is a plain String. Two
+// things must move in lockstep: the ALERT_META icon map in notifications-feed.tsx, and the
+// `type` comment on the Notification model in prisma/schema.prisma.
 export const SYSTEM_ALERT_TYPES = [
   "kyc_submitted",
   "deposit_requested",
   "withdraw_requested",
+  "transfer_requested",
+  "money_requested",
+  "products_submitted",
+  "ticket_opened",
+  "ticket_reply",
 ] as const;
 
 export type SystemAlertType = (typeof SYSTEM_ALERT_TYPES)[number];

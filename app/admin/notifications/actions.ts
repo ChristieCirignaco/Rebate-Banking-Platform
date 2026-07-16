@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { getAdminNotifications, FEED_PAGE_SIZE } from "@/lib/admin/notifications";
 import {
   SYSTEM_ALERT_TYPES,
+  type AdminNotificationItem,
   type AdminNotificationsResult,
   type BroadcastResult,
 } from "@/components/admin/notifications/types";
@@ -130,4 +131,43 @@ export async function markNotificationRead(id: string): Promise<ActionResult> {
 
   revalidatePath("/admin/notifications");
   return { ok: true };
+}
+
+// Badge count + preview rows for the header bell. Unlike listAdminNotifications these use
+// getAdminSession() but must never redirect or throw: they fire on mount on every admin page,
+// so a missing/expired session returns an empty result rather than yanking the admin's
+// navigation. The panel caps at ADMIN_PANEL_LIMIT; the full history lives at
+// /admin/notifications.
+export async function getAdminUnreadCountAction(): Promise<number> {
+  const session = await getAdminSession();
+  if (!session) return 0;
+  try {
+    return await prisma.notification.count({
+      where: { userId: session.user.id, type: { in: ALERT_TYPES }, readAt: null },
+    });
+  } catch {
+    return 0;
+  }
+}
+
+export async function getAdminRecentAlertsAction(): Promise<AdminNotificationItem[]> {
+  const session = await getAdminSession();
+  if (!session) return [];
+  try {
+    const rows = await prisma.notification.findMany({
+      where: { userId: session.user.id, type: { in: ALERT_TYPES } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      message: row.message,
+      createdAt: row.createdAt.toISOString(),
+      read: row.readAt !== null,
+    }));
+  } catch {
+    return [];
+  }
 }
