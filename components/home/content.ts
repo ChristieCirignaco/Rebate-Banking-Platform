@@ -35,20 +35,16 @@ export const PROJECTS = [
   { title: "Freedom Rebate Card", image: "/marketing/project_card_3.jpg" },
 ];
 
-// Home shows literal zeros (matching the reference); About shows real figures.
+// Animated brand stats — count up from 0 to the target when scrolled into view. Same
+// figures used on the home "think big" section and the About stats band.
 export const STATS_HOME = [
-  { value: "$0B+", label: "TRB Payouts" },
-  { value: "0M+", label: "Successful" },
-  { value: "0M+", label: "Happy Cashouts" },
-  { value: "24/7", label: "Team Support" },
+  { prefix: "$", target: 1.2, decimals: 1, suffix: "B+", label: "TRB Payouts" },
+  { prefix: "", target: 100, decimals: 0, suffix: "M+", label: "Successful" },
+  { prefix: "", target: 30, decimals: 0, suffix: "M+", label: "Happy Cashouts" },
+  { prefix: "", target: 24, decimals: 0, suffix: "/7", label: "Team Support" },
 ];
 
-export const STATS_ABOUT = [
-  { value: "$1B+", label: "TRB Payouts" },
-  { value: "100M+", label: "Successful" },
-  { value: "30M+", label: "Happy Cashouts" },
-  { value: "24/7", label: "Team Support" },
-];
+export const STATS_ABOUT = STATS_HOME;
 
 export const TESTIMONIALS = [
   {

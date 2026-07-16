@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { Reveal } from "@/components/home/reveal";
+import { CountUp } from "@/components/home/count-up";
 import { PageHero } from "@/components/home/primitives/page-hero";
 import { AboutTabs } from "@/components/home/about-tabs";
 import { STATS_ABOUT } from "@/components/home/content";
@@ -118,7 +119,13 @@ export default async function AboutPage() {
           <div className="grid grid-cols-2 gap-8 text-center sm:grid-cols-4">
             {STATS_ABOUT.map((s, i) => (
               <Reveal key={s.label} delay={i * 80}>
-                <div className="text-4xl font-extrabold text-white sm:text-5xl">{s.value}</div>
+                <CountUp
+                  target={s.target}
+                  prefix={s.prefix}
+                  suffix={s.suffix}
+                  decimals={s.decimals}
+                  className="block text-4xl font-extrabold text-white sm:text-5xl"
+                />
                 <div className="mt-1 text-sm text-white/70">{s.label}</div>
               </Reveal>
             ))}

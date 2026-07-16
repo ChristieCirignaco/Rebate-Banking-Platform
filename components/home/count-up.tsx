@@ -9,12 +9,14 @@ export function CountUp({
   target,
   prefix = "",
   suffix = "",
+  decimals = 0,
   durationMs = 1600,
   className = "",
 }: {
   target: number;
   prefix?: string;
   suffix?: string;
+  decimals?: number;
   durationMs?: number;
   className?: string;
 }) {
@@ -31,11 +33,12 @@ export function CountUp({
           if (!entry.isIntersecting) continue;
           obs.unobserve(entry.target);
           const start = performance.now();
+          const factor = 10 ** decimals;
           const tick = (now: number) => {
             const p = Math.min(1, (now - start) / durationMs);
             // easeOutCubic
             const eased = 1 - Math.pow(1 - p, 3);
-            setN(Math.round(eased * target));
+            setN(Math.round(eased * target * factor) / factor);
             if (p < 1) raf = requestAnimationFrame(tick);
           };
           raf = requestAnimationFrame(tick);
@@ -48,12 +51,12 @@ export function CountUp({
       obs.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [target, durationMs]);
+  }, [target, durationMs, decimals]);
 
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {n}
+      {n.toFixed(decimals)}
       {suffix}
     </span>
   );

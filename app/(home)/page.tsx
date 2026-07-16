@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Reveal } from "@/components/home/reveal";
+import { CountUp } from "@/components/home/count-up";
 import { VideoPlayer } from "@/components/home/video-player";
 import { FaqAccordion } from "@/components/home/faq-accordion";
 import {
@@ -321,7 +322,13 @@ export default async function Home() {
           <div className="mt-12 grid grid-cols-2 gap-8 lg:grid-cols-4">
             {STATS_HOME.map((s, i) => (
               <Reveal key={s.label} delay={i * 80}>
-                <div className="text-4xl font-extrabold text-[var(--trb-gold)]">{s.value}</div>
+                <CountUp
+                  target={s.target}
+                  prefix={s.prefix}
+                  suffix={s.suffix}
+                  decimals={s.decimals}
+                  className="block text-4xl font-extrabold text-[var(--trb-gold)]"
+                />
                 <div className="mt-1 text-sm text-white/60">{s.label}</div>
               </Reveal>
             ))}
