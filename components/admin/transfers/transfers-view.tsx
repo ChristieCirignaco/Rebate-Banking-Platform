@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Textarea } from "@/components/ui/textarea";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -59,6 +60,9 @@ function buildHref(type: string, status: string, page?: number): string {
   return `/admin/transfers${q ? `?${q}` : ""}`;
 }
 
+// A segmented filter control. The URL owns the state (the page filters server-side), so the group
+// is controlled by `active` and a change just navigates. Re-clicking the selected item would hand
+// back an empty value — ignore that rather than clearing the filter to nothing.
 function FilterRow({
   label,
   options,
@@ -70,23 +74,28 @@ function FilterRow({
   active: string;
   build: (value: string) => string;
 }) {
+  const router = useRouter();
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-muted-foreground w-14 text-xs font-medium">{label}</span>
-      {options.map((opt) => (
-        <Link
-          key={opt}
-          href={build(opt)}
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-            active === opt
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/70",
-          )}
-        >
-          {opt === "all" ? "All" : cap(opt)}
-        </Link>
-      ))}
+      <ToggleGroup
+        type="single"
+        value={active}
+        onValueChange={(value) => {
+          if (value) router.push(build(value));
+        }}
+        variant="outline"
+        size="sm"
+        spacing={0}
+        aria-label={`Filter by ${label.toLowerCase()}`}
+        className="flex-wrap"
+      >
+        {options.map((opt) => (
+          <ToggleGroupItem key={opt} value={opt}>
+            {opt === "all" ? "All" : cap(opt)}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
     </div>
   );
 }
