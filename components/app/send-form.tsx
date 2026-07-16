@@ -2,6 +2,8 @@
 
 import type { FormEvent, InputHTMLAttributes } from "react";
 import { useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import { Globe, Landmark, Users } from "lucide-react";
 
 import { beginTransfer, type SendInput } from "@/app/(app)/send/actions";
 import { toast } from "@/lib/toast";
@@ -16,10 +18,10 @@ const FIELD =
 
 type TransferType = "internal" | "domestic" | "wire";
 
-const TYPES: { key: TransferType; label: string; hint: string }[] = [
-  { key: "internal", label: "Internal", hint: "To another user" },
-  { key: "domestic", label: "Domestic", hint: "Local bank" },
-  { key: "wire", label: "Wire", hint: "International" },
+const TYPES: { key: TransferType; label: string; icon: LucideIcon }[] = [
+  { key: "internal", label: "Internal", icon: Users },
+  { key: "domestic", label: "Domestic", icon: Landmark },
+  { key: "wire", label: "Wire", icon: Globe },
 ];
 
 export function SendForm({
@@ -77,22 +79,45 @@ export function SendForm({
     <>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <div className="grid grid-cols-3 gap-2">
-          {TYPES.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setType(t.key)}
-              className={cn(
-                "rounded-xl border p-3 text-left transition-colors",
-                type === t.key
-                  ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10"
-                  : "border-slate-200 hover:bg-slate-50 dark:border-slate-700",
-              )}
-            >
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{t.label}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t.hint}</p>
-            </button>
-          ))}
+          {TYPES.map((t) => {
+            const Icon = t.icon;
+            const active = type === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setType(t.key)}
+                aria-pressed={active}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-2xl border p-3.5 transition-colors",
+                  active
+                    ? "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-500/10"
+                    : "border-slate-200 bg-slate-50/70 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-full transition-colors",
+                    active
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-slate-500 dark:bg-slate-700 dark:text-slate-300",
+                  )}
+                >
+                  <Icon className="size-4" />
+                </span>
+                <span
+                  className={cn(
+                    "text-sm font-semibold",
+                    active
+                      ? "text-blue-700 dark:text-blue-300"
+                      : "text-slate-700 dark:text-slate-200",
+                  )}
+                >
+                  {t.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         <div>
