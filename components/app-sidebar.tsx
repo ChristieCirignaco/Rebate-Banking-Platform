@@ -24,6 +24,7 @@ import {
   Receipt,
   Settings,
   ShieldCheck,
+  Ticket,
   UserCheck,
   UserCog,
   Users,
@@ -89,6 +90,7 @@ const NAV: NavGroup[] = [
       { title: "Transfers", href: "/admin/transfers", icon: ArrowLeftRight },
       { title: "Money Requests", href: "/admin/requests", icon: HandCoins },
       { title: "Exchanges", href: "/admin/exchanges", icon: ArrowRightLeft },
+      { title: "Vouchers", href: "/admin/vouchers", icon: Ticket },
     ],
   },
   {

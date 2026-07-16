@@ -75,6 +75,8 @@ model User {
   receivedTransfers Transfer[] @relation("ReceivedTransfers")
   moneyRequests     MoneyRequest[]
   exchanges         Exchange[]
+  vouchersCreated   Voucher[] @relation("VouchersCreated")
+  vouchersRedeemed  Voucher[] @relation("VouchersRedeemed")
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
@@ -579,6 +581,37 @@ model Exchange {
   @@index([userId])
   @@index([createdAt])
   @@map("exchanges")
+}
+
+// A voucher (gift-code) a user generates from one of their wallets, redeemable by anyone who
+// has the code. Generation debits the creator's wallet by amount + fee (source "voucher") and
+// mints a unique code; the voucher holds `amountMinor` in `currency`. Redemption credits the
+// redeemer's wallet in the same currency by `amountMinor` and flips status pending → redeemed.
+// `rate` is a Currency.rate snapshot at generation (for the base-equivalent display / records).
+model Voucher {
+  id                  String    @id @default(uuid())
+  code                String    @unique // fixed prefix + 8 alphanumeric, e.g. VCHR1A2B3C4D
+  creatorId           String    @map("creator_id")
+  creator             User      @relation("VouchersCreated", fields: [creatorId], references: [id], onDelete: Cascade)
+  currency            String // ISO code — the voucher's (and generating wallet's) currency
+  amountMinor         BigInt    @map("amount_minor") // face value == final voucher value
+  feeMinor            BigInt    @default(0) @map("fee_minor") // charged on top, kept by the platform
+  rate                Decimal   @db.Decimal(38, 18) // Currency.rate snapshot at generation
+  status              String    @default("pending") // pending | redeemed | expired | canceled
+  redeemedById        String?   @map("redeemed_by_id")
+  redeemedBy          User?     @relation("VouchersRedeemed", fields: [redeemedById], references: [id], onDelete: SetNull)
+  redeemedByName      String?   @map("redeemed_by_name") // snapshot; survives redeemer rename/delete
+  redeemedAt          DateTime? @map("redeemed_at")
+  expiresAt           DateTime? @map("expires_at")
+  debitTransactionId  String?   @map("debit_transaction_id") // ledger leg debiting the creator
+  creditTransactionId String?   @map("credit_transaction_id") // ledger leg crediting the redeemer
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([creatorId])
+  @@index([createdAt])
+  @@map("vouchers")
 }
 
 // ---------------------------------------------------------------------------
