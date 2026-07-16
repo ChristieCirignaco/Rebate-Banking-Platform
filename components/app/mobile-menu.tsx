@@ -56,8 +56,8 @@ export function MobileMenu({ user, triggerClassName }: { user: MenuUser; trigger
         </button>
       </DrawerTrigger>
       <DrawerContent
-        className="text-white shadow-xl"
-        style={{ width: "18rem", background: DRAWER_GRADIENT, border: "none", borderRadius: 0 }}
+        className="overflow-hidden rounded-r-xl text-white shadow-xl"
+        style={{ width: "18rem", background: DRAWER_GRADIENT, border: "none" }}
       >
         <DrawerDescription className="sr-only">Main navigation</DrawerDescription>
 
