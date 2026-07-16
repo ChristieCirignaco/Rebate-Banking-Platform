@@ -73,6 +73,7 @@ model User {
   withdrawals    Withdraw[]
   sentTransfers     Transfer[] @relation("SentTransfers")
   receivedTransfers Transfer[] @relation("ReceivedTransfers")
+  moneyRequests     MoneyRequest[]
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
@@ -525,6 +526,33 @@ model Transfer {
   @@index([recipientUserId])
   @@index([createdAt])
   @@map("transfers")
+}
+
+// A user's request for the platform to credit their wallet (Request Money). Unlike a Deposit
+// there is no payment method or fee — the admin reviews the reason and either approves (an
+// idempotent wallet credit, exactly like an approved deposit) or rejects it. No funds move
+// until an admin approves, so creating one needs no transaction PIN.
+model MoneyRequest {
+  id                  String    @id @default(uuid())
+  txnId               String    @unique @map("txn_id") // human reference, e.g. REQ-XXXXXX
+  userId              String    @map("user_id")
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency            String // ISO code (denormalized so the ledger credit is exact)
+  amountMinor         BigInt    @map("amount_minor")
+  reason              String? // why the user is requesting the credit
+  status              String    @default("pending") // pending | approved | rejected
+  remarks             String? // admin remarks on review
+  reviewedById        String?   @map("reviewed_by_id")
+  reviewedByName      String?   @map("reviewed_by_name") // snapshot; survives reviewer rename/delete
+  reviewedAt          DateTime? @map("reviewed_at")
+  walletTransactionId String?   @map("wallet_transaction_id") // ledger entry created on approval
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("money_requests")
 }
 
 // ---------------------------------------------------------------------------

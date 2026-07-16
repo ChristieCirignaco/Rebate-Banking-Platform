@@ -13,6 +13,7 @@ import {
   Coins,
   CreditCard,
   FileCheck,
+  HandCoins,
   KeyRound,
   Landmark,
   LayoutDashboard,
@@ -85,6 +86,7 @@ const NAV: NavGroup[] = [
       },
       { title: "Deposits", href: "/admin/deposits", icon: ArrowDownToLine },
       { title: "Transfers", href: "/admin/transfers", icon: ArrowLeftRight },
+      { title: "Money Requests", href: "/admin/requests", icon: HandCoins },
     ],
   },
   {
