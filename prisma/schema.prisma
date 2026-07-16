@@ -80,6 +80,7 @@ model User {
   vouchersRedeemed  Voucher[] @relation("VouchersRedeemed")
   referralEarnings  ReferralEarning[] @relation("ReferralEarner") // earnings this user earned as referrer
   referralEarningFrom ReferralEarning? @relation("ReferredEarner") // the earning THEY triggered (as referred)
+  withdrawalAccounts WithdrawalAccount[]
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
@@ -422,11 +423,34 @@ model WithdrawMethod {
   updatedAt        DateTime              @updatedAt @map("updated_at")
   fields           WithdrawMethodField[]
   withdrawals      Withdraw[]
+  accounts         WithdrawalAccount[]
 
   @@index([type])
   @@index([currencyId])
   @@index([paymentGatewayId])
   @@map("withdraw_methods")
+}
+
+// A withdrawal destination the user saves once and reuses (a bank account or a crypto address).
+// It is bound to one WithdrawMethod and stores a snapshot of that method's admin-defined fields
+// ([{label, value}]), so the saved account survives later edits to the method's field set. `kind`
+// snapshots whether the method's currency is fiat (bank) or crypto, for grouping/labels.
+model WithdrawalAccount {
+  id               String         @id @default(uuid())
+  userId           String         @map("user_id")
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  withdrawMethodId String         @map("withdraw_method_id")
+  method           WithdrawMethod @relation(fields: [withdrawMethodId], references: [id], onDelete: Cascade)
+  label            String // user-facing name, e.g. "GTBank ****1234"
+  currency         String // ISO code snapshot (the method's currency)
+  kind             String // bank | crypto (snapshot of the currency type)
+  fieldValues      Json           @map("field_values") // [{label, value}] snapshot
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([withdrawMethodId])
+  @@map("withdrawal_accounts")
 }
 
 model WithdrawMethodField {
