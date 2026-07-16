@@ -60,7 +60,7 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
 
 const QUICK_ACTIONS: { label: string; icon: LucideIcon; href?: string; hint?: string }[] = [
   { label: "Deposit", icon: ArrowDownToLine, hint: "Deposits are coming soon." },
-  { label: "Transfer", icon: ArrowDownUp, hint: "Transfers are coming soon." },
+  { label: "Transfer", icon: ArrowDownUp, href: "/send" },
   { label: "Add product", icon: PackagePlus, href: "/products/new" },
 ];
 

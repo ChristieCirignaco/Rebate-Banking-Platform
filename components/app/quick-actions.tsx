@@ -16,13 +16,13 @@ export function QuickActions() {
         <PackagePlus className="size-4" />
         Add product
       </Link>
-      <ComingSoonButton
-        message="Transfers are coming soon."
+      <Link
+        href="/send"
         className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-blue-500 to-indigo-600 px-4 py-3.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.30),0_10px_22px_-10px_rgba(37,99,235,0.7)] transition-colors hover:from-blue-600 hover:to-indigo-700"
       >
         <ArrowDownUp className="size-4" />
         Transfer
-      </ComingSoonButton>
+      </Link>
       <ComingSoonButton
         ariaLabel="More actions"
         message="More actions are coming soon."
