@@ -15,16 +15,16 @@ export default async function ContactPage() {
   return (
     <main>
       {/* ================= HERO ================= */}
-      <section className="bg-slate-50 text-[var(--trb-dark)]">
-        <div className="mx-auto max-w-3xl px-6 pt-36 pb-16 text-center sm:px-8">
+      <section className="bg-[var(--trb-dark)]">
+        <div className="mx-auto max-w-3xl px-6 pt-40 pb-20 text-center sm:px-8">
           <Reveal>
             <h1
               style={{ fontFamily: "var(--font-playfair)" }}
-              className="text-5xl italic leading-tight text-[var(--trb-blue)] sm:text-6xl"
+              className="text-5xl italic leading-tight text-white sm:text-6xl"
             >
               Get In Touch
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
               Have questions about your TRB products or the redemption process?
               We are here to help. Reach out to our dedicated support team today.
             </p>
