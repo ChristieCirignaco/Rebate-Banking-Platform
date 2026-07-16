@@ -3,6 +3,7 @@ import { isAdminTierRole } from "@/lib/auth-guards";
 import { controlDefault, type ControlKind } from "@/lib/controls";
 import { lookupIps } from "@/lib/ipinfo";
 import { toMajor } from "@/lib/money/money";
+import { MAX_WALLETS, MIN_WALLETS } from "@/lib/wallets";
 import type {
   ActivityEntry,
   ControlKey,
@@ -81,6 +82,10 @@ function asTransferCodes(raw: unknown): TransferCodes {
 export type UserDetailData = {
   user: UserDetail;
   wallets: DetailWallet[];
+  // Active currencies this user has no wallet in yet, plus how many more they may hold — feeds
+  // the "Assign wallet" dialog so it can't offer a duplicate or exceed the cap.
+  assignableCurrencies: { code: string; name: string }[];
+  walletSlotsLeft: number;
   transactions: DetailTransaction[];
   referrals: ReferralUser[];
   activity: ActivityEntry[];
@@ -130,12 +135,45 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     withdrawalMessage: dbUser.withdrawalMessage ?? "",
   };
 
-  const wallets: DetailWallet[] = dbUser.wallets.map((wallet) => ({
-    currency: wallet.currency,
-    name: CURRENCY_NAMES[wallet.currency] ?? wallet.currency,
-    balance: toMajor(wallet.balanceMinor),
-    isDefault: wallet.isDefault,
-  }));
+  // Which wallets carry ledger history — one grouped count rather than a query per wallet.
+  // History matters because WalletTransaction cascades on wallet delete: removing a wallet that
+  // has any would silently wipe that currency's ledger for the user.
+  const historyRows = await prisma.walletTransaction.groupBy({
+    by: ["walletId"],
+    where: { userId: dbUser.id },
+    _count: { _all: true },
+  });
+  const withHistory = new Set(historyRows.map((row) => row.walletId));
+
+  const wallets: DetailWallet[] = dbUser.wallets.map((wallet) => {
+    const blocked = wallet.isDefault
+      ? "The primary wallet can't be removed."
+      : dbUser.wallets.length <= MIN_WALLETS
+        ? "A user must keep at least one wallet."
+        : wallet.balanceMinor !== 0n
+          ? "This wallet still holds a balance."
+          : withHistory.has(wallet.id)
+            ? "This wallet has transaction history."
+            : null;
+    return {
+      id: wallet.id,
+      currency: wallet.currency,
+      name: CURRENCY_NAMES[wallet.currency] ?? wallet.currency,
+      balance: toMajor(wallet.balanceMinor),
+      isDefault: wallet.isDefault,
+      removable: blocked === null,
+      removeBlockedReason: blocked,
+    };
+  });
+
+  const heldCodes = wallets.map((wallet) => wallet.currency);
+  const assignableCurrencies = (
+    await prisma.currency.findMany({
+      where: { isActive: true, code: { notIn: heldCodes.length ? heldCodes : ["__none__"] } },
+      select: { code: true, name: true },
+      orderBy: { code: "asc" },
+    })
+  ).map((currency) => ({ code: currency.code, name: currency.name }));
 
   const transactions: DetailTransaction[] = dbUser.transactions.map((tx) => ({
     id: `TRX-${tx.id.slice(0, 8).toUpperCase()}`,
@@ -269,6 +307,8 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
   return {
     user,
     wallets,
+    assignableCurrencies,
+    walletSlotsLeft: Math.max(0, MAX_WALLETS - wallets.length),
     transactions,
     referrals,
     activity,

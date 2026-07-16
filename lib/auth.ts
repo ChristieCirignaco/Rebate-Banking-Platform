@@ -8,6 +8,7 @@ import { admin as adminPlugin, twoFactor } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
+import { MAX_WALLETS } from "@/lib/wallets";
 import { ac, roles } from "@/lib/permissions";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
@@ -48,12 +49,15 @@ export const auth = betterAuth({
             }),
           ]);
 
-          // The configured default currency always backs the default wallet (even if it
-          // isn't itself auto-wallet). Falls back to USD so signup never depends on config.
+          // The configured default currency always backs the primary wallet (even if it isn't
+          // itself auto-wallet). Falls back to USD so signup never depends on config.
           const defaultCode = defaultCurrency?.code ?? "USD";
+          // Primary first, then any auto-wallet currencies the admin configured — capped at
+          // MAX_WALLETS, since a user may hold at most that many (lib/wallets.ts). The primary
+          // is always index 0, so the cap can only ever drop auto-wallet extras, never it.
           const codes = Array.from(
             new Set([defaultCode, ...autoCurrencies.map((currency) => currency.code)]),
-          );
+          ).slice(0, MAX_WALLETS);
 
           await prisma.wallet.createMany({
             data: codes.map((code) => ({

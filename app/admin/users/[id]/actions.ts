@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { addWalletFor, removeWalletFor } from "@/lib/wallets";
 import type {
   ControlKey,
   ManageFundsPayload,
@@ -187,4 +188,31 @@ export async function notifyUser(userId: string, input: NotifyPayload): Promise<
   });
   revalidate(userId);
   return { ok: true };
+}
+
+// Assign an extra wallet to a user. Same cap and currency rules as the user's own /wallet page —
+// both go through lib/wallets so admin and user can't drift apart on what "3 wallets max" means.
+export async function assignWallet(userId: string, currencyCode: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const result = await addWalletFor(userId, currencyCode);
+  if (result.ok) revalidate(userId);
+  return result;
+}
+
+// Remove a user's wallet. The guards in lib/wallets are load-bearing here: WalletTransaction
+// cascades on wallet delete, so removing a wallet with history would wipe that currency's ledger,
+// and removing one with a balance would destroy money. Both are refused, as is the primary or
+// the user's last wallet.
+export async function removeUserWallet(userId: string, walletId: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+  if (!walletId) return { ok: false, error: "Missing wallet." };
+
+  const result = await removeWalletFor(userId, walletId);
+  if (result.ok) revalidate(userId);
+  return result;
 }

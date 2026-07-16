@@ -38,6 +38,8 @@ import type {
 export function UserDetailView({
   user,
   wallets,
+  assignableCurrencies,
+  walletSlotsLeft,
   controls: initialControls,
   statValues,
   statCurrency,
@@ -49,6 +51,8 @@ export function UserDetailView({
 }: {
   user: UserDetail;
   wallets: DetailWallet[];
+  assignableCurrencies: { code: string; name: string }[];
+  walletSlotsLeft: number;
   controls: UserControl[];
   statValues: Record<string, number>;
   statCurrency: string;
@@ -106,7 +110,12 @@ export function UserDetailView({
             run(updateWithdrawalControl(user.id, payload), "Withdrawal status updated")
           }
         />
-        <WalletList wallets={wallets} />
+        <WalletList
+          userId={user.id}
+          wallets={wallets}
+          assignable={assignableCurrencies}
+          slotsLeft={walletSlotsLeft}
+        />
         <UserControls controls={controls} onToggle={handleToggle} />
       </div>
 

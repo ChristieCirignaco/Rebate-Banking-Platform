@@ -31,10 +31,16 @@ export interface UserDetail {
 }
 
 export interface DetailWallet {
+  id: string;
   currency: string; // USD / EUR / USDT
   name: string; // "US Dollar"
   balance: number;
   isDefault: boolean;
+  // Whether this wallet can be removed at all. Computed server-side because the reasons are
+  // server facts (it's the primary, it holds a balance, it has ledger history, or it's the
+  // user's last wallet) — the trash control uses it to explain itself instead of failing.
+  removable: boolean;
+  removeBlockedReason: string | null;
 }
 
 export type ControlKey =

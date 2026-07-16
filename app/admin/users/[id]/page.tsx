@@ -29,6 +29,8 @@ export default async function AdminUserDetailPage({
       <UserDetailView
         user={data.user}
         wallets={data.wallets}
+        assignableCurrencies={data.assignableCurrencies}
+        walletSlotsLeft={data.walletSlotsLeft}
         controls={data.controls}
         statValues={data.statValues}
         statCurrency={data.statCurrency}
