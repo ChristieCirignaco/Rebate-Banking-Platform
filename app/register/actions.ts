@@ -8,6 +8,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { getCountryByCode } from "@/lib/countries";
 import { prisma } from "@/lib/db";
+import { awardReferral, referrerIdForCode } from "@/lib/referrals";
 import { REGISTRATION_COOKIE, signRegistrationToken } from "@/lib/registration-token";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
@@ -30,6 +31,7 @@ const RegisterSchema = z.object({
   gender: z.enum(["male", "female", "other", "unspecified"]),
   address: z.string().trim().min(3, "Enter your home address.").max(200),
   timezone: z.string().trim().max(64).optional(),
+  ref: z.string().trim().max(32).optional(), // referral share code from /register?ref=
   acceptedTerms: z.literal(true, { message: "Please accept the Terms and Conditions." }),
 });
 
@@ -173,6 +175,9 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
   // request context, so the hook can't see the path and the row is created with the default
   // "active". We therefore set the status here explicitly, and fall back to a status-only write
   // if the combined update fails, so a self-registered account is NEVER left active/unapproved.
+  // Resolve the referral link's code to a referrer (never self-refer). Recorded on the new user.
+  const referrerId = data.ref ? await referrerIdForCode(data.ref) : null;
+
   try {
     await prisma.user.update({
       where: { id: userId },
@@ -183,14 +188,24 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
         gender: data.gender,
         address: data.address,
         ...(data.timezone ? { timezone: data.timezone } : {}),
+        ...(referrerId && referrerId !== userId ? { referredById: referrerId } : {}),
       },
     });
   } catch (error) {
     console.error("[register] profile write failed for", userId, error);
     await prisma.user
-      .update({ where: { id: userId }, data: { status: "pending" } })
+      .update({
+        where: { id: userId },
+        data: {
+          status: "pending",
+          ...(referrerId && referrerId !== userId ? { referredById: referrerId } : {}),
+        },
+      })
       .catch(() => {});
   }
+
+  // Award on the "signup" trigger (no-op unless referral settings use it + a referrer exists).
+  await awardReferral({ referredUserId: userId, trigger: "signup" });
 
   await setContinuation(userId);
   return { ok: true };

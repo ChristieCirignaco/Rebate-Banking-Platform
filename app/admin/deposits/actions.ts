@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { postLedgerEntry } from "@/lib/money/ledger";
+import { awardReferral } from "@/lib/referrals";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { DepositMethodPayload } from "@/components/admin/deposits/types";
 
@@ -78,6 +79,13 @@ export async function approveDeposit(
     }
     return { ok: false, error: "Could not credit the wallet. Please try again." };
   }
+  // Referral: award the referrer on the referred user's first completed deposit (idempotent).
+  await awardReferral({
+    referredUserId: deposit.userId,
+    trigger: "first_deposit",
+    depositAmountMinor: deposit.amountMinor,
+    depositCurrency: deposit.currency,
+  });
   revalidate();
   return { ok: true };
 }

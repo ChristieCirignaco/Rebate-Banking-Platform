@@ -22,11 +22,16 @@ account. We may suspend or close accounts that violate these terms or applicable
 
 These are placeholder terms. The operator can replace them in the admin settings.`;
 
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
   // Already signed in? Don't show the signup form (admins -> /admin, active users -> /dashboard).
   await redirectIfAuthenticated();
 
-  const [registrationOpen, branding, legal] = await Promise.all([
+  const [{ ref }, registrationOpen, branding, legal] = await Promise.all([
+    searchParams,
     isFeatureEnabled("registration"),
     getSettings("branding"),
     getSettings("legal"),
@@ -57,5 +62,11 @@ export default async function RegisterPage() {
 
   const termsContent = legal.termsContent?.trim() ? legal.termsContent : FALLBACK_TERMS;
 
-  return <RegisterForm logoUrl={branding.logoLight} termsContent={termsContent} />;
+  return (
+    <RegisterForm
+      logoUrl={branding.logoLight}
+      termsContent={termsContent}
+      refCode={typeof ref === "string" ? ref.trim().slice(0, 32) : undefined}
+    />
+  );
 }

@@ -14,6 +14,7 @@ export const FEATURE_FLAGS = [
   { key: "send_money", label: "Send Money", description: "Allow user-to-user transfers.", side: "user", defaultEnabled: true },
   { key: "request_money", label: "Request Money", description: "Allow users to request money from others.", side: "user", defaultEnabled: true },
   { key: "voucher", label: "Voucher", description: "Allow users to generate and redeem vouchers.", side: "user", defaultEnabled: true },
+  { key: "referrals", label: "Referrals", description: "Allow users to refer others and earn referral rewards.", side: "user", defaultEnabled: true },
   { key: "maintenance_mode", label: "Maintenance Mode", description: "Take the user-facing site offline with a notice. The admin panel stays accessible.", side: "admin", defaultEnabled: false },
 ] as const;
 

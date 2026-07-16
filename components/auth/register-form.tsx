@@ -57,9 +57,11 @@ type FieldErrors = Partial<
 export function RegisterForm({
   logoUrl,
   termsContent,
+  refCode,
 }: {
   logoUrl?: string | null;
   termsContent: string;
+  refCode?: string;
 }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -131,6 +133,7 @@ export function RegisterForm({
         gender: gender as "male" | "female" | "other" | "unspecified",
         address: address.trim(),
         timezone,
+        ...(refCode ? { ref: refCode } : {}),
         acceptedTerms: true,
       });
       if (result.ok) {

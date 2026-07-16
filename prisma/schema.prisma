@@ -56,6 +56,7 @@ model User {
   transferCodes     Json? // { imf: string[], tax: string[], cot: string[] }
 
   // Referrals (self relation)
+  referralCode String?  @unique @map("referral_code") // the user's own share code (lazy-generated)
   referredById String?
   referredBy   User?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals    User[]  @relation("Referrals")
@@ -77,6 +78,8 @@ model User {
   exchanges         Exchange[]
   vouchersCreated   Voucher[] @relation("VouchersCreated")
   vouchersRedeemed  Voucher[] @relation("VouchersRedeemed")
+  referralEarnings  ReferralEarning[] @relation("ReferralEarner") // earnings this user earned as referrer
+  referralEarningFrom ReferralEarning? @relation("ReferredEarner") // the earning THEY triggered (as referred)
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
@@ -612,6 +615,34 @@ model Voucher {
   @@index([creatorId])
   @@index([createdAt])
   @@map("vouchers")
+}
+
+// A referral reward the referrer earns when a user they referred completes the configured
+// qualifying action (signup or first deposit). Exactly one per referred user (unique), so the
+// award is idempotent. Created "pending"; an admin marks it "paid", which posts a "reward"
+// ledger credit to the referrer's wallet (rewardTransactionId). The amount + trigger are a
+// snapshot of the referral settings at the time it was earned.
+model ReferralEarning {
+  id                  String    @id @default(uuid())
+  referrerId          String    @map("referrer_id")
+  referrer            User      @relation("ReferralEarner", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUserId      String    @unique @map("referred_user_id")
+  referredUser        User      @relation("ReferredEarner", fields: [referredUserId], references: [id], onDelete: Cascade)
+  amountMinor         BigInt    @map("amount_minor")
+  currency            String
+  trigger             String // signup | first_deposit (snapshot)
+  status              String    @default("pending") // pending | paid | rejected
+  rewardTransactionId String?   @map("reward_transaction_id") // ledger credit posted on payout
+  reviewedById        String?   @map("reviewed_by_id")
+  reviewedByName      String?   @map("reviewed_by_name") // snapshot; survives reviewer rename/delete
+  paidAt              DateTime? @map("paid_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([referrerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("referral_earnings")
 }
 
 // ---------------------------------------------------------------------------

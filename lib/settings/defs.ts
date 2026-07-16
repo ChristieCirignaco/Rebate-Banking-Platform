@@ -91,6 +91,18 @@ export interface LegalSettings {
   socialTiktok: string;
 }
 
+export type ReferralTrigger = "signup" | "first_deposit";
+export type ReferralRewardType = "fixed" | "percent";
+
+export interface ReferralSettings {
+  trigger: ReferralTrigger; // when an earning is created for the referrer
+  rewardType: ReferralRewardType; // fixed amount, or a percent of the first deposit
+  rewardAmount: number; // fixed: major-unit amount; percent: e.g. 5 = 5%
+  rewardCurrency: string; // currency for a fixed reward
+  allowedRules: string; // one rule per line — informational, admin-configurable
+  prohibitedRules: string; // one rule per line
+}
+
 export interface SettingsGroups {
   general: GeneralSettings;
   branding: BrandingSettings;
@@ -98,6 +110,7 @@ export interface SettingsGroups {
   security: SecuritySettings;
   limits: LimitsSettings;
   legal: LegalSettings;
+  referrals: ReferralSettings;
 }
 
 export type SettingsGroupKey = keyof SettingsGroups;
@@ -161,6 +174,16 @@ export const SETTINGS_DEFAULTS: SettingsGroups = {
     socialLinkedin: "",
     socialYoutube: "",
     socialTiktok: "",
+  },
+  referrals: {
+    trigger: "first_deposit",
+    rewardType: "fixed",
+    rewardAmount: 5,
+    rewardCurrency: "USD",
+    allowedRules:
+      "Share your link on social media, blogs, and messaging apps.\nPromote it through your own marketing channels.\nInvite friends and family who will genuinely use the service.",
+    prohibitedRules:
+      "Creating multiple accounts on the same device to self-refer.\nBot-driven, fake, or incentivized-only signups.\nSpam or misleading promotion of your link.",
   },
 };
 

@@ -6,6 +6,7 @@ import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { isDepositProofUrl } from "@/lib/deposit-proof";
+import { awardReferral } from "@/lib/referrals";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
@@ -163,5 +164,13 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   } catch {
     return { ok: false, error: "Could not process the deposit. Please try again." };
   }
+  // Referral: award the referrer on the referred user's first completed deposit (no-op unless
+  // the trigger is configured + they were referred; idempotent, so safe on every deposit).
+  await awardReferral({
+    referredUserId: userId,
+    trigger: "first_deposit",
+    depositAmountMinor: amountMinor,
+    depositCurrency: wallet.currency,
+  });
   return { ok: true, next: "/transactions", message: "Deposit successful." };
 }

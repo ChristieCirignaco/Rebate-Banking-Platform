@@ -14,6 +14,7 @@ import {
   Coins,
   CreditCard,
   FileCheck,
+  Gift,
   HandCoins,
   KeyRound,
   Landmark,
@@ -91,6 +92,7 @@ const NAV: NavGroup[] = [
       { title: "Money Requests", href: "/admin/requests", icon: HandCoins },
       { title: "Exchanges", href: "/admin/exchanges", icon: ArrowRightLeft },
       { title: "Vouchers", href: "/admin/vouchers", icon: Ticket },
+      { title: "Referrals", href: "/admin/referrals", icon: Gift },
     ],
   },
   {
