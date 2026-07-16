@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
+import { effectiveVoucherStatus } from "@/lib/voucher-code";
+import { loadUserWallets } from "@/lib/wallets";
 
 // User-facing Voucher reads: the caller's wallets with their per-currency voucher fee + rate
 // (from the admin "voucher" CurrencyRole and Currency.rate) so the Generate modal can compute
@@ -39,18 +41,9 @@ export type VoucherData = {
   baseCode: string; // the default currency's code, for the "Conversion Rate" line
 };
 
-// A stored-pending voucher past its expiry reads as "expired" (redemption also enforces this).
-function effectiveStatus(status: string, expiresAt: Date | null): VoucherStatus {
-  if (status === "pending" && expiresAt && expiresAt.getTime() < Date.now()) return "expired";
-  return status as VoucherStatus;
-}
-
 export async function getVoucherData(userId: string): Promise<VoucherData> {
   const [wallets, vouchers, base] = await Promise.all([
-    prisma.wallet.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: "desc" }, { currency: "asc" }],
-    }),
+    loadUserWallets(userId),
     prisma.voucher.findMany({
       where: { creatorId: userId },
       orderBy: { createdAt: "desc" },
@@ -119,7 +112,7 @@ export async function getVoucherData(userId: string): Promise<VoucherData> {
       code: v.code,
       amountLabel: formatCurrency(toMajor(v.amountMinor), v.currency),
       currency: v.currency,
-      status: effectiveStatus(v.status, v.expiresAt),
+      status: effectiveVoucherStatus(v.status, v.expiresAt) as VoucherStatus,
       redeemedByName: v.redeemedByName,
       redeemedOnLabel: v.redeemedAt ? formatDateTime(v.redeemedAt.toISOString()) : null,
       createdOnLabel: formatDateTime(v.createdAt.toISOString()),

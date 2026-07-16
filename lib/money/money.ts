@@ -14,3 +14,8 @@ export function toMajor(minor: bigint): number {
 export function formatMinor(minor: bigint, currency = "USD"): string {
   return formatCurrency(toMajor(minor), currency);
 }
+
+// A cross-rate label, e.g. formatRateLabel("USD", 0.96, "EUR") -> "1 USD = 0.96 EUR".
+export function formatRateLabel(from: string, rate: number, to: string): string {
+  return `1 ${from} = ${rate.toLocaleString("en-US", { maximumFractionDigits: 8 })} ${to}`;
+}

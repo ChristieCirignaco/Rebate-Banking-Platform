@@ -2,13 +2,13 @@
 
 import { randomUUID } from "node:crypto";
 
-import { z } from "zod";
-
 import { requireActiveUser } from "@/lib/auth-guards";
+import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor, toMinor } from "@/lib/money/money";
+import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { verifyTransactionPin } from "@/lib/transaction-pin";
 
@@ -16,19 +16,6 @@ export type ExchangeInput = { fromWalletId: string; toWalletId: string; amount: 
 export type ExchangeResult =
   | { ok: true; next: string; message: string }
   | { ok: false; error: string; needPin?: boolean };
-
-const AmountSchema = z.coerce
-  .number({ message: "Enter a valid amount." })
-  .positive("Amount must be greater than 0.")
-  .max(1_000_000_000, "Amount is too large.");
-
-function controlAllows(raw: unknown, key: string): boolean {
-  if (!raw || typeof raw !== "object") return true;
-  return (raw as Record<string, unknown>)[key] !== false;
-}
-function exchangeCode(): string {
-  return `EXC-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
-}
 
 // Exchange between two of the user's own wallets. Instant + passcode-gated: verify the PIN, then
 // in one transaction create the Exchange record, debit the `from` wallet and credit the `to`
@@ -100,7 +87,7 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
   if (toAmountMinor <= 0n) return { ok: false, error: "Amount is too small to convert." };
 
   const exchangeId = randomUUID();
-  const txnId = exchangeCode();
+  const txnId = txnCode("EXC");
 
   try {
     await prisma.$transaction(async (tx) => {

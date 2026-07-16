@@ -2,31 +2,21 @@
 
 import { randomInt, randomUUID } from "node:crypto";
 
-import { z } from "zod";
-
 import { requireActiveUser } from "@/lib/auth-guards";
+import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor, toMinor } from "@/lib/money/money";
+import { AmountSchema } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { isValidVoucherCode, normalizeVoucherCode, VOUCHER_PREFIX } from "@/lib/voucher-code";
 
 export type GenerateVoucherInput = { walletId: string; amount: string };
 export type VoucherActionResult = { ok: true; message: string } | { ok: false; error: string };
 
-const AmountSchema = z.coerce
-  .number({ message: "Enter a valid amount." })
-  .positive("Amount must be greater than 0.")
-  .max(1_000_000_000, "Amount is too large.");
-
 const VOUCHER_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 year
 const CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-function controlAllows(raw: unknown, key: string): boolean {
-  if (!raw || typeof raw !== "object") return true;
-  return (raw as Record<string, unknown>)[key] !== false;
-}
 
 function randomCode(): string {
   let s = "";

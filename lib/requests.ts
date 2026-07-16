@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
+import { loadUserWallets } from "@/lib/wallets";
 
 // User-facing Request Money reads: the caller's wallets (to choose which to credit) and their
 // recent requests with status. Presentation is folded here so the client form stays clean.
@@ -31,10 +32,7 @@ export type RequestPageData = {
 
 export async function getRequestPageData(userId: string): Promise<RequestPageData> {
   const [wallets, requests] = await Promise.all([
-    prisma.wallet.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: "desc" }, { currency: "asc" }],
-    }),
+    loadUserWallets(userId),
     prisma.moneyRequest.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },

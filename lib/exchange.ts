@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatDateTime } from "@/lib/format";
-import { toMajor } from "@/lib/money/money";
+import { formatRateLabel, toMajor } from "@/lib/money/money";
+import { loadUserWallets } from "@/lib/wallets";
 
 // User-facing Exchange Money reads: the caller's wallets joined to the admin-configured Currency
 // rows (rate + symbol) so the client can compute conversions, plus recent exchange history. Only
@@ -31,16 +32,9 @@ export type ExchangeData = {
   hasPin: boolean;
 };
 
-function rateNumber(value: number): string {
-  return value.toLocaleString("en-US", { maximumFractionDigits: 8 });
-}
-
 export async function getExchangeData(userId: string): Promise<ExchangeData> {
   const [wallets, user, exchanges] = await Promise.all([
-    prisma.wallet.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: "desc" }, { currency: "asc" }],
-    }),
+    loadUserWallets(userId),
     prisma.user.findUnique({ where: { id: userId }, select: { transactionPin: true } }),
     prisma.exchange.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 30 }),
   ]);
@@ -77,7 +71,7 @@ export async function getExchangeData(userId: string): Promise<ExchangeData> {
       txnId: e.txnId,
       fromLabel: formatCurrency(toMajor(e.fromAmountMinor), e.fromCurrency),
       toLabel: formatCurrency(toMajor(e.toAmountMinor), e.toCurrency),
-      rateLabel: `1 ${e.fromCurrency} = ${rateNumber(Number(e.rate))} ${e.toCurrency}`,
+      rateLabel: formatRateLabel(e.fromCurrency, Number(e.rate), e.toCurrency),
       createdAtLabel: formatDateTime(e.createdAt.toISOString()),
     })),
   };

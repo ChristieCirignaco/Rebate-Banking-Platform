@@ -12,3 +12,10 @@ export function normalizeVoucherCode(code: string): string {
 export function isValidVoucherCode(code: string): boolean {
   return VOUCHER_CODE_RE.test(normalizeVoucherCode(code));
 }
+
+// A stored-pending voucher whose expiry has passed reads as "expired" (redemption enforces this
+// too). Shared by the user and admin voucher read layers so the derivation can't drift.
+export function effectiveVoucherStatus(status: string, expiresAt: Date | null): string {
+  if (status === "pending" && expiresAt && expiresAt.getTime() < Date.now()) return "expired";
+  return status;
+}

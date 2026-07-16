@@ -6,10 +6,12 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
+import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMinor } from "@/lib/money/money";
+import { txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { verifyTransactionPin } from "@/lib/transaction-pin";
 import {
@@ -108,13 +110,6 @@ type TransferCodes = { imf: string[]; tax: string[]; cot: string[] };
 function asCodes(raw: unknown): TransferCodes {
   const v = (raw ?? {}) as Partial<TransferCodes>;
   return { imf: v.imf ?? [], tax: v.tax ?? [], cot: v.cot ?? [] };
-}
-function controlAllows(raw: unknown, key: string): boolean {
-  if (!raw || typeof raw !== "object") return true;
-  return (raw as Record<string, unknown>)[key] !== false;
-}
-function txnCode(): string {
-  return `TRF-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
 async function setAuthCookie(state: TransferAuthState): Promise<void> {
@@ -256,7 +251,7 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
 async function finalize(userId: string, state: TransferAuthState): Promise<StepResult> {
   const { payload, transferId } = state;
   const amountMinor = toMinor(Number(payload.amount));
-  const txnId = txnCode();
+  const txnId = txnCode("TRF");
   const codesVerified = state.sequence.some((s) => s !== "otp") &&
     state.sequence.filter((s) => s !== "otp").every((s) => state.verified.includes(s));
 

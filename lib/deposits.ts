@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { loadUserWallets } from "@/lib/wallets";
 
 // User-facing deposit reads: the caller's wallets + the active deposit methods available for
 // those wallet currencies (a DepositMethod is bound to one currency). Presentation is folded
@@ -57,10 +58,7 @@ function limitLabel(min: number, max: number, currency: string): string | null {
 
 export async function getDepositData(userId: string): Promise<DepositData> {
   const [wallets, user] = await Promise.all([
-    prisma.wallet.findMany({
-      where: { userId },
-      orderBy: [{ isDefault: "desc" }, { currency: "asc" }],
-    }),
+    loadUserWallets(userId),
     prisma.user.findUnique({ where: { id: userId }, select: { transactionPin: true } }),
   ]);
 

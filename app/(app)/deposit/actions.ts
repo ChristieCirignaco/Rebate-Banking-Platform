@@ -2,13 +2,13 @@
 
 import { randomUUID } from "node:crypto";
 
-import { z } from "zod";
-
 import { requireActiveUser } from "@/lib/auth-guards";
+import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { isDepositProofUrl } from "@/lib/deposit-proof";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMinor } from "@/lib/money/money";
+import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { verifyTransactionPin } from "@/lib/transaction-pin";
 
@@ -22,18 +22,6 @@ export type DepositResult =
   | { ok: true; next: string; message: string }
   | { ok: false; error: string; needPin?: boolean };
 
-const AmountSchema = z.coerce
-  .number({ message: "Enter a valid amount." })
-  .positive("Amount must be greater than 0.")
-  .max(1_000_000_000, "Amount is too large.");
-
-function controlAllows(raw: unknown, key: string): boolean {
-  if (!raw || typeof raw !== "object") return true;
-  return (raw as Record<string, unknown>)[key] !== false;
-}
-function txnCode(): string {
-  return `DEP-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
-}
 
 // Create a deposit. Passcode-gated (transaction PIN) and fail-closed on the deposits flag +
 // the per-user deposit control. Manual methods post as `pending` for admin approval (which
@@ -111,7 +99,7 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   const feeMinor = toMinor(Math.max(0, feeMajor));
   const provider = method.paymentGateway?.name ?? method.name;
   const depositId = randomUUID();
-  const txnId = txnCode();
+  const txnId = txnCode("DEP");
 
   if (method.type === "manual") {
     await prisma.deposit.create({

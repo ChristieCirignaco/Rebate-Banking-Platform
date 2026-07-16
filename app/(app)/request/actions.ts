@@ -2,28 +2,15 @@
 
 import { randomUUID } from "node:crypto";
 
-import { z } from "zod";
-
 import { requireActiveUser } from "@/lib/auth-guards";
+import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { toMinor } from "@/lib/money/money";
+import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
 export type RequestInput = { walletId: string; amount: string; reason?: string };
 export type RequestResult = { ok: true; message: string } | { ok: false; error: string };
-
-const AmountSchema = z.coerce
-  .number({ message: "Enter a valid amount." })
-  .positive("Amount must be greater than 0.")
-  .max(1_000_000_000, "Amount is too large.");
-
-function controlAllows(raw: unknown, key: string): boolean {
-  if (!raw || typeof raw !== "object") return true;
-  return (raw as Record<string, unknown>)[key] !== false;
-}
-function txnCode(): string {
-  return `REQ-${randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
-}
 
 // Create a money request — a user asking the platform to credit their wallet. Fail-closed on the
 // request_money flag + the per-user control. No transaction PIN: nothing moves until an admin
@@ -61,7 +48,7 @@ export async function createMoneyRequest(input: RequestInput): Promise<RequestRe
   await prisma.moneyRequest.create({
     data: {
       id: randomUUID(),
-      txnId: txnCode(),
+      txnId: txnCode("REQ"),
       userId,
       currency: wallet.currency,
       amountMinor: toMinor(amount.data),
