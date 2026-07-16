@@ -91,6 +91,11 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
       if (value && field.type === "file" && !isDepositProofUrl(value)) {
         return { ok: false, error: `Upload a valid file for ${field.label}.` };
       }
+      // A select only ever stores one of the admin's own choices — the client's <select> is not
+      // a constraint, so re-check the value against the field's options here.
+      if (value && field.type === "select" && !field.options.includes(value)) {
+        return { ok: false, error: `Choose a valid ${field.label}.` };
+      }
       if (value) fieldValues.push({ label: field.label, value });
     }
   }

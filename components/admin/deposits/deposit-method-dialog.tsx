@@ -116,6 +116,7 @@ export function DepositMethodDialog({
         label: field.label,
         type: field.type,
         required: field.required,
+        options: field.options ?? [],
       })) ?? [],
   );
   const [instructions, setInstructions] = useState(method?.instructions ?? "");
@@ -140,6 +141,7 @@ export function DepositMethodDialog({
         label: field.label,
         type: field.type,
         required: field.required,
+        options: field.options ?? [],
       })) ?? [],
     );
     setInstructions(method?.instructions ?? "");
@@ -189,6 +191,7 @@ export function DepositMethodDialog({
             label: field.label.trim(),
             type: field.type,
             required: field.required,
+            options: field.options ?? [],
           }))
         : [],
     };

@@ -695,7 +695,7 @@ async function main() {
         { label: "Account Name", type: "input", required: true, sortOrder: 2 },
         { label: "Routing Number", type: "input", required: false, sortOrder: 3 },
         { label: "SWIFT/BIC Code", type: "input", required: false, sortOrder: 4 },
-        { label: "Account Type", type: "input", required: false, sortOrder: 5 },
+        { label: "Account Type", type: "select", required: false, options: ["Savings", "Current", "Checking", "Domiciliary"], sortOrder: 5 },
       ] },
     },
   });

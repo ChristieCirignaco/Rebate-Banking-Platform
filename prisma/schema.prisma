@@ -351,8 +351,9 @@ model ManualMethodField {
   depositMethodId String        @map("deposit_method_id")
   method          DepositMethod @relation(fields: [depositMethodId], references: [id], onDelete: Cascade)
   label           String
-  type            String        @default("input") // input | textarea | file
+  type            String        @default("input") // input | textarea | file | select
   required        Boolean       @default(true)
+  options         String[]      @default([]) // the choices when type = select; empty otherwise
   sortOrder       Int           @default(0) @map("sort_order")
 
   @@index([depositMethodId])
@@ -458,8 +459,9 @@ model WithdrawMethodField {
   withdrawMethodId String         @map("withdraw_method_id")
   method           WithdrawMethod @relation(fields: [withdrawMethodId], references: [id], onDelete: Cascade)
   label            String
-  type             String         @default("input") // input | textarea | file
+  type             String         @default("input") // input | textarea | file | select
   required         Boolean        @default(true)
+  options          String[]       @default([]) // the choices when type = select; empty otherwise
   sortOrder        Int            @default(0) @map("sort_order")
 
   @@index([withdrawMethodId])

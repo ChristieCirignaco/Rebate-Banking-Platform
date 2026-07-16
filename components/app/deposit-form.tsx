@@ -262,7 +262,21 @@ export function DepositForm({
                     <span className="ml-1 font-normal text-slate-400">(optional)</span>
                   )}
                 </Label>
-                {f.type === "textarea" ? (
+                {f.type === "select" ? (
+                  <select
+                    id={`f-${f.id}`}
+                    value={fields[f.id] ?? ""}
+                    onChange={(e) => setFields((p) => ({ ...p, [f.id]: e.target.value }))}
+                    className={SELECT}
+                  >
+                    <option value="">Select {f.label.toLowerCase()}</option>
+                    {f.options.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : f.type === "textarea" ? (
                   <Textarea
                     id={`f-${f.id}`}
                     value={fields[f.id] ?? ""}

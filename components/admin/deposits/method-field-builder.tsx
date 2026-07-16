@@ -18,19 +18,31 @@ export interface FieldRow {
   label: string;
   type: ManualFieldType;
   required: boolean;
+  options: string[];
 }
 
 export const emptyField = (): FieldRow => ({
   label: "",
   type: "input",
   required: true,
+  options: [],
 });
 
 const TYPE_OPTIONS: { value: ManualFieldType; label: string }[] = [
   { value: "input", label: "Input Text" },
   { value: "textarea", label: "Textarea" },
   { value: "file", label: "File" },
+  { value: "select", label: "Select" },
 ];
+
+// The options list is edited as one comma-separated line — the shape admins already expect from
+// this kind of builder, and it keeps a whole row from becoming a nested list editor.
+export const optionsToText = (options: string[]) => options.join(", ");
+export const textToOptions = (text: string) =>
+  text
+    .split(",")
+    .map((option) => option.trim())
+    .filter(Boolean);
 
 // The dynamic custom-field builder: these rows define what the user fills at deposit time
 // and what the admin sees in the Manual Requests review modal.
@@ -74,10 +86,8 @@ export function MethodFieldBuilder({
       ) : (
         <div className="flex flex-col gap-2">
           {fields.map((field, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-1 items-center gap-2 rounded-lg border p-2 sm:grid-cols-[1fr_9rem_8rem_auto]"
-            >
+            <div key={index} className="flex flex-col gap-2 rounded-lg border p-2">
+              <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_9rem_8rem_auto]">
               <Input
                 value={field.label}
                 onChange={(event) => update(index, { label: event.target.value })}
@@ -121,6 +131,16 @@ export function MethodFieldBuilder({
               >
                 <Trash2 className="size-4" />
               </Button>
+              </div>
+
+              {field.type === "select" ? (
+                <Input
+                  value={optionsToText(field.options)}
+                  onChange={(event) => update(index, { options: textToOptions(event.target.value) })}
+                  placeholder="Choices, comma separated — e.g. Savings, Current, Checking"
+                  aria-label={`Field ${index + 1} choices`}
+                />
+              ) : null}
             </div>
           ))}
         </div>

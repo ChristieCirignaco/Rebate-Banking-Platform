@@ -1,6 +1,7 @@
 import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import type { MethodFieldType } from "@/lib/method-fields";
 import { toMajor } from "@/lib/money/money";
 import { loadUserWallets } from "@/lib/wallets";
 import { getSettings } from "@/lib/settings/store";
@@ -10,7 +11,7 @@ import { getSettings } from "@/lib/settings/store";
 // are bound to a currency, and the currency's type decides whether it's a bank or crypto method.
 
 export type WithdrawKind = "bank" | "crypto";
-export type WithdrawFieldType = "input" | "textarea" | "file";
+export type WithdrawFieldType = MethodFieldType;
 
 export type WithdrawWalletView = {
   id: string;
@@ -27,8 +28,13 @@ export type WithdrawMethodView = {
   currency: string;
   feeLabel: string;
   limitLabel: string | null;
-  processTimeLabel: string | null;
-  fields: { id: string; label: string; type: WithdrawFieldType; required: boolean }[];
+  fields: {
+    id: string;
+    label: string;
+    type: WithdrawFieldType;
+    required: boolean;
+    options: string[];
+  }[];
 };
 
 export type WithdrawAccountView = {
@@ -42,7 +48,6 @@ export type WithdrawAccountView = {
   chargeValue: number;
   minAmount: number; // method min (0 = none)
   maxAmount: number; // method max (0 = none)
-  processTimeLabel: string | null;
   summary: string; // a short preview of the stored fields
 };
 
@@ -70,10 +75,6 @@ function limitLabel(min: number, max: number, currency: string): string | null {
   if (min > 0) parts.push(`min ${formatCurrency(min, currency)}`);
   if (max > 0) parts.push(`max ${formatCurrency(max, currency)}`);
   return parts.length ? parts.join(" · ") : null;
-}
-export function processTimeLabel(value: number | null, unit: string | null): string | null {
-  if (!value || !unit) return null;
-  return `${value} ${unit}${value === 1 ? "" : "s"}`;
 }
 
 export function toFieldValues(raw: unknown): { label: string; value: string }[] {
@@ -138,7 +139,18 @@ export async function getWithdrawData(userId: string): Promise<WithdrawData> {
     prisma.user.findUnique({ where: { id: userId }, select: { transactionPin: true } }),
     prisma.withdrawalAccount.findMany({
       where: { userId },
-      include: { method: { select: { name: true, chargeType: true, chargeValue: true, minAmount: true, maxAmount: true, processTimeValue: true, processTimeUnit: true, isActive: true } } },
+      include: {
+        method: {
+          select: {
+            name: true,
+            chargeType: true,
+            chargeValue: true,
+            minAmount: true,
+            maxAmount: true,
+            isActive: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     }),
     getWithdrawGate(userId),
@@ -180,12 +192,12 @@ export async function getWithdrawData(userId: string): Promise<WithdrawData> {
         currency,
         feeLabel: feeLabel(m.chargeType, Number(m.chargeValue), currency),
         limitLabel: limitLabel(Number(m.minAmount), Number(m.maxAmount), currency),
-        processTimeLabel: processTimeLabel(m.processTimeValue, m.processTimeUnit),
         fields: m.fields.map((f) => ({
           id: f.id,
           label: f.label,
           type: f.type as WithdrawFieldType,
           required: f.required,
+          options: f.options,
         })),
       };
     }),
@@ -202,7 +214,6 @@ export async function getWithdrawData(userId: string): Promise<WithdrawData> {
         chargeValue: Number(a.method.chargeValue),
         minAmount: Number(a.method.minAmount),
         maxAmount: Number(a.method.maxAmount),
-        processTimeLabel: processTimeLabel(a.method.processTimeValue, a.method.processTimeUnit),
         summary: summarize(toFieldValues(a.fieldValues)),
       })),
     hasPin: Boolean(user?.transactionPin),

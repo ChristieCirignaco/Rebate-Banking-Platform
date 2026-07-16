@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
+import type { MethodFieldType } from "@/lib/method-fields";
 import { toMajor } from "@/lib/money/money";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { loadUserWallets } from "@/lib/wallets";
@@ -11,8 +12,9 @@ import { loadUserWallets } from "@/lib/wallets";
 export type DepositManualField = {
   id: string;
   label: string;
-  type: "input" | "textarea" | "file";
+  type: MethodFieldType;
   required: boolean;
+  options: string[]; // the choices when type = select
 };
 
 export type DepositWalletView = {
@@ -95,8 +97,9 @@ export async function getDepositData(userId: string): Promise<DepositData> {
       fields: m.fields.map((f) => ({
         id: f.id,
         label: f.label,
-        type: f.type as "input" | "textarea" | "file",
+        type: f.type as MethodFieldType,
         required: f.required,
+        options: f.options,
       })),
       gatewayName: m.paymentGateway?.name ?? null,
     };

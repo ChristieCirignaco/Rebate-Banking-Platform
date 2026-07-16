@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Banknote, Bitcoin, Clock3, Loader2, Plus, ShieldAlert, Trash2, Wallet } from "lucide-react";
+import { Banknote, Bitcoin, Loader2, Plus, ShieldAlert, Trash2, Wallet } from "lucide-react";
 
 import {
   createWithdraw,
@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 const FIELD =
   "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
 
 export function WithdrawView({ data }: { data: WithdrawData }) {
   const router = useRouter();
@@ -262,11 +262,6 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
                     )}
                     {account.kind === "crypto" ? "Crypto" : "Bank"}
                   </span>
-                  {account.processTimeLabel ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Clock3 className="size-3" /> {account.processTimeLabel}
-                    </span>
-                  ) : null}
                   {account.minAmount > 0 || account.maxAmount > 0 ? (
                     <span>
                       {account.minAmount > 0 ? `min ${formatCurrency(account.minAmount, currency)}` : ""}
@@ -325,10 +320,6 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
               <span>You&apos;ll receive</span>
               <span>{formatCurrency(receive, currency)}</span>
             </div>
-            <p className="text-xs text-slate-400">
-              {formatCurrency(amountNum, currency)} is held from your {currency} wallet now and
-              released once an admin approves.
-            </p>
           </div>
         ) : null}
 
@@ -434,7 +425,7 @@ function AddAccountDialog({
         <DialogHeader>
           <DialogTitle>Add withdrawal account</DialogTitle>
           <DialogDescription>
-            Pick a method — we&apos;ll ask for exactly what it needs.
+            Pick a method
           </DialogDescription>
         </DialogHeader>
 
@@ -464,7 +455,6 @@ function AddAccountDialog({
                 <p className="text-xs text-slate-500">
                   {method.feeLabel}
                   {method.limitLabel ? ` · ${method.limitLabel}` : ""}
-                  {method.processTimeLabel ? ` · ~${method.processTimeLabel}` : ""}
                 </p>
               ) : null}
             </div>
@@ -478,7 +468,21 @@ function AddAccountDialog({
                     <span className="ml-1 font-normal text-slate-400">(optional)</span>
                   )}
                 </Label>
-                {f.type === "textarea" ? (
+                {f.type === "select" ? (
+                  <select
+                    id={`af-${f.id}`}
+                    value={fields[f.id] ?? ""}
+                    onChange={(e) => setFields((p) => ({ ...p, [f.id]: e.target.value }))}
+                    className={SELECT}
+                  >
+                    <option value="">Select {f.label.toLowerCase()}</option>
+                    {f.options.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : f.type === "textarea" ? (
                   <Textarea
                     id={`af-${f.id}`}
                     rows={3}
@@ -506,7 +510,6 @@ function AddAccountDialog({
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 maxLength={80}
-                placeholder="e.g. My GTBank account"
                 className={FIELD}
               />
             </div>

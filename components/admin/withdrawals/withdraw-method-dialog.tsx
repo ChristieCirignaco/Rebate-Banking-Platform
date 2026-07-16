@@ -122,6 +122,7 @@ export function WithdrawMethodDialog({
         label: field.label,
         type: field.type,
         required: field.required,
+        options: field.options ?? [],
       })) ?? [],
   );
 
@@ -147,6 +148,7 @@ export function WithdrawMethodDialog({
         label: field.label,
         type: field.type,
         required: field.required,
+        options: field.options ?? [],
       })) ?? [],
     );
   }
@@ -196,6 +198,7 @@ export function WithdrawMethodDialog({
             label: field.label.trim(),
             type: field.type,
             required: field.required,
+            options: field.options ?? [],
           }))
         : [],
     };

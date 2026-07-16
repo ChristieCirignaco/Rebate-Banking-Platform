@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { methodFieldCreateData, validateMethodFields } from "@/lib/method-fields";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { awardReferral } from "@/lib/referrals";
 import { sanitizeHtml } from "@/lib/sanitize-html";
@@ -153,10 +154,8 @@ function validateMethod(payload: DepositMethodPayload): string | null {
     }
   }
   if (payload.type === "manual") {
-    for (const field of payload.fields ?? []) {
-      if (!field.label?.trim()) return "Each custom field needs a label.";
-      if (!["input", "textarea", "file"].includes(field.type)) return "Invalid field type.";
-    }
+    const fieldError = validateMethodFields(payload.fields);
+    if (fieldError) return fieldError;
   }
   return null;
 }
@@ -189,12 +188,7 @@ function methodData(payload: DepositMethodPayload) {
 
 function fieldCreateData(payload: DepositMethodPayload) {
   if (payload.type !== "manual") return [];
-  return (payload.fields ?? []).map((field, index) => ({
-    label: field.label.trim(),
-    type: field.type,
-    required: field.required,
-    sortOrder: index,
-  }));
+  return methodFieldCreateData(payload.fields);
 }
 
 async function currencyExists(currencyId: string): Promise<boolean> {

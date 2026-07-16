@@ -2,9 +2,12 @@
 // (WithdrawMethod references the shared PaymentGateway + Currency models) with two
 // additions: a manual method's Process Time, and the weekly auto-processing schedule.
 
+import type { MethodFieldType } from "@/lib/method-fields";
+
 export type WithdrawMethodType = "auto" | "manual";
 export type ChargeType = "percent" | "fixed";
-export type ManualFieldType = "input" | "textarea" | "file";
+// The field types are shared with the Deposits area — lib/method-fields owns the list.
+export type ManualFieldType = MethodFieldType;
 export type WithdrawStatus = "pending" | "completed" | "canceled" | "failed";
 export type ProcessTimeUnit = "minute" | "hour" | "day";
 
@@ -13,6 +16,7 @@ export interface ManualMethodField {
   label: string;
   type: ManualFieldType;
   required: boolean;
+  options: string[];
   sortOrder: number;
 }
 
@@ -99,6 +103,7 @@ export interface WithdrawMethodFieldPayload {
   label: string;
   type: ManualFieldType;
   required: boolean;
+  options: string[];
 }
 
 export interface WithdrawMethodPayload {

@@ -69,6 +69,11 @@ export async function createWithdrawalAccount(input: WithdrawAccountInput): Prom
     const value = (input.fields?.[f.id] ?? "").trim();
     if (f.required && !value) return { ok: false, error: `${f.label} is required.` };
     if (!value) continue;
+    // A select only ever stores one of the admin's own choices — the client's <select> is not a
+    // constraint, so re-check the value against the field's options here.
+    if (f.type === "select" && !f.options.includes(value)) {
+      return { ok: false, error: `Choose a valid ${f.label}.` };
+    }
     fieldValues.push({ label: f.label, value: value.slice(0, 300) });
     // Name the account after its first required field — the bank name, the wallet address —
     // since that's the most identifying thing the admin asked for. A nickname overrides it.

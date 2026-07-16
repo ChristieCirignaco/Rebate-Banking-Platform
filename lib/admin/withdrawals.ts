@@ -50,6 +50,7 @@ function toMethod(row: MethodRow): WithdrawMethod {
       label: field.label,
       type: field.type as ManualFieldType,
       required: field.required,
+      options: field.options,
       sortOrder: field.sortOrder,
     })),
   };

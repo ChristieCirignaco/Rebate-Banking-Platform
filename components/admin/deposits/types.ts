@@ -2,9 +2,14 @@
 // shared PaymentGateway + Currency models (see prisma schema comments); the dropdown
 // option shapes below are slim projections of those shared models.
 
+import type { MethodFieldType } from "@/lib/method-fields";
+
 export type DepositMethodType = "auto" | "manual";
 export type ChargeType = "percent" | "fixed";
-export type ManualFieldType = "input" | "textarea" | "file";
+// "select" renders a dropdown of the admin's own `options` (e.g. Account Type → Savings/Current);
+// every other type ignores options. lib/method-fields owns the list — the Withdrawals area
+// builds the same fields with the same builder.
+export type ManualFieldType = MethodFieldType;
 export type DepositStatus = "pending" | "completed" | "canceled" | "failed";
 
 export interface ManualMethodField {
@@ -12,6 +17,7 @@ export interface ManualMethodField {
   label: string;
   type: ManualFieldType;
   required: boolean;
+  options: string[];
   sortOrder: number;
 }
 
@@ -95,6 +101,7 @@ export interface DepositMethodFieldPayload {
   label: string;
   type: ManualFieldType;
   required: boolean;
+  options: string[];
 }
 
 export interface DepositMethodPayload {
