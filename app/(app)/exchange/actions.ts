@@ -153,6 +153,7 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
   // Both wallets are already moved — tell the user. Best-effort (notifyUserOf swallows its own
   // errors), so it can never undo a completed exchange.
   await notifyUserOf(userId, {
+    type: "email",
     title: "Exchange completed",
     message: `You exchanged ${formatCurrency(toMajor(fromAmountMinor), fromWallet.currency)} to ${formatCurrency(toMajor(toAmountMinor), toWallet.currency)} (${txnId}).`,
   });

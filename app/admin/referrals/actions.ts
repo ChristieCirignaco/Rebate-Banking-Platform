@@ -107,6 +107,7 @@ export async function payReferralEarning(id: string): Promise<ActionResult> {
   }
   // Best-effort notice: the credit already committed, so this must never fail the action.
   await notifyUserOf(earning.referrerId, {
+    type: "email",
     title: "Referral reward paid",
     message: `Your referral reward of ${formatCurrency(
       toMajor(earning.amountMinor),
@@ -139,6 +140,7 @@ export async function rejectReferralEarning(id: string): Promise<ActionResult> {
   });
   if (earning) {
     await notifyUserOf(earning.referrerId, {
+      type: "email",
       title: "Referral reward rejected",
       message: `Your referral reward of ${formatCurrency(
         toMajor(earning.amountMinor),

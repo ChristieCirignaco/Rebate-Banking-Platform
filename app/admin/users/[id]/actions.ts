@@ -147,6 +147,7 @@ export async function manageFunds(
   // without having posted anything this time, so notifying there would re-announce an
   // adjustment the user was already told about.
   await notifyUserOf(userId, {
+    type: "email",
     title: input.op === "credit" ? "Wallet credited" : "Wallet debited",
     message: `An admin ${input.op === "credit" ? "credited" : "debited"} ${formatCurrency(
       toMajor(amountMinor),
@@ -199,6 +200,7 @@ export async function updateWithdrawalControl(
   // it verbatim when there is one and fall back to stating the new status when there isn't.
   if (changed) {
     await notifyUserOf(userId, {
+      type: "email",
       title: "Withdrawal status updated",
       message: userMessage || `Your withdrawal status is now "${input.status}".`,
     });

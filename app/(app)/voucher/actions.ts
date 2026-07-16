@@ -153,6 +153,7 @@ export async function generateVoucher(input: GenerateVoucherInput): Promise<Vouc
   // The wallet is already debited — tell the user. Best-effort (notifyUserOf swallows its own
   // errors), so it can never undo a minted voucher.
   await notifyUserOf(userId, {
+    type: "email",
     title: "Voucher created",
     message: `Your voucher ${code} for ${formatCurrency(amountMajor, wallet.currency)} is ready to share.`,
   });
@@ -243,6 +244,7 @@ export async function redeemVoucher(rawCode: string): Promise<VoucherActionResul
   // The credit is committed. Both notices are best-effort (notifyUserOf swallows its own errors).
   const amountLabel = formatCurrency(toMajor(voucher.amountMinor), voucher.currency);
   await notifyUserOf(userId, {
+    type: "email",
     title: "Voucher redeemed",
     message: `You redeemed voucher ${voucher.code} for ${amountLabel} into your ${voucher.currency} wallet.`,
   });
@@ -250,6 +252,7 @@ export async function redeemVoucher(rawCode: string): Promise<VoucherActionResul
   // allowed and would otherwise show them the same event twice.
   if (voucher.creatorId !== userId) {
     await notifyUserOf(voucher.creatorId, {
+      type: "email",
       title: "Your voucher was redeemed",
       message: `${user.name} redeemed your voucher ${voucher.code} for ${amountLabel}.`,
     });

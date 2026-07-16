@@ -196,6 +196,7 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   // The funds are already credited — tell the user. Best-effort (notifyUserOf swallows its own
   // errors), so it can never undo a completed deposit.
   await notifyUserOf(userId, {
+    type: "email",
     title: "Deposit received",
     message: `Your deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} via ${method.name} has been credited to your ${wallet.currency} wallet.`,
   });

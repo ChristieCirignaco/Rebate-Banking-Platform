@@ -330,6 +330,7 @@ async function finalize(userId: string, state: TransferAuthState): Promise<StepR
         select: { name: true },
       });
       await notifyUserOf(payload.recipientUserId, {
+        type: "email",
         title: "Incoming transfer",
         message: `${sender?.name ?? "Someone"} sent you ${amountLabel} (${txnId}) — it will land in your wallet once approved.`,
       });

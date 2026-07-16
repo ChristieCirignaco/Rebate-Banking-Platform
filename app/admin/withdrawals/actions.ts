@@ -104,6 +104,7 @@ export async function approveWithdraw(
   }
   // Best-effort notice: the debit already committed, so this must never fail the action.
   await notifyUserOf(withdraw.userId, {
+    type: "email",
     title: "Withdrawal approved",
     message: `Your withdrawal ${withdraw.txnId} of ${formatCurrency(
       toMajor(withdraw.amountMinor),
@@ -177,6 +178,7 @@ export async function rejectWithdraw(
   }
   // Best-effort notice: the refund already committed, so this must never fail the action.
   await notifyUserOf(withdraw.userId, {
+    type: "email",
     title: "Withdrawal rejected",
     message: `Your withdrawal ${withdraw.txnId} of ${formatCurrency(
       toMajor(withdraw.amountMinor),

@@ -66,6 +66,7 @@ export async function updateTicketStatus(
   // user — open/pending/replied are internal queue movements they don't need a bell for.
   if (status === "closed") {
     await notifyUserOf(existing.userId, {
+      type: "email",
       title: "Ticket closed",
       message: `Your ticket #${existing.ticketCode} "${existing.subject}" has been closed.`,
     });

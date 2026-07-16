@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { ADMIN_ROLES } from "@/lib/auth-guards";
 import { sendEmail } from "@/lib/email";
+import { renderEmail, type EmailAudience, type EmailRow } from "@/lib/email/template";
 import { formatDateTime } from "@/lib/format";
 import type { SystemAlertType } from "@/components/admin/notifications/types";
 
@@ -13,6 +14,13 @@ export async function notifyAdmins(args: {
   type: SystemAlertType;
   title: string;
   message: string;
+  // Transaction facts for the email's detail table (amount, reference, method). The bell row
+  // carries only title + message; these enrich the mail without bloating the in-app copy.
+  rows?: EmailRow[];
+  // Where in /admin this needs actioning. Defaults to the alert feed.
+  href?: string;
+  // Opt out of mail for a low-signal alert; the bell row is still written.
+  email?: boolean;
 }): Promise<number> {
   // Active admins only — a deactivated account would otherwise keep accruing alerts nobody
   // will ever read.
@@ -30,6 +38,22 @@ export async function notifyAdmins(args: {
       message: args.message,
     })),
   });
+
+  // Mail the operators too. Best-effort and after the rows: the feed is the durable record, so
+  // a mailer outage costs the email, never the alert. deliverEmailNotices swallows its own
+  // errors, so this can't throw into the money action that raised it.
+  if (args.email !== false) {
+    await deliverEmailNotices(
+      admins.map((admin) => admin.id),
+      args.title,
+      args.message,
+      {
+        audience: "admin",
+        rows: args.rows,
+        cta: { label: "Review in admin", url: args.href ?? "/admin/notifications" },
+      },
+    );
+  }
   return admins.length;
 }
 
@@ -73,6 +97,7 @@ export async function deliverEmailNotices(
   userIds: string[],
   title: string | null,
   message: string,
+  extra?: { rows?: EmailRow[]; cta?: { label: string; url: string }; audience?: EmailAudience },
 ): Promise<void> {
   try {
     if (userIds.length === 0) return;
@@ -80,15 +105,31 @@ export async function deliverEmailNotices(
       where: { id: { in: userIds } },
       select: { email: true },
     });
-    const subject = title?.trim() || "Notification";
+    if (users.length === 0) return;
+
+    const audience = extra?.audience ?? "user";
+    // Rendered once, not per recipient: the body is identical and loadBrand() would otherwise
+    // re-read the settings rows for every address in a broadcast.
+    const mail = await renderEmail({
+      audience,
+      heading: title?.trim() || "Notification",
+      paragraphs: [message],
+      rows: extra?.rows,
+      cta: extra?.cta ?? { label: "Open dashboard", url: audience === "admin" ? "/admin" : "/dashboard" },
+      note:
+        audience === "user"
+          ? "You're receiving this because of activity on your account."
+          : undefined,
+    });
+
     // Bounded concurrency: a broadcast can span every user, and firing thousands of requests at
     // once would swamp the mailer's rate limit and the event loop alike.
     const BATCH = 20;
     for (let i = 0; i < users.length; i += BATCH) {
       await Promise.all(
-        users
-          .slice(i, i + BATCH)
-          .map((user) => sendEmail({ to: user.email, subject, text: message })),
+        users.slice(i, i + BATCH).map((user) =>
+          sendEmail({ to: user.email, subject: mail.subject, text: mail.text, html: mail.html }),
+        ),
       );
     }
   } catch (error) {

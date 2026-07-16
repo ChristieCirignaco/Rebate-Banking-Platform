@@ -91,6 +91,7 @@ export async function approveTransfer(id: string, remarks?: string): Promise<Act
   // Best-effort notices: the money already moved, so these must never fail the action.
   const amountLabel = formatCurrency(toMajor(transfer.amountMinor), transfer.currency);
   await notifyUserOf(transfer.userId, {
+    type: "email",
     title: "Transfer approved",
     message: `Your transfer ${transfer.txnId} of ${amountLabel} was approved.${
       note ? ` Remarks: ${note}` : ""
@@ -99,6 +100,7 @@ export async function approveTransfer(id: string, remarks?: string): Promise<Act
   // Internal only: the recipient's wallet was actually credited above, so tell them too.
   if (transfer.type === "internal" && transfer.recipientUserId) {
     await notifyUserOf(transfer.recipientUserId, {
+      type: "email",
       title: "Money received",
       message: `You received ${amountLabel} from a transfer (${transfer.txnId}).`,
     });
@@ -165,6 +167,7 @@ export async function rejectTransfer(id: string, remarks?: string): Promise<Acti
   }
   // Best-effort notice: the refund already committed, so this must never fail the action.
   await notifyUserOf(transfer.userId, {
+    type: "email",
     title: "Transfer rejected",
     message: `Your transfer ${transfer.txnId} of ${formatCurrency(
       toMajor(transfer.amountMinor),

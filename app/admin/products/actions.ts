@@ -48,6 +48,7 @@ export async function updateProductStatus(
   // pending is silent housekeeping.
   if (reviewed) {
     await notifyUserOf(existing.userId, {
+      type: "email",
       title: status === "approved" ? "Product approved" : "Product rejected",
       message: `Your product "${existing.name}" (${formatCurrency(
         toMajor(existing.priceMinor),

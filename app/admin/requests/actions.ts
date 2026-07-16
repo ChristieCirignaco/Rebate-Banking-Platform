@@ -75,6 +75,7 @@ export async function approveRequest(id: string, remarks?: string): Promise<Acti
   }
   // Best-effort notice: the credit already committed, so this must never fail the action.
   await notifyUserOf(request.userId, {
+    type: "email",
     title: "Request approved",
     message: `Your money request ${request.txnId} for ${formatCurrency(
       toMajor(request.amountMinor),
@@ -118,6 +119,7 @@ export async function rejectRequest(id: string, remarks?: string): Promise<Actio
   });
   if (request) {
     await notifyUserOf(request.userId, {
+      type: "email",
       title: "Request rejected",
       message: `Your money request ${request.txnId} for ${formatCurrency(
         toMajor(request.amountMinor),

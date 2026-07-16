@@ -92,6 +92,7 @@ export async function approveDeposit(
   });
   // Best-effort notice: the credit already committed, so this must never fail the action.
   await notifyUserOf(deposit.userId, {
+    type: "email",
     title: "Deposit approved",
     message: `Your deposit ${deposit.txnId} of ${formatCurrency(
       toMajor(deposit.amountMinor),
@@ -137,6 +138,7 @@ export async function rejectDeposit(
   });
   if (deposit) {
     await notifyUserOf(deposit.userId, {
+      type: "email",
       title: "Deposit rejected",
       message: `Your deposit ${deposit.txnId} of ${formatCurrency(
         toMajor(deposit.amountMinor),
