@@ -22,7 +22,8 @@
     "db:seed": "prisma db seed",
     "db:seed:dashboard": "tsx scripts/seed-dashboard.ts",
     "build:local": "next build",
-    "db:seed:prod": "tsx scripts/seed-production.ts"
+    "db:seed:prod": "tsx scripts/seed-production.ts",
+    "db:admin-sql": "tsx scripts/print-admin-sql.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

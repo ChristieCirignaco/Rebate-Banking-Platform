@@ -34,6 +34,11 @@ yarn-error.log*
 # otherwise a deploy has no record of which vars to set; it holds placeholders only.
 .env*
 !.env.example
+admin.txt
+
+# Bootstrap output. `pnpm db:admin-sql > admin.sql` writes the admin's argon2 hash here, and
+# this repo is public — a hash is not a plaintext password, but it is still offline-crackable.
+admin.sql
 
 # vercel
 .vercel
