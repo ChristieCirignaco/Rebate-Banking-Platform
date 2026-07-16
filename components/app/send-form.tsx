@@ -89,17 +89,17 @@ export function SendForm({
                 onClick={() => setType(t.key)}
                 aria-pressed={active}
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded-2xl border p-3.5 transition-colors",
+                  "flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 transition-colors sm:gap-2 sm:px-3 sm:py-3.5",
                   active
-                    ? "border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-500/10"
-                    : "border-slate-200 bg-slate-50/70 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:bg-slate-800",
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+                    : "bg-slate-100 hover:bg-slate-200/70 dark:bg-slate-800 dark:hover:bg-slate-700",
                 )}
               >
                 <span
                   className={cn(
-                    "flex size-9 items-center justify-center rounded-full transition-colors",
+                    "flex size-8 items-center justify-center rounded-full transition-colors sm:size-9",
                     active
-                      ? "bg-blue-600 text-white"
+                      ? "bg-white/20 text-white"
                       : "bg-white text-slate-500 dark:bg-slate-700 dark:text-slate-300",
                   )}
                 >
@@ -107,10 +107,8 @@ export function SendForm({
                 </span>
                 <span
                   className={cn(
-                    "text-sm font-semibold",
-                    active
-                      ? "text-blue-700 dark:text-blue-300"
-                      : "text-slate-700 dark:text-slate-200",
+                    "text-xs font-semibold sm:text-sm",
+                    active ? "text-white" : "text-slate-700 dark:text-slate-200",
                   )}
                 >
                   {t.label}
