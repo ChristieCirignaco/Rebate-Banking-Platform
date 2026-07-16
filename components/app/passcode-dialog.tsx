@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { KeyRound, Loader2 } from "lucide-react";
 
-import { beginTransfer, type SendInput } from "@/app/(app)/send/actions";
 import { toast } from "@/lib/toast";
 import {
   Dialog,
@@ -16,16 +15,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-// The passcode (transaction PIN) modal — the first gate on every transfer. On success it
-// begins the authorization session and routes to the first verification step.
+export type PasscodeSubmitResult =
+  | { ok: true; next: string; message?: string }
+  | { ok: false; error: string; needPin?: boolean };
+
+// The passcode (transaction PIN) modal — the shared gate before a money action. On success it
+// runs the caller's `onSubmit` and navigates to the returned route (used by transfers to enter
+// the step flow, and by deposits to land on the transaction history).
 export function PasscodeDialog({
   open,
   onOpenChange,
-  payload,
+  onSubmit,
+  title = "Enter your transaction PIN",
+  description = "Authorize this with your PIN.",
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  payload: SendInput | null;
+  onSubmit: (pin: string) => Promise<PasscodeSubmitResult>;
+  title?: string;
+  description?: string;
 }) {
   const [pin, setPin] = useState("");
   const [needPin, setNeedPin] = useState(false);
@@ -38,10 +46,11 @@ export function PasscodeDialog({
 
   function authorize(event: FormEvent) {
     event.preventDefault();
-    if (!payload || pending) return;
+    if (pending) return;
     startTransition(async () => {
-      const res = await beginTransfer(payload, pin);
+      const res = await onSubmit(pin);
       if (res.ok) {
+        if (res.message) toast.success(res.message);
         window.location.href = res.next;
         return;
       }
@@ -63,10 +72,8 @@ export function PasscodeDialog({
           <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
             <KeyRound className="size-5" />
           </div>
-          <DialogTitle className="text-center">Enter your transaction PIN</DialogTitle>
-          <DialogDescription className="text-center">
-            Authorize this transfer with your PIN.
-          </DialogDescription>
+          <DialogTitle className="text-center">{title}</DialogTitle>
+          <DialogDescription className="text-center">{description}</DialogDescription>
         </DialogHeader>
 
         {needPin ? (

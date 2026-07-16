@@ -3,7 +3,7 @@
 import type { FormEvent, InputHTMLAttributes } from "react";
 import { useState } from "react";
 
-import type { SendInput } from "@/app/(app)/send/actions";
+import { beginTransfer, type SendInput } from "@/app/(app)/send/actions";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -142,7 +142,12 @@ export function SendForm({
         </button>
       </form>
 
-      <PasscodeDialog open={pinOpen} onOpenChange={setPinOpen} payload={payload} />
+      <PasscodeDialog
+        open={pinOpen}
+        onOpenChange={setPinOpen}
+        onSubmit={(pin) => beginTransfer(payload, pin)}
+        description="Authorize this transfer with your PIN."
+      />
     </>
   );
 }
