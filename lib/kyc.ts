@@ -48,7 +48,8 @@ export interface KycOwnSubmissionView {
 }
 
 export interface KycData {
-  template: KycTemplateFormView | null;
+  // Every active template — the user chooses which verification to submit.
+  templates: KycTemplateFormView[];
   submission: KycOwnSubmissionView | null;
   kycStatus: KycStatus;
   canSubmit: boolean;
@@ -107,15 +108,34 @@ function toFieldViews(raw: Prisma.JsonValue | null): KycFieldValueView[] {
   return views;
 }
 
-// The template users submit against: the most recent ACTIVE one applicable to users.
-export async function getActiveKycTemplate(): Promise<KycTemplateFormView | null> {
-  const template = await prisma.kycTemplate.findFirst({
+// Every template a user may submit against — an admin can run several at once (e.g. Address
+// Verification AND Government ID), and each is a distinct kind of check, so the user picks.
+// Previously this took only the most recent, which silently hid every other active template.
+export async function getActiveKycTemplates(): Promise<KycTemplateFormView[]> {
+  const templates = await prisma.kycTemplate.findMany({
     where: { status: "active", applicableTo: "user" },
-    orderBy: { createdAt: "desc" }, // most recent wins if several are active
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     include: { fields: { orderBy: { sortOrder: "asc" } } },
   });
-  if (!template) return null;
+  return templates.map(toTemplateView);
+}
 
+// One template by id, but only if it's still active and for users — the submit action re-reads
+// through this so a client can't post an id for a disabled or admin-only template.
+export async function getActiveKycTemplate(id?: string): Promise<KycTemplateFormView | null> {
+  const template = await prisma.kycTemplate.findFirst({
+    where: { status: "active", applicableTo: "user", ...(id ? { id } : {}) },
+    orderBy: { createdAt: "asc" },
+    include: { fields: { orderBy: { sortOrder: "asc" } } },
+  });
+  return template ? toTemplateView(template) : null;
+}
+
+type TemplateWithFields = Awaited<ReturnType<typeof prisma.kycTemplate.findFirstOrThrow>> & {
+  fields: { id: string; label: string; type: string; required: boolean }[];
+};
+
+function toTemplateView(template: TemplateWithFields): KycTemplateFormView {
   return {
     id: template.id,
     title: template.title,
@@ -129,12 +149,12 @@ export async function getActiveKycTemplate(): Promise<KycTemplateFormView | null
   };
 }
 
-// Everything /kyc needs for one user: the active template, their latest submission, their
+// Everything /kyc needs for one user: every active template, their latest submission, their
 // account KYC status, and whether the form should be open.
 export async function getKycData(userId: string): Promise<KycData> {
-  const [user, template, latest] = await Promise.all([
+  const [user, templates, latest] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { kycStatus: true } }),
-    getActiveKycTemplate(),
+    getActiveKycTemplates(),
     prisma.kycSubmission.findFirst({
       where: { userId },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }], // id tiebreaker keeps this deterministic
@@ -157,7 +177,7 @@ export async function getKycData(userId: string): Promise<KycData> {
     : null;
 
   return {
-    template,
+    templates,
     submission,
     kycStatus,
     // A review in flight or already passed closes the form; a rejected user MUST be able to

@@ -9,6 +9,8 @@ import { notifyAdmins } from "@/lib/notifications";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
 export type SubmitKycInput = {
+  // Which active template this submission is against. An admin may run several at once.
+  templateId?: string;
   fields: Record<string, string>; // template field id -> text/number value, or a storage key for file
   tokens: Record<string, string>; // template field id -> upload token proving this user uploaded it
   note?: string;
@@ -52,7 +54,10 @@ export async function submitKyc(input: SubmitKycInput): Promise<SubmitKycResult>
     return { ok: false, error: "Your identity is already verified." };
   }
 
-  const template = await getActiveKycTemplate();
+  // Re-read by id rather than trusting the client: getActiveKycTemplate only returns a template
+  // that is still active AND applicable to users, so a posted id for a disabled or admin-only
+  // one resolves to nothing. No id (a single-template install) falls back to the first active.
+  const template = await getActiveKycTemplate(input.templateId);
   if (!template) {
     return { ok: false, error: "Identity verification is not available right now." };
   }

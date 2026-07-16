@@ -69,6 +69,9 @@ export type KycLevel = "basic" | "full";
 
 export interface LimitsSettings {
   kycRequiredForWithdrawal: boolean;
+  // Global equivalent of the per-user `kyc_verification` control: when on, EVERY user must hold
+  // an approved KYC before any money action (deposit/send/exchange/request/voucher/withdraw).
+  kycRequiredForTransactions: boolean;
   minKycLevel: KycLevel;
   withdrawalMin: number;
   withdrawalMax: number;
@@ -155,6 +158,7 @@ export const SETTINGS_DEFAULTS: SettingsGroups = {
   },
   limits: {
     kycRequiredForWithdrawal: false,
+    kycRequiredForTransactions: false,
     minKycLevel: "basic",
     withdrawalMin: 0,
     withdrawalMax: 0,

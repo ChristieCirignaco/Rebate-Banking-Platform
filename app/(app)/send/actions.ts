@@ -160,7 +160,7 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
   if (!kindFlag || !(await isFeatureEnabled(kindFlag))) {
     return { ok: false, error: "That transfer type is currently unavailable." };
   }
-  const blocked = requirementBlock(sender);
+  const blocked = await requirementBlock(sender);
   if (blocked) return { ok: false, error: blocked };
   if (!sender.transactionPin) {
     return { ok: false, error: "Set up your transaction PIN in Security first.", needPin: true };

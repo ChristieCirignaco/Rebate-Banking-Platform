@@ -130,7 +130,7 @@ export async function getWithdrawGate(userId: string): Promise<WithdrawGate> {
   }
   // The account-wide requirement controls (verified email / approved KYC) apply here too — the
   // global kycRequiredForWithdrawal below is the same rule for everyone rather than per user.
-  const requirement = requirementBlock(user);
+  const requirement = await requirementBlock(user);
   if (requirement) return { allowed: false, reason: requirement };
   if (user.withdrawalStatus && user.withdrawalStatus !== "allowed") {
     return {

@@ -176,7 +176,9 @@ async function reviewSubmission(
   // failure must not fail the action.
   try {
     await notifyUser(userId, {
-      type: "push",
+      // "email" = bell row AND mail. A verification decision is exactly the kind of thing a
+      // user should not have to be in the app to discover.
+      type: "email",
       title: decision === "approved" ? "KYC approved" : "KYC rejected",
       message:
         decision === "approved"

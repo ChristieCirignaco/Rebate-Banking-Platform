@@ -47,7 +47,7 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   if (!controlAllows(sender.controls, "deposit")) {
     return { ok: false, error: "Deposits are disabled on your account. Please contact support." };
   }
-  const blocked = requirementBlock(sender);
+  const blocked = await requirementBlock(sender);
   if (blocked) return { ok: false, error: blocked };
   if (!sender.transactionPin) {
     return { ok: false, error: "Set up your transaction PIN in Security first.", needPin: true };

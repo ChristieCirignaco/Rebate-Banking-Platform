@@ -41,15 +41,22 @@ export function LimitsForm({ initial }: { initial: LimitsSettings }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground text-sm">
-        These thresholds are stored now; server-side enforcement (KYC gating, withdrawal caps,
-        maker-checker) is wired in a later pass.
+        KYC gating and the withdrawal caps are enforced server-side on every request. Minimum KYC
+        level, the deposit caps and maker-checker are stored but not yet enforced.
       </p>
 
       <SettingsSection title="KYC & Compliance">
         <SettingsToggle
+          id="kyc-required-transactions"
+          label="Require KYC for transactions"
+          description="Every user must be verified before depositing, sending, exchanging, requesting, using vouchers or withdrawing. Users who aren't verified are pointed to the Verification page."
+          checked={form.kycRequiredForTransactions}
+          onCheckedChange={(checked) => set("kycRequiredForTransactions", checked)}
+        />
+        <SettingsToggle
           id="kyc-required-withdrawal"
           label="Require KYC for withdrawal"
-          description="Users must be verified to withdraw."
+          description="Narrower: verification is required to withdraw only. Redundant when the setting above is on."
           checked={form.kycRequiredForWithdrawal}
           onCheckedChange={(checked) => set("kycRequiredForWithdrawal", checked)}
         />

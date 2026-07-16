@@ -34,7 +34,7 @@ export async function createMoneyRequest(input: RequestInput): Promise<RequestRe
   if (!controlAllows(sender.controls, "request_money")) {
     return { ok: false, error: "Money requests are disabled on your account. Please contact support." };
   }
-  const blocked = requirementBlock(sender);
+  const blocked = await requirementBlock(sender);
   if (blocked) return { ok: false, error: blocked };
 
   const amount = AmountSchema.safeParse(input.amount);

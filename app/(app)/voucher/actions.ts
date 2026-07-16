@@ -55,7 +55,7 @@ export async function generateVoucher(input: GenerateVoucherInput): Promise<Vouc
   if (!controlAllows(user.controls, "voucher")) {
     return { ok: false, error: "Vouchers are disabled on your account. Please contact support." };
   }
-  const blocked = requirementBlock(user);
+  const blocked = await requirementBlock(user);
   if (blocked) return { ok: false, error: blocked };
 
   const amount = AmountSchema.safeParse(input.amount);
@@ -181,7 +181,7 @@ export async function redeemVoucher(rawCode: string): Promise<VoucherActionResul
   if (!controlAllows(user.controls, "voucher")) {
     return { ok: false, error: "Vouchers are disabled on your account. Please contact support." };
   }
-  const blocked = requirementBlock(user);
+  const blocked = await requirementBlock(user);
   if (blocked) return { ok: false, error: blocked };
 
   const code = normalizeVoucherCode(rawCode);

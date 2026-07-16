@@ -40,7 +40,7 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
   if (!controlAllows(sender.controls, "exchange_money")) {
     return { ok: false, error: "Exchange is disabled on your account. Please contact support." };
   }
-  const blocked = requirementBlock(sender);
+  const blocked = await requirementBlock(sender);
   if (blocked) return { ok: false, error: blocked };
   if (!sender.transactionPin) {
     return { ok: false, error: "Set up your transaction PIN in Security first.", needPin: true };

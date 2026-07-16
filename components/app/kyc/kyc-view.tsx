@@ -25,6 +25,9 @@ import { Textarea } from "@/components/ui/textarea";
 const FIELD =
   "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
 
+const SELECT =
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+
 type UploadResult =
   | { ok: true; key: string; token: string; name: string; contentType: string }
   | { ok: false; error: string };
@@ -56,7 +59,7 @@ async function uploadKycDocument(file: File): Promise<UploadResult> {
 }
 
 export function KycView({ data }: { data: KycData }) {
-  const { template, submission, kycStatus, canSubmit } = data;
+  const { templates, submission, kycStatus, canSubmit } = data;
 
   // Already verified — nothing to do.
   if (kycStatus === "approved") {
@@ -93,7 +96,7 @@ export function KycView({ data }: { data: KycData }) {
   }
 
   // Nothing to submit against.
-  if (!template) {
+  if (templates.length === 0) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
         Identity verification isn&apos;t available yet. Please contact support if you need it
@@ -114,20 +117,25 @@ export function KycView({ data }: { data: KycData }) {
 
   return (
     <KycForm
-      template={template}
+      templates={templates}
       rejectedRemarks={kycStatus === "rejected" ? (submission?.remarks ?? null) : null}
     />
   );
 }
 
 function KycForm({
-  template,
+  templates,
   rejectedRemarks,
 }: {
-  template: NonNullable<KycData["template"]>;
+  templates: KycData["templates"];
   rejectedRemarks: string | null;
 }) {
   const router = useRouter();
+  // An admin can run several verification types at once; the user picks which to submit. With
+  // only one active there is nothing to choose, so the picker is hidden rather than shown as a
+  // single-option select.
+  const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
+  const template = templates.find((t) => t.id === templateId) ?? templates[0];
   const [values, setValues] = useState<Record<string, string>>({}); // field id -> value / storage key
   const [tokens, setTokens] = useState<Record<string, string>>({}); // file field id -> upload token
   const [fileNames, setFileNames] = useState<Record<string, string>>({}); // file field id -> display name
@@ -195,7 +203,12 @@ function KycForm({
     setError(null);
     setSaving(true);
     try {
-      const result = await submitKyc({ fields: values, tokens, note: note.trim() || undefined });
+      const result = await submitKyc({
+        templateId: template.id,
+        fields: values,
+        tokens,
+        note: note.trim() || undefined,
+      });
       if (result.ok) {
         toast.success("Verification submitted for review.");
         router.refresh(); // re-renders the page into the "under review" panel
@@ -225,6 +238,34 @@ function KycForm({
               {rejectedRemarks || "Please review your details and submit again."}
             </p>
           </div>
+        </div>
+      ) : null}
+
+      {templates.length > 1 ? (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="kyc-template" className="text-sm font-semibold">
+            Verification type
+          </Label>
+          <select
+            id="kyc-template"
+            value={templateId}
+            onChange={(e) => {
+              setTemplateId(e.target.value);
+              // Field ids belong to a template, so carrying values across would post ids the
+              // new one doesn't have.
+              setValues({});
+              setTokens({});
+              setFileNames({});
+              setError(null);
+            }}
+            className={SELECT}
+          >
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title}
+              </option>
+            ))}
+          </select>
         </div>
       ) : null}
 
