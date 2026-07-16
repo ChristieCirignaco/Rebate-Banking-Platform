@@ -51,13 +51,13 @@ export async function generateMetadata(): Promise<Metadata> {
       description: c.description,
       siteName: c.brandName,
       url: c.siteUrl || undefined,
-      images: [{ url: c.ogImage }],
+      images: c.ogImage ? [{ url: c.ogImage }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: c.siteTitle,
       description: c.description,
-      images: [c.ogImage],
+      images: c.ogImage ? [c.ogImage] : undefined,
     },
   };
 }

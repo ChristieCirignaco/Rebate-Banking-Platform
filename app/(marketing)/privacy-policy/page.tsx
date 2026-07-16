@@ -4,11 +4,12 @@ import { ArrowRight } from "lucide-react";
 
 import { Reveal } from "@/components/marketing/reveal";
 import { PageHero } from "@/components/marketing/primitives/page-hero";
-import { CONTACT_INFO } from "@/components/marketing/content";
+import { getMarketingConfig } from "@/lib/marketing/site-config";
 
 export const metadata: Metadata = { title: "Privacy Policy" };
 
 export default async function PrivacyPolicyPage() {
+  const config = await getMarketingConfig();
   return (
     <main>
       <PageHero title="Privacy Policy" breadcrumb="Privacy policy" variant="dark" />
@@ -153,21 +154,23 @@ export default async function PrivacyPolicyPage() {
                   email, or by post:
                 </p>
                 <ul className="mt-4 space-y-2">
-                  <li>
-                    Phone:{" "}
-                    <a href={CONTACT_INFO.phoneHref} className="font-semibold text-[var(--trb-blue)] hover:underline">
-                      {CONTACT_INFO.phone}
-                    </a>
-                  </li>
-                  <li>
-                    Email:{" "}
-                    <a href={CONTACT_INFO.emailHref} className="font-semibold text-[var(--trb-blue)] hover:underline">
-                      {CONTACT_INFO.email}
-                    </a>
-                  </li>
-                  <li>
-                    Post: {CONTACT_INFO.address.join(", ")}
-                  </li>
+                  {config.supportPhone && (
+                    <li>
+                      Phone:{" "}
+                      <a href={config.phoneHref} className="font-semibold text-[var(--trb-blue)] hover:underline">
+                        {config.supportPhone}
+                      </a>
+                    </li>
+                  )}
+                  {config.supportEmail && (
+                    <li>
+                      Email:{" "}
+                      <a href={config.emailHref} className="font-semibold text-[var(--trb-blue)] hover:underline">
+                        {config.supportEmail}
+                      </a>
+                    </li>
+                  )}
+                  {config.address && <li>Post: {config.address}</li>}
                 </ul>
               </div>
             </div>

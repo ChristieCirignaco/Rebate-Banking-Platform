@@ -3,31 +3,12 @@ import { cache } from "react";
 import { getSettings } from "@/lib/settings/store";
 import type { SocialKey } from "@/components/marketing/social-icons";
 
-// Marketing pages read their identity (SEO, branding, contact, socials) from the admin
-// System Settings (general + branding + legal groups). These fallbacks are the only
-// hardcoded values — they keep the public site coherent before an admin configures
-// anything; any real value set in /admin/settings overrides them.
-const FALLBACK = {
-  brandName: "TRBPAYOUTSYSTEM",
-  siteTitle: "TRBPAYOUTSYSTEM — Trump Rebate Banking System",
-  description:
-    "The only verified system where holders of TRB products can register and validate their items.",
-  keywords: [
-    "TRB",
-    "Trump Rebate Banking System",
-    "TRB payout",
-    "rebate verification",
-    "TRB products",
-  ],
-  supportEmail: "info@trbpayoutsystem.us",
-  supportPhone: "+1603-233-1119",
-  address: "1600 Pennsylvania Ave NW, Washington, DC 20500",
-  footerText:
-    "The TRB Payout System is the only verified system where holders of TRB products can register and validate their items.",
-  logo: "/marketing/logo.svg",
-  ogImage: "/marketing/trump_custom.jpg",
-  favicon: "/favicon.ico",
-};
+// The marketing site's configurable identity — SEO, branding, contact details, socials — comes
+// entirely from the admin System Settings (general + branding + legal groups). The ONLY
+// hardcoded values here are the structural asset fallbacks (a bundled logo/favicon) so the
+// chrome never renders without one; every brand / contact / SEO value is settings-driven.
+const DEFAULT_LOGO = "/marketing/logo.svg";
+const DEFAULT_FAVICON = "/favicon.ico";
 
 export type MarketingSocial = { key: SocialKey; label: string; href: string };
 
@@ -40,6 +21,9 @@ export type MarketingConfig = {
   supportEmail: string;
   supportPhone: string;
   address: string;
+  addressLines: string[];
+  phoneHref: string;
+  emailHref: string;
   footerText: string;
   logo: string;
   logoIsFallback: boolean;
@@ -48,10 +32,9 @@ export type MarketingConfig = {
   socials: MarketingSocial[];
 };
 
-const pick = (value: string | null | undefined, fallback: string) =>
-  value && value.trim() ? value.trim() : fallback;
+const clean = (v: string | null | undefined) => (v ? v.trim() : "");
 
-// Memoized per request so generateMetadata and the layout share one read + merge.
+// Memoized per request so generateMetadata and the layout/pages share one read + merge.
 export const getMarketingConfig = cache(async (): Promise<MarketingConfig> => {
   const [general, branding, legal] = await Promise.all([
     getSettings("general"),
@@ -59,36 +42,42 @@ export const getMarketingConfig = cache(async (): Promise<MarketingConfig> => {
     getSettings("legal"),
   ]);
 
-  // Only socials with a configured URL are shown (WhatsApp/Telegram/etc. have no hardcoded
-  // default — they appear once an admin sets them in Settings → Legal & Social).
   const socialDefs: MarketingSocial[] = [
-    { key: "facebook", label: "Facebook", href: legal.socialFacebook },
-    { key: "x", label: "X", href: legal.socialX },
-    { key: "instagram", label: "Instagram", href: legal.socialInstagram },
-    { key: "linkedin", label: "LinkedIn", href: legal.socialLinkedin },
-    { key: "youtube", label: "YouTube", href: legal.socialYoutube },
-    { key: "tiktok", label: "TikTok", href: legal.socialTiktok },
-    { key: "whatsapp", label: "WhatsApp", href: legal.socialWhatsapp },
-    { key: "telegram", label: "Telegram", href: legal.socialTelegram },
+    { key: "facebook", label: "Facebook", href: clean(legal.socialFacebook) },
+    { key: "x", label: "X", href: clean(legal.socialX) },
+    { key: "instagram", label: "Instagram", href: clean(legal.socialInstagram) },
+    { key: "linkedin", label: "LinkedIn", href: clean(legal.socialLinkedin) },
+    { key: "youtube", label: "YouTube", href: clean(legal.socialYoutube) },
+    { key: "tiktok", label: "TikTok", href: clean(legal.socialTiktok) },
+    { key: "whatsapp", label: "WhatsApp", href: clean(legal.socialWhatsapp) },
+    { key: "telegram", label: "Telegram", href: clean(legal.socialTelegram) },
   ];
-  const socials = socialDefs.filter((s) => s.href && s.href.trim());
+  const socials = socialDefs.filter((s) => s.href);
 
-  const logo = pick(branding.logoDark || branding.logoLight, FALLBACK.logo);
+  const logo = clean(branding.logoDark) || clean(branding.logoLight) || DEFAULT_LOGO;
+  const supportEmail = clean(general.supportEmail);
+  const supportPhone = clean(general.supportPhone);
+  const address = clean(general.address);
 
   return {
-    brandName: pick(general.brandName, FALLBACK.brandName),
-    siteTitle: pick(general.siteTitle, FALLBACK.siteTitle),
-    description: pick(general.description, FALLBACK.description),
-    keywords: general.seoKeywords?.length ? general.seoKeywords : FALLBACK.keywords,
-    siteUrl: general.siteUrl?.trim() ?? "",
-    supportEmail: pick(general.supportEmail, FALLBACK.supportEmail),
-    supportPhone: pick(general.supportPhone, FALLBACK.supportPhone),
-    address: pick(general.address, FALLBACK.address),
-    footerText: pick(general.footerText, FALLBACK.footerText),
+    brandName: clean(general.brandName),
+    siteTitle: clean(general.siteTitle),
+    description: clean(general.description),
+    keywords: general.seoKeywords ?? [],
+    siteUrl: clean(general.siteUrl),
+    supportEmail,
+    supportPhone,
+    address,
+    addressLines: address
+      ? address.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+      : [],
+    phoneHref: supportPhone ? `tel:${supportPhone.replace(/[^\d+]/g, "")}` : "",
+    emailHref: supportEmail ? `mailto:${supportEmail}` : "",
+    footerText: clean(general.footerText),
     logo,
-    logoIsFallback: logo === FALLBACK.logo,
-    ogImage: pick(branding.ogImage, FALLBACK.ogImage),
-    favicon: pick(branding.favicon, FALLBACK.favicon),
+    logoIsFallback: logo === DEFAULT_LOGO,
+    ogImage: clean(branding.ogImage),
+    favicon: clean(branding.favicon) || DEFAULT_FAVICON,
     socials,
   };
 });

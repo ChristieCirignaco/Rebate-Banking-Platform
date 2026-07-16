@@ -12,8 +12,6 @@ const QUICK_LINKS = [
   { label: "Support", href: "/support" },
 ];
 
-const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
-
 export function SiteFooter({ config }: { config: MarketingConfig }) {
   return (
     <footer className="bg-[var(--trb-blue)] text-white">
@@ -25,7 +23,9 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
             alt={config.brandName}
             className={cn("h-10 w-auto", config.logoIsFallback && "brightness-0 invert")}
           />
-          <p className="mt-5 text-sm leading-relaxed text-white/75">{config.footerText}</p>
+          {config.footerText && (
+            <p className="mt-5 text-sm leading-relaxed text-white/75">{config.footerText}</p>
+          )}
           <Link
             href="/register"
             className="mt-6 inline-flex rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-[var(--trb-blue)] transition-colors hover:bg-white/90"
@@ -70,26 +70,30 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
         <div>
           <h3 className="text-base font-semibold">Contact Us</h3>
           <ul className="mt-5 space-y-4 text-sm text-white/75">
-            <li className="flex items-start gap-3">
-              <Phone className="mt-0.5 h-5 w-5 shrink-0 text-white/60" />
-              <span>
-                Support
-                <br />
-                <a href={telHref(config.supportPhone)} className="transition-colors hover:text-white">
-                  {config.supportPhone}
-                </a>
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <Mail className="mt-0.5 h-5 w-5 shrink-0 text-white/60" />
-              <span>
-                Email us any time:
-                <br />
-                <a href={`mailto:${config.supportEmail}`} className="transition-colors hover:text-white">
-                  {config.supportEmail}
-                </a>
-              </span>
-            </li>
+            {config.supportPhone && (
+              <li className="flex items-start gap-3">
+                <Phone className="mt-0.5 h-5 w-5 shrink-0 text-white/60" />
+                <span>
+                  Support
+                  <br />
+                  <a href={config.phoneHref} className="transition-colors hover:text-white">
+                    {config.supportPhone}
+                  </a>
+                </span>
+              </li>
+            )}
+            {config.supportEmail && (
+              <li className="flex items-start gap-3">
+                <Mail className="mt-0.5 h-5 w-5 shrink-0 text-white/60" />
+                <span>
+                  Email us any time:
+                  <br />
+                  <a href={config.emailHref} className="transition-colors hover:text-white">
+                    {config.supportEmail}
+                  </a>
+                </span>
+              </li>
+            )}
           </ul>
         </div>
       </div>

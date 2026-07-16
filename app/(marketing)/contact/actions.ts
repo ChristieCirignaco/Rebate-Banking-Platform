@@ -45,10 +45,13 @@ export async function submitContactMessage(
 
   // Route to the admin-configured support inbox (falls back to From email, then a default).
   const general = await getSettings("general");
-  const to =
-    general.supportEmail?.trim() ||
-    general.fromEmail?.trim() ||
-    "info@trbpayoutsystem.us";
+  const to = general.supportEmail?.trim() || general.fromEmail?.trim();
+  if (!to) {
+    return {
+      ok: false,
+      error: "We couldn't send your message right now. Please try again later.",
+    };
+  }
 
   try {
     await sendEmail({

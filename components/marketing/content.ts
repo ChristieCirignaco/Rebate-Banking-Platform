@@ -2,14 +2,6 @@
 // Single source of truth so reused blocks (FAQ, testimonials, projects, stats) stay in sync.
 import type { FaqItem } from "@/components/marketing/faq-accordion";
 
-export const CONTACT_INFO = {
-  phone: "+1603-233-1119",
-  phoneHref: "tel:+16032331119",
-  email: "info@trbpayoutsystem.us",
-  emailHref: "mailto:info@trbpayoutsystem.us",
-  address: ["1600 Pennsylvania Ave NW", "Washington, DC 20500"],
-};
-
 export const CASHOUT_STEPS = [
   {
     title: "Your Product Is Money",

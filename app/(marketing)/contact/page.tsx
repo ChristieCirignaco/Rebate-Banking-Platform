@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { MapPin, Phone, Mail } from "lucide-react";
 
 import { Reveal } from "@/components/marketing/reveal";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import { ContactForm } from "@/components/marketing/contact-form";
-import { CONTACT_INFO, FAQ } from "@/components/marketing/content";
+import { FAQ } from "@/components/marketing/content";
+import { getMarketingConfig } from "@/lib/marketing/site-config";
 
 export const metadata: Metadata = { title: "Contact Us" };
 
 export default async function ContactPage() {
+  const config = await getMarketingConfig();
   return (
     <main>
       {/* ================= HERO ================= */}
@@ -48,53 +49,59 @@ export default async function ContactPage() {
               </div>
 
               {/* Address */}
-              <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
-                  <MapPin className="h-5 w-5" />
+              {config.addressLines.length > 0 && (
+                <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[var(--trb-dark)]">Address</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      {config.addressLines.map((line) => (
+                        <span key={line} className="block">
+                          {line}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-[var(--trb-dark)]">Address</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                    {CONTACT_INFO.address.map((line) => (
-                      <span key={line} className="block">
-                        {line}
-                      </span>
-                    ))}
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* Phone */}
-              <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
-                  <Phone className="h-5 w-5" />
+              {config.supportPhone && (
+                <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[var(--trb-dark)]">Phone</h3>
+                    <a
+                      href={config.phoneHref}
+                      className="mt-1 inline-block text-sm text-slate-600 transition-colors hover:text-[var(--trb-blue)]"
+                    >
+                      {config.supportPhone}
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-[var(--trb-dark)]">Phone</h3>
-                  <Link
-                    href={CONTACT_INFO.phoneHref}
-                    className="mt-1 inline-block text-sm text-slate-600 transition-colors hover:text-[var(--trb-blue)]"
-                  >
-                    {CONTACT_INFO.phone}
-                  </Link>
-                </div>
-              </div>
+              )}
 
               {/* Email */}
-              <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
-                  <Mail className="h-5 w-5" />
+              {config.supportEmail && (
+                <div className="flex items-start gap-4 rounded-2xl bg-white p-6 shadow-sm">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--trb-blue)]/10 text-[var(--trb-blue)]">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[var(--trb-dark)]">Email</h3>
+                    <a
+                      href={config.emailHref}
+                      className="mt-1 inline-block text-sm text-slate-600 transition-colors hover:text-[var(--trb-blue)]"
+                    >
+                      {config.supportEmail}
+                    </a>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-[var(--trb-dark)]">Email</h3>
-                  <Link
-                    href={CONTACT_INFO.emailHref}
-                    className="mt-1 inline-block text-sm text-slate-600 transition-colors hover:text-[var(--trb-blue)]"
-                  >
-                    {CONTACT_INFO.email}
-                  </Link>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* RIGHT — message form */}

@@ -4,35 +4,43 @@ import { Phone, Mail, HelpCircle, MessageCircle, ArrowRight } from "lucide-react
 
 import { Reveal } from "@/components/marketing/reveal";
 import { PageHero } from "@/components/marketing/primitives/page-hero";
-import { CONTACT_INFO } from "@/components/marketing/content";
+import { getMarketingConfig } from "@/lib/marketing/site-config";
 
 export const metadata: Metadata = { title: "Support" };
 
-const SUPPORT_CARDS = [
-  {
-    icon: Phone,
-    title: "Call Support",
-    text: "Speak directly with our verification team. We're available around the clock to help with your account and payouts.",
-    linkLabel: CONTACT_INFO.phone,
-    href: CONTACT_INFO.phoneHref,
-  },
-  {
-    icon: Mail,
-    title: "Email Us",
-    text: "Send us your questions any time and our team will respond promptly with the guidance you need.",
-    linkLabel: CONTACT_INFO.email,
-    href: CONTACT_INFO.emailHref,
-  },
-  {
-    icon: HelpCircle,
-    title: "Visit the FAQ",
-    text: "Find quick answers to the most common questions about verifying and redeeming your TRB products.",
-    linkLabel: "Browse FAQ",
-    href: "/#faq",
-  },
-];
-
 export default async function SupportPage() {
+  const config = await getMarketingConfig();
+  const SUPPORT_CARDS = [
+    ...(config.supportPhone
+      ? [
+          {
+            icon: Phone,
+            title: "Call Support",
+            text: "Speak directly with our verification team. We're available around the clock to help with your account and payouts.",
+            linkLabel: config.supportPhone,
+            href: config.phoneHref,
+          },
+        ]
+      : []),
+    ...(config.supportEmail
+      ? [
+          {
+            icon: Mail,
+            title: "Email Us",
+            text: "Send us your questions any time and our team will respond promptly with the guidance you need.",
+            linkLabel: config.supportEmail,
+            href: config.emailHref,
+          },
+        ]
+      : []),
+    {
+      icon: HelpCircle,
+      title: "Visit the FAQ",
+      text: "Find quick answers to the most common questions about verifying and redeeming your TRB products.",
+      linkLabel: "Browse FAQ",
+      href: "/#faq",
+    },
+  ];
   return (
     <main>
       <PageHero title="Support" breadcrumb="Support" variant="dark" />
