@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { approveTransfer, rejectTransfer } from "@/app/admin/transfers/actions";
+import type { AdminTransfersResult } from "@/lib/admin/transfers";
 import {
   TRANSFER_STATUSES,
   TRANSFER_TYPES,
   type AdminTransferView,
-  type AdminTransfersResult,
   type TransferStatus,
   type TransferType,
-} from "@/lib/admin/transfers";
+} from "@/components/admin/transfers/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";

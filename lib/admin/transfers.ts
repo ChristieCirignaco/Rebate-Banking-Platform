@@ -1,43 +1,26 @@
 import { prisma } from "@/lib/db";
 import { formatMinor } from "@/lib/money/money";
+import {
+  TRANSFER_STATUSES,
+  type AdminTransferView,
+  type TransferStatus,
+  type TransferType,
+} from "@/components/admin/transfers/types";
 
 // Admin reads for the transfers review queue + history. Presentation is folded here so the
-// page/view stay serialization-clean (no BigInt over the RSC boundary).
+// page/view stay serialization-clean (no BigInt over the RSC boundary). The shared types and
+// constants live in components/admin/transfers/types so the client view can use them without
+// importing this module (which pulls in Prisma) — see the note there.
 
-export type TransferType = "internal" | "domestic" | "wire";
-export type TransferStatus = "pending" | "completed" | "rejected" | "canceled" | "failed";
-
-export const TRANSFER_TYPES: TransferType[] = ["internal", "domestic", "wire"];
-export const TRANSFER_STATUSES: TransferStatus[] = [
-  "pending",
-  "completed",
-  "rejected",
-  "canceled",
-  "failed",
-];
+export {
+  TRANSFER_STATUSES,
+  TRANSFER_TYPES,
+  type AdminTransferView,
+  type TransferStatus,
+  type TransferType,
+} from "@/components/admin/transfers/types";
 
 const PAGE_SIZE = 15;
-
-export type AdminTransferView = {
-  id: string;
-  txnId: string;
-  type: TransferType;
-  status: TransferStatus;
-  currency: string;
-  amountLabel: string;
-  feeLabel: string;
-  senderName: string;
-  senderEmail: string;
-  recipientLabel: string; // internal: recipient user; external: account holder
-  recipientSub: string | null; // internal: email; external: bank · account
-  bankDetails: { label: string; value: string }[]; // domestic/wire
-  codesVerified: boolean;
-  description: string | null;
-  remarks: string | null;
-  dateLabel: string;
-  reviewedByName: string | null;
-  reviewedLabel: string | null;
-};
 
 const BANK_FIELD_LABELS: Record<string, string> = {
   bankName: "Bank",
