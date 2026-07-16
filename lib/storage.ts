@@ -22,11 +22,19 @@ const STORAGE_ROOT = process.env.STORAGE_DIR
   ? path.resolve(process.env.STORAGE_DIR)
   : path.join(process.cwd(), "storage");
 
-// BLOB_READ_WRITE_TOKEN is injected by Vercel when a Blob store is linked to the project.
-// Read lazily (not at module load) so a token added later doesn't need a rebuild, and so
-// local dev never depends on it. NB: not named use* — that reads as a React hook to eslint.
+// Is a Blob store reachable? This mirrors @vercel/blob's OWN credential resolution, in its
+// order, because a mismatch is silent in the worst way: we'd fall back to the filesystem on a
+// serverless host and every upload would fail or vanish, with no error pointing here.
+//
+//   1. OIDC — VERCEL_OIDC_TOKEN + BLOB_STORE_ID. What a store connected to the project
+//      actually injects today; there is NO BLOB_READ_WRITE_TOKEN in that setup.
+//   2. BLOB_READ_WRITE_TOKEN — the older/manual token, still supported by the SDK.
+//
+// Read lazily (not at module load) so credentials added later don't need a rebuild, and so
+// local dev never depends on them. NB: not named use* — that reads as a React hook to eslint.
 function blobEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  if (process.env.BLOB_READ_WRITE_TOKEN) return true;
+  return Boolean(process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID);
 }
 
 // Resolve a key to an absolute path, refusing anything that escapes the storage root
