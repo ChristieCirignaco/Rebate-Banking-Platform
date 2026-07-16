@@ -3,10 +3,13 @@
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Clock3, Info, Landmark, Wallet, Zap } from "lucide-react";
+import { Clock3, FileCheck2, FileUp, Info, Landmark, Loader2, Wallet, X, Zap } from "lucide-react";
 
 import { createDeposit, type DepositInput } from "@/app/(app)/deposit/actions";
 import type { DepositMethodView, DepositWalletView } from "@/lib/deposits";
+import { DEPOSIT_PROOF_ACCEPT } from "@/lib/deposit-proof";
+import { formatCurrency } from "@/lib/format";
+import { uploadDepositProof } from "@/lib/media";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -18,14 +21,6 @@ const FIELD =
   "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
 const SELECT =
   "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
-
-function money(amount: number, currency: string): string {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
 
 // The deposit (add money) form: pick a wallet, pick a payment method available for that wallet's
 // currency, fill any manual credentials the method requires, enter an amount, and authorize with
@@ -52,18 +47,55 @@ export function DepositForm({
   const method = availableMethods.find((m) => m.id === methodId) ?? null;
 
   const [amount, setAmount] = useState("");
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const [fields, setFields] = useState<Record<string, string>>({}); // field id -> value (or proof URL)
+  const [fileNames, setFileNames] = useState<Record<string, string>>({}); // file field id -> display name
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [pinOpen, setPinOpen] = useState(false);
 
+  function resetFields() {
+    setFields({});
+    setFileNames({});
+    setUploading({});
+  }
   function onWalletChange(id: string) {
     setWalletId(id);
     const next = methods.filter((m) => m.currency === (wallets.find((w) => w.id === id)?.currency ?? ""));
     setMethodId(next[0]?.id ?? "");
-    setFields({});
+    resetFields();
   }
   function onMethodChange(id: string) {
     setMethodId(id);
-    setFields({});
+    resetFields();
+  }
+
+  async function onProofSelect(fieldId: string, file: File | undefined) {
+    if (!file) return;
+    setUploading((p) => ({ ...p, [fieldId]: true }));
+    try {
+      const result = await uploadDepositProof(file);
+      if (result.ok) {
+        setFields((p) => ({ ...p, [fieldId]: result.url }));
+        setFileNames((p) => ({ ...p, [fieldId]: file.name }));
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("Couldn't upload the file. Please try again.");
+    } finally {
+      setUploading((p) => ({ ...p, [fieldId]: false }));
+    }
+  }
+  function removeProof(fieldId: string) {
+    setFields((p) => {
+      const next = { ...p };
+      delete next[fieldId];
+      return next;
+    });
+    setFileNames((p) => {
+      const next = { ...p };
+      delete next[fieldId];
+      return next;
+    });
   }
 
   const currency = wallet?.currency ?? "USD";
@@ -76,16 +108,17 @@ export function DepositForm({
     : 0;
   const feePreview = Math.max(0, feeMajor);
   const totalPreview = (validAmount ? amountNum : 0) + feePreview;
+  const anyUploading = Object.values(uploading).some(Boolean);
 
   function validate(): string | null {
     if (!wallet) return "Select a wallet.";
     if (!method) return "Select a payment method.";
     if (!validAmount) return "Enter a valid amount.";
     if (method.minAmount > 0 && amountNum < method.minAmount) {
-      return `Minimum deposit is ${money(method.minAmount, currency)}.`;
+      return `Minimum deposit is ${formatCurrency(method.minAmount, currency)}.`;
     }
     if (method.maxAmount > 0 && amountNum > method.maxAmount) {
-      return `Maximum deposit is ${money(method.maxAmount, currency)}.`;
+      return `Maximum deposit is ${formatCurrency(method.maxAmount, currency)}.`;
     }
     if (method.type === "manual") {
       for (const f of method.fields) {
@@ -97,6 +130,10 @@ export function DepositForm({
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (anyUploading) {
+      toast.error("Please wait for the upload to finish.");
+      return;
+    }
     const error = validate();
     if (error) {
       toast.error(error);
@@ -233,10 +270,56 @@ export function DepositForm({
                     rows={3}
                     className="rounded-xl border-slate-200 bg-white text-base"
                   />
+                ) : f.type === "file" ? (
+                  fields[f.id] ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm">
+                      <FileCheck2 className="size-4 shrink-0 text-emerald-600" />
+                      <span className="min-w-0 flex-1 truncate font-medium text-slate-700">
+                        {fileNames[f.id] ?? "File uploaded"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeProof(f.id)}
+                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-red-600"
+                      >
+                        <X className="size-3.5" />
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      className={cn(
+                        "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600",
+                        uploading[f.id] && "pointer-events-none opacity-60",
+                      )}
+                    >
+                      <input
+                        type="file"
+                        accept={DEPOSIT_PROOF_ACCEPT}
+                        className="sr-only"
+                        disabled={uploading[f.id]}
+                        onChange={(e) => {
+                          void onProofSelect(f.id, e.target.files?.[0]);
+                          e.target.value = "";
+                        }}
+                      />
+                      {uploading[f.id] ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Uploading…
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="size-4" />
+                          Upload file
+                        </>
+                      )}
+                    </label>
+                  )
                 ) : (
                   <Input
                     id={`f-${f.id}`}
-                    type={f.type === "file" ? "text" : "text"}
+                    type="text"
                     value={fields[f.id] ?? ""}
                     onChange={(e) => setFields((p) => ({ ...p, [f.id]: e.target.value }))}
                     className={cn(FIELD, "bg-white")}
@@ -275,18 +358,18 @@ export function DepositForm({
           <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm">
             <div className="flex justify-between text-slate-500">
               <span>Deposit amount</span>
-              <span className="font-medium text-slate-700">{money(amountNum, currency)}</span>
+              <span className="font-medium text-slate-700">{formatCurrency(amountNum, currency)}</span>
             </div>
             <div className="flex justify-between text-slate-500">
               <span>Fee</span>
-              <span className="font-medium text-slate-700">{money(feePreview, currency)}</span>
+              <span className="font-medium text-slate-700">{formatCurrency(feePreview, currency)}</span>
             </div>
             <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900">
               <span>Total to pay</span>
-              <span>{money(totalPreview, currency)}</span>
+              <span>{formatCurrency(totalPreview, currency)}</span>
             </div>
             <p className="text-xs text-slate-400">
-              {money(amountNum, currency)} will be credited to your {currency} wallet
+              {formatCurrency(amountNum, currency)} will be credited to your {currency} wallet
               {method.type === "manual" ? " after admin approval" : ""}.
             </p>
           </div>
@@ -294,7 +377,7 @@ export function DepositForm({
 
         <button
           type="submit"
-          disabled={!method || !validAmount}
+          disabled={!method || !validAmount || anyUploading}
           className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
         >
           Deposit now

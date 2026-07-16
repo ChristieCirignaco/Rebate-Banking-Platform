@@ -78,3 +78,9 @@ export async function uploadRegistrationProductImage(file: File) {
 export async function uploadUserProductImage(file: File) {
   return uploadTo("/api/user/product-image", file);
 }
+
+// Client-side helper for a signed-in user uploading a manual-deposit payment proof (image/PDF).
+// The returned URL is admin-served (private); see lib/deposit-proof.ts.
+export async function uploadDepositProof(file: File) {
+  return uploadTo("/api/user/deposit-proof", file);
+}

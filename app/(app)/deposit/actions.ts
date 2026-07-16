@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { isDepositProofUrl } from "@/lib/deposit-proof";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMinor } from "@/lib/money/money";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
@@ -89,12 +90,17 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   }
 
   // Manual custom fields → a submission-time snapshot [{label, value}]; enforce required ones.
+  // A "file" field carries an uploaded proof URL (from /api/user/deposit-proof), never free
+  // text — reject anything else so the snapshot can only hold a real, admin-servable proof.
   const fieldValues: { label: string; value: string }[] = [];
   if (method.type === "manual") {
     for (const field of method.fields) {
       const value = (input.fields?.[field.id] ?? "").trim();
       if (field.required && !value) {
         return { ok: false, error: `${field.label} is required.` };
+      }
+      if (value && field.type === "file" && !isDepositProofUrl(value)) {
+        return { ok: false, error: `Upload a valid file for ${field.label}.` };
       }
       if (value) fieldValues.push({ label: field.label, value });
     }

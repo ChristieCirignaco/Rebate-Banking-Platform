@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { isDepositProofUrl } from "@/lib/deposit-proof";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import type { DepositRequest } from "./types";
@@ -115,7 +116,19 @@ export function DepositReviewDialog({ request }: { request: DepositRequest }) {
               <div className="rounded-lg border px-3">
                 {request.fieldValues.map((field, index) => (
                   <Row key={`${field.label}-${index}`} label={field.label}>
-                    <span className="break-all">{field.value || "—"}</span>
+                    {isDepositProofUrl(field.value) ? (
+                      <a
+                        href={field.value}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                      >
+                        <Eye className="size-3.5" />
+                        View file
+                      </a>
+                    ) : (
+                      <span className="break-all">{field.value || "—"}</span>
+                    )}
                   </Row>
                 ))}
               </div>
