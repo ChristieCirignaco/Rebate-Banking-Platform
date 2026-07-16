@@ -1,17 +1,11 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import {
-  contentTypeForKey,
-  isImageContentType,
-  ticketAttachmentUrl,
-} from "@/lib/tickets/files";
+import { toTicketDetail } from "@/lib/tickets/present";
 import type {
-  TicketAttachmentView,
   TicketDetail,
   TicketListParams,
   TicketListResult,
-  TicketMessageView,
   TicketPriority,
   TicketStatus,
 } from "@/components/admin/support-tickets/types";
@@ -94,29 +88,6 @@ export async function getTicketList(
   };
 }
 
-function toAttachmentViews(raw: Prisma.JsonValue | null): TicketAttachmentView[] {
-  if (!Array.isArray(raw)) return [];
-  const views: TicketAttachmentView[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
-    const entry = item as Record<string, unknown>;
-    const key = typeof entry.key === "string" ? entry.key : "";
-    if (!key) continue;
-    const contentType =
-      typeof entry.contentType === "string" ? entry.contentType : (contentTypeForKey(key) ?? "");
-    const name = typeof entry.name === "string" ? entry.name : key;
-    views.push({
-      name,
-      key,
-      url: ticketAttachmentUrl(key),
-      contentType,
-      size: typeof entry.size === "number" ? entry.size : undefined,
-      isImage: isImageContentType(contentType),
-    });
-  }
-  return views;
-}
-
 export async function getTicketDetail(id: string): Promise<TicketDetail | null> {
   const ticket = await prisma.ticket.findUnique({
     where: { id },
@@ -127,32 +98,5 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     },
   });
   if (!ticket) return null;
-
-  const messages: TicketMessageView[] = ticket.messages.map((m) => ({
-    id: m.id,
-    senderType: m.senderType as "user" | "admin",
-    senderName: m.senderName,
-    body: m.body,
-    attachments: toAttachmentViews(m.attachments),
-    createdAt: m.createdAt.toISOString(),
-  }));
-
-  return {
-    id: ticket.id,
-    ticketCode: ticket.ticketCode,
-    subject: ticket.subject,
-    body: ticket.body,
-    priority: ticket.priority as TicketPriority,
-    status: ticket.status as TicketStatus,
-    categoryName: ticket.category?.name ?? ticket.categoryName ?? null,
-    user: {
-      id: ticket.user.id,
-      name: ticket.user.name,
-      email: ticket.user.email,
-      avatarUrl: ticket.user.image ?? undefined,
-    },
-    createdAt: ticket.createdAt.toISOString(),
-    updatedAt: ticket.updatedAt.toISOString(),
-    messages,
-  };
+  return toTicketDetail(ticket);
 }

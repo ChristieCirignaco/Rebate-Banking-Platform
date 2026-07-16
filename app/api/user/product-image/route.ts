@@ -2,6 +2,7 @@ import { getSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { mediaUrl } from "@/lib/media";
 import { putObject } from "@/lib/storage";
+import { uploadLimited } from "@/lib/upload-rate-limit";
 
 // Product photos can be larger than brand images, but still bounded.
 const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -12,25 +13,7 @@ const PRODUCT_IMAGE_EXT: Record<string, string> = {
   "image/webp": "webp",
 };
 
-// Per-user upload cap so one session can't fill the disk with orphan files. In-memory
-// (single-instance) like the register throttle — swap for a shared store when multi-instance.
-const UPLOAD_WINDOW_MS = 60 * 60 * 1000;
 const MAX_UPLOADS_PER_USER = 30;
-const uploadHits = new Map<string, { count: number; resetAt: number }>();
-
-function uploadLimited(userId: string): boolean {
-  const now = Date.now();
-  for (const [key, hit] of uploadHits) {
-    if (hit.resetAt < now) uploadHits.delete(key);
-  }
-  const bucket = uploadHits.get(userId);
-  if (!bucket || bucket.resetAt < now) {
-    uploadHits.set(userId, { count: 1, resetAt: now + UPLOAD_WINDOW_MS });
-    return false;
-  }
-  bucket.count += 1;
-  return bucket.count > MAX_UPLOADS_PER_USER;
-}
 
 // POST /api/user/product-image — accept ONE product photo from a signed-in, active regular
 // user and return its served URL. Stored in the public "media" namespace.
@@ -50,7 +33,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Not authorized." }, { status: 403 });
   }
 
-  if (uploadLimited(session.user.id)) {
+  if (uploadLimited("product-image", session.user.id, MAX_UPLOADS_PER_USER)) {
     return Response.json(
       { ok: false, error: "Too many uploads. Please try again later." },
       { status: 429 },

@@ -1,8 +1,7 @@
-import { randomInt } from "node:crypto";
-
 import { prisma } from "@/lib/db";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { toMajor, toMinor } from "@/lib/money/money";
+import { shortCode } from "@/lib/short-code";
 import type { ReferralTrigger } from "@/lib/settings/defs";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getSettings } from "@/lib/settings/store";
@@ -12,8 +11,6 @@ import { getSettings } from "@/lib/settings/store";
 // When the referred user hits the admin-configured trigger (signup or first deposit) the
 // referrer earns a ReferralEarning (pending until an admin marks it paid). This module owns the
 // share code, the user-facing reads, and the (idempotent) award.
-
-const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I
 
 export type ReferralStatus = "pending" | "paid" | "rejected";
 
@@ -46,12 +43,6 @@ export type ReferralData = {
   prohibitedRules: string[];
 };
 
-function randomCode(): string {
-  let s = "";
-  for (let i = 0; i < 8; i++) s += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
-  return s;
-}
-
 // The user's share code, generated + persisted on first use (avoids backfilling existing rows).
 export async function ensureReferralCode(userId: string): Promise<string> {
   const existing = await prisma.user.findUnique({
@@ -61,7 +52,7 @@ export async function ensureReferralCode(userId: string): Promise<string> {
   if (existing?.referralCode) return existing.referralCode;
 
   for (let i = 0; i < 6; i++) {
-    const code = randomCode();
+    const code = shortCode(8);
     if ((await prisma.user.count({ where: { referralCode: code } })) > 0) continue;
     try {
       await prisma.user.update({ where: { id: userId }, data: { referralCode: code } });

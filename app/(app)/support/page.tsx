@@ -1,16 +1,44 @@
 import type { Metadata } from "next";
-import { LifeBuoy } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 
-import { PlaceholderScreen } from "@/components/app/placeholder-screen";
+import { getSession } from "@/lib/auth-guards";
+import { getSupportCategories, getUserTickets } from "@/lib/support";
+import { SupportView } from "@/components/app/support/support-view";
 
 export const metadata: Metadata = { title: "Support" };
 
-export default function SupportPage() {
+// Support inbox: the user's tickets + a "New ticket" composer. Opening a ticket goes to the
+// chat thread at /support/[id]. Same inner-page shell as the other feature pages.
+export default async function SupportPage() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const [tickets, categories] = await Promise.all([
+    getUserTickets(session.user.id),
+    getSupportCategories(),
+  ]);
+
   return (
-    <PlaceholderScreen
-      title="Support"
-      description="Open a ticket and chat with our support team."
-      icon={LifeBuoy}
-    />
+    <div className="mx-auto max-w-2xl px-5 pb-24 lg:px-0 lg:pb-0">
+      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg">
+        <div className="flex items-center gap-3 py-4 lg:pt-0">
+          <Link
+            href="/dashboard"
+            aria-label="Back"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200"
+          >
+            <ChevronLeft className="size-5" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Support</h1>
+            <p className="text-sm text-slate-500">Open a ticket and chat with our team.</p>
+          </div>
+        </div>
+
+        <SupportView tickets={tickets} categories={categories} />
+      </div>
+    </div>
   );
 }

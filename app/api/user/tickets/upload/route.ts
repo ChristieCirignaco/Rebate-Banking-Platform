@@ -1,24 +1,18 @@
 import { getSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
-import {
-  DEPOSIT_PROOF_NAMESPACE,
-  depositProofUrl,
-  MAX_DEPOSIT_PROOF_BYTES,
-} from "@/lib/deposit-proof";
-import { extForContentType } from "@/lib/kyc/files";
+import { signAttachment } from "@/lib/tickets/attachment-token";
+import { extForContentType, MAX_TICKET_FILE_BYTES, ticketAttachmentUrl } from "@/lib/tickets/files";
 import { putObject } from "@/lib/storage";
 import { uploadLimited } from "@/lib/upload-rate-limit";
 
-const MAX_UPLOADS_PER_USER = 30;
+const MAX_UPLOADS_PER_USER = 40;
 
-// POST /api/user/deposit-proof — accept ONE payment-proof file (image or PDF) from a signed-in,
-// active regular user and return its access-controlled URL. Stored in the private
-// "deposit-proofs" namespace and served only to admins reviewing the deposit.
+// POST /api/user/tickets/upload — a signed-in active user uploads one support-ticket attachment
+// (image/PDF) into the private "tickets" namespace. Served back through the access-controlled
+// /api/ticket-attachments/[key] route (admin or the ticket owner).
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session) {
-    return Response.json({ ok: false, error: "Not authorized." }, { status: 401 });
-  }
+  if (!session) return Response.json({ ok: false, error: "Not authorized." }, { status: 401 });
   if (isAdminTierRole(session.user.role)) {
     return Response.json({ ok: false, error: "Not authorized." }, { status: 403 });
   }
@@ -29,22 +23,16 @@ export async function POST(request: Request) {
   if (!user || user.status !== "active") {
     return Response.json({ ok: false, error: "Not authorized." }, { status: 403 });
   }
-
-  if (uploadLimited("deposit-proof", session.user.id, MAX_UPLOADS_PER_USER)) {
-    return Response.json(
-      { ok: false, error: "Too many uploads. Please try again later." },
-      { status: 429 },
-    );
+  if (uploadLimited("tickets", session.user.id, MAX_UPLOADS_PER_USER)) {
+    return Response.json({ ok: false, error: "Too many uploads. Try again later." }, { status: 429 });
   }
 
-  // Require a declared body size and bound it BEFORE buffering. A chunked request carries no
-  // content-length, so this also blocks the "stream a huge body past the size check" vector.
   const contentLength = request.headers.get("content-length");
   const declared = Number(contentLength ?? "");
   if (!contentLength || !Number.isFinite(declared)) {
     return Response.json({ ok: false, error: "Length required." }, { status: 411 });
   }
-  if (declared > MAX_DEPOSIT_PROOF_BYTES + 16 * 1024) {
+  if (declared > MAX_TICKET_FILE_BYTES + 16 * 1024) {
     return Response.json({ ok: false, error: "File must be 5 MB or smaller." }, { status: 413 });
   }
 
@@ -54,12 +42,10 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ ok: false, error: "Invalid upload." }, { status: 400 });
   }
-
   const file = form.get("file");
   if (!(file instanceof File)) {
     return Response.json({ ok: false, error: "No file provided." }, { status: 400 });
   }
-
   const ext = extForContentType(file.type);
   if (!ext) {
     return Response.json(
@@ -67,14 +53,19 @@ export async function POST(request: Request) {
       { status: 415 },
     );
   }
-  if (file.size <= 0 || file.size > MAX_DEPOSIT_PROOF_BYTES) {
-    return Response.json(
-      { ok: false, error: "File must be between 1 byte and 5 MB." },
-      { status: 413 },
-    );
+  if (file.size <= 0 || file.size > MAX_TICKET_FILE_BYTES) {
+    return Response.json({ ok: false, error: "File must be between 1 byte and 5 MB." }, { status: 413 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const key = await putObject(DEPOSIT_PROOF_NAMESPACE, buffer, ext);
-  return Response.json({ ok: true, url: depositProofUrl(key), name: file.name });
+  const key = await putObject("tickets", buffer, ext);
+  return Response.json({
+    ok: true,
+    key,
+    name: file.name,
+    contentType: file.type,
+    size: file.size,
+    url: ticketAttachmentUrl(key),
+    token: signAttachment(key, session.user.id), // proves this user uploaded this key
+  });
 }
