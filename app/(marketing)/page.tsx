@@ -27,6 +27,7 @@ import {
   BLOG,
   FAQ,
 } from "@/components/marketing/content";
+import { getLatestNews, type NewsItem } from "@/lib/marketing/news";
 
 const HERO_STEPS = [
   { icon: IdCard, title: "Register Account", text: "Create your portal access and set up your secure profile" },
@@ -38,7 +39,21 @@ const CASHOUT_ICONS = [DollarSign, Upload, Banknote];
 const FEATURE_ICONS = [ShieldCheck, BadgeCheck, Headphones, Zap];
 const CASHOUT_OFFSET = ["md:mr-auto", "md:mx-auto", "md:ml-auto"];
 
-export default function Home() {
+export default async function Home() {
+  // Real Trump/markets/investing headlines, merged from several feeds and cached 5 min.
+  // Falls back to the static cards if every source is unreachable.
+  const news = await getLatestNews(6);
+  const updates: NewsItem[] = news.length
+    ? news
+    : BLOG.map((b) => ({
+        title: b.title,
+        excerpt: b.excerpt,
+        category: b.category,
+        url: "",
+        source: "TRB Payout System",
+        publishedAt: 0,
+        publishedLabel: "",
+      }));
   return (
     <main>
       {/* ================= HERO ================= */}
@@ -345,16 +360,32 @@ export default function Home() {
             <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Trump, Investments &amp; Market News</h2>
           </Reveal>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {BLOG.map((b, i) => (
-              <Reveal key={b.title} delay={i * 100} className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
-                <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[var(--trb-blue)] to-[var(--trb-blue-2)]">
-                  <span className="text-5xl font-black text-white/40">TRB</span>
-                </div>
-                <div className="p-6">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-[var(--trb-blue)]">{b.category}</span>
-                  <h3 className="mt-2 font-bold leading-snug text-[var(--trb-dark)]">{b.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-slate-600">{b.excerpt}</p>
-                </div>
+            {updates.map((item, i) => (
+              <Reveal key={`${item.title}-${i}`} delay={i * 100} className="h-full">
+                <a
+                  href={item.url || undefined}
+                  target={item.url ? "_blank" : undefined}
+                  rel={item.url ? "noopener noreferrer" : undefined}
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-transform duration-300 hover:-translate-y-1"
+                >
+                  <div className="flex aspect-[16/10] items-center justify-center bg-gradient-to-br from-[var(--trb-blue)] to-[var(--trb-blue-2)] px-4">
+                    <span className="text-center text-lg font-bold text-white/80">{item.source}</span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--trb-blue)]">
+                      <span>{item.category}</span>
+                      {item.publishedLabel && (
+                        <span className="font-medium normal-case text-slate-400">· {item.publishedLabel}</span>
+                      )}
+                    </div>
+                    <h3 className="mt-2 font-bold leading-snug text-[var(--trb-dark)] transition-colors group-hover:text-[var(--trb-blue)]">
+                      {item.title}
+                    </h3>
+                    {item.excerpt && (
+                      <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{item.excerpt}</p>
+                    )}
+                  </div>
+                </a>
               </Reveal>
             ))}
           </div>

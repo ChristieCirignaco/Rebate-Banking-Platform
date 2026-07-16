@@ -28,6 +28,11 @@ const greatVibes = Great_Vibes({
   display: "swap",
 });
 
+// ISR: every marketing route regenerates at most every 5 minutes, so admin System Settings
+// changes appear within 5 min in production and the home "Latest Updates" news stays fresh —
+// without a per-request DB hit on every visit.
+export const revalidate = 300;
+
 // SEO/OG/title/favicon all come from the admin System Settings (general + branding).
 function safeUrl(value: string): URL | undefined {
   try {
