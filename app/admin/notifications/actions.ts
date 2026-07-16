@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { ADMIN_ROLES, getAdminSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { getAdminNotifications, FEED_PAGE_SIZE } from "@/lib/admin/notifications";
+import { deliverEmailNotices } from "@/lib/notifications";
 import {
   SYSTEM_ALERT_TYPES,
   type AdminNotificationItem,
@@ -87,6 +88,17 @@ export async function broadcastNotification(
         scheduledAt,
       })),
     });
+  }
+
+  // Mail an "email" broadcast that is due now. A scheduled one is written and appears in each
+  // user's bell when its time arrives, but nothing dispatches on scheduledAt yet, so mailing
+  // here would deliver early — the rows are the record either way.
+  if (input.type === "email" && !scheduledAt) {
+    await deliverEmailNotices(
+      users.map((user) => user.id),
+      title,
+      message,
+    );
   }
 
   // Nothing admin-facing needs revalidation: broadcast rows are user-owned email/push

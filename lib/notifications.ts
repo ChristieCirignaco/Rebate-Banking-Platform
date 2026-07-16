@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ADMIN_ROLES } from "@/lib/auth-guards";
+import { sendEmail } from "@/lib/email";
 import { formatDateTime } from "@/lib/format";
 import type { SystemAlertType } from "@/components/admin/notifications/types";
 
@@ -47,19 +48,51 @@ export async function notifyUserOf(
 ): Promise<boolean> {
   try {
     if (!userId) return false;
+    // "push" is the in-app default — it lands in the bell and nowhere else. "email" ALSO gets
+    // mailed (see deliverEmailNotices); the row is written either way, so the bell is the
+    // durable record and mail is a delivery channel on top of it.
+    const type = args.type ?? "push";
     await prisma.notification.create({
-      data: {
-        userId,
-        // "push" is the in-app default: these are events the user sees in their bell, not mail
-        // we actually send (neither type is wired to a delivery channel yet).
-        type: args.type ?? "push",
-        title: args.title,
-        message: args.message,
-      },
+      data: { userId, type, title: args.title, message: args.message },
     });
+    if (type === "email") await deliverEmailNotices([userId], args.title, args.message);
     return true;
   } catch {
     return false;
+  }
+}
+
+// Mail the "email"-type notices out. Separate from the row write so the bell record survives a
+// mailer outage: sendEmail is itself fire-and-forget (it logs rather than throws, and no-ops to
+// the console when RESEND_API_KEY is unset), and this never throws into a caller's money action.
+//
+// LIMITATION worth knowing: this sends at write time. A notice with a future `scheduledAt` is
+// therefore NOT mailed here — nothing in the app dispatches on that column yet, so a scheduled
+// email would need a cron/queue to mail at the right moment. Callers pass only due notices.
+export async function deliverEmailNotices(
+  userIds: string[],
+  title: string | null,
+  message: string,
+): Promise<void> {
+  try {
+    if (userIds.length === 0) return;
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { email: true },
+    });
+    const subject = title?.trim() || "Notification";
+    // Bounded concurrency: a broadcast can span every user, and firing thousands of requests at
+    // once would swamp the mailer's rate limit and the event loop alike.
+    const BATCH = 20;
+    for (let i = 0; i < users.length; i += BATCH) {
+      await Promise.all(
+        users
+          .slice(i, i + BATCH)
+          .map((user) => sendEmail({ to: user.email, subject, text: message })),
+      );
+    }
+  } catch (error) {
+    console.error("[notifications] email delivery failed:", error);
   }
 }
 

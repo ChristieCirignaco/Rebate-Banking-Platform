@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor } from "@/lib/money/money";
-import { notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
+import { deliverEmailNotices, notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
 import { addWalletFor, removeWalletFor } from "@/lib/wallets";
 import type {
   ControlKey,
@@ -243,6 +243,12 @@ export async function notifyUser(userId: string, input: NotifyPayload): Promise<
       scheduledAt,
     },
   });
+  // Mail it only when it's an email notice that is due now. A scheduled one is stored and shown
+  // in the bell when its time comes, but nothing dispatches on scheduledAt yet — mailing it here
+  // would deliver early, which is worse than not mailing at all.
+  if (input.type === "email" && !scheduledAt) {
+    await deliverEmailNotices([userId], input.title ?? null, input.message);
+  }
   revalidate(userId);
   return { ok: true };
 }
