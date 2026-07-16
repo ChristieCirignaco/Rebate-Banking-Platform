@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 import {
   ArrowDownToLine,
   ArrowDownUp,
-  ChartColumn,
   House,
+  LifeBuoy,
+  Package,
   PackagePlus,
   Plus,
-  Settings,
-  Wallet,
+  Send,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -29,9 +29,9 @@ type Tab = { href: string; label: string; icon: LucideIcon };
 
 const TABS: Tab[] = [
   { href: "/dashboard", label: "Home", icon: House },
-  { href: "/statistic", label: "Statistic", icon: ChartColumn },
-  { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/products", label: "Products", icon: Package },
+  { href: "/send", label: "Send", icon: Send },
+  { href: "/support", label: "Support", icon: LifeBuoy },
 ];
 
 // Detail screens (their own back header, no tab bar) — the bar hides on these.
@@ -73,7 +73,7 @@ export function BottomTabBar() {
 
   if (HIDE_ON.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
 
-  const [home, statistic, wallet, settings] = TABS;
+  const [home, products, send, support] = TABS;
 
   return (
     <>
@@ -81,7 +81,7 @@ export function BottomTabBar() {
         className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[600px] items-end justify-around border-t border-slate-200/70 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden dark:border-slate-800/80 dark:bg-slate-950/95"
       >
         <TabLink tab={home} active={isActive(pathname, home.href)} />
-        <TabLink tab={statistic} active={isActive(pathname, statistic.href)} />
+        <TabLink tab={products} active={isActive(pathname, products.href)} />
 
         <div className="flex w-14 shrink-0 justify-center">
           <button
@@ -94,8 +94,8 @@ export function BottomTabBar() {
           </button>
         </div>
 
-        <TabLink tab={wallet} active={isActive(pathname, wallet.href)} />
-        <TabLink tab={settings} active={isActive(pathname, settings.href)} />
+        <TabLink tab={send} active={isActive(pathname, send.href)} />
+        <TabLink tab={support} active={isActive(pathname, support.href)} />
       </nav>
 
       <Drawer open={open} onOpenChange={setOpen}>

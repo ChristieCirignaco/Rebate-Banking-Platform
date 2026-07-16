@@ -3,35 +3,15 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ChartColumn,
-  House,
-  Landmark,
-  LogOut,
-  Menu,
-  Package,
-  Receipt,
-  Settings,
-  Wallet,
-  X,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Landmark, LogOut, Menu, X } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { APP_NAV } from "@/components/app/app-nav";
 
 const DRAWER_GRADIENT = "linear-gradient(180deg,#1e293b 0%,#0f172a 100%)";
-
-const NAV: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/dashboard", label: "Home", icon: House },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/transactions", label: "Transactions", icon: Receipt },
-  { href: "/statistic", label: "Statistic", icon: ChartColumn },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
 
 function initials(name: string): string {
   const letters = name
@@ -92,8 +72,8 @@ export function MobileMenu({ user, triggerClassName }: { user: MenuUser; trigger
           </SheetClose>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3">
-          {NAV.map((item) => {
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+          {APP_NAV.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
@@ -116,17 +96,24 @@ export function MobileMenu({ user, triggerClassName }: { user: MenuUser; trigger
           })}
         </nav>
 
-        <div className="flex items-center gap-3 border-t border-white/10 p-4">
-          <Avatar size="default" className="ring-2 ring-white/15">
-            {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
-            <AvatarFallback className="bg-white/15 text-xs font-semibold text-white">
-              {initials(user.name)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{user.name}</p>
-            <p className="truncate text-xs text-white/60">{user.email}</p>
-          </div>
+        <div className="flex items-center gap-2 border-t border-white/10 p-3">
+          <SheetClose asChild>
+            <Link
+              href="/settings"
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 transition-colors hover:bg-white/10"
+            >
+              <Avatar size="default" className="ring-2 ring-white/15">
+                {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
+                <AvatarFallback className="bg-white/15 text-xs font-semibold text-white">
+                  {initials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{user.name}</p>
+                <p className="truncate text-xs text-white/60">{user.email}</p>
+              </div>
+            </Link>
+          </SheetClose>
           <button
             type="button"
             onClick={signOut}
