@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
@@ -20,7 +20,8 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "db:seed:dashboard": "tsx scripts/seed-dashboard.ts"
+    "db:seed:dashboard": "tsx scripts/seed-dashboard.ts",
+    "build:local": "next build"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -33,6 +34,7 @@
     "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.19.3",
     "@tanstack/react-table": "^8.21.3",
+    "@vercel/blob": "^2.6.1",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
