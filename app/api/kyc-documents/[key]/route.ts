@@ -1,21 +1,26 @@
-import { getAdminSession } from "@/lib/auth-guards";
+import { getAdminSession, getSession } from "@/lib/auth-guards";
 import { getObject } from "@/lib/storage";
+import { userOwnsKycDocument } from "@/lib/kyc";
 import { contentTypeForKey } from "@/lib/kyc/files";
 
 type Ctx = { params: Promise<{ key: string }> };
 
-// GET /api/kyc-documents/[key] — stream a stored KYC document to an admin only. These are
-// sensitive identity files, so they are never public: this route is the only way to read
-// them, and it is admin-guarded. `?download=1` forces an attachment disposition.
+// GET /api/kyc-documents/[key] — stream a stored KYC document. These are sensitive identity
+// files, so they are never public: this route is the only way to read them. An admin may read
+// any; a regular user may read only documents in their OWN submission. Mirrors the guard in
+// /api/ticket-attachments/[key]; `?download=1` forces an attachment disposition.
 export async function GET(request: Request, { params }: Ctx) {
-  if (!(await getAdminSession())) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   const { key } = await params;
   // Opaque filename only — reject path separators / traversal before touching storage.
   if (!/^[A-Za-z0-9._-]+$/.test(key) || key.includes("..")) {
     return new Response("Not found", { status: 404 });
+  }
+
+  if (!(await getAdminSession())) {
+    const session = await getSession();
+    if (!session || !(await userOwnsKycDocument(session.user.id, key))) {
+      return new Response("Unauthorized", { status: 401 });
+    }
   }
 
   const contentType = contentTypeForKey(key);

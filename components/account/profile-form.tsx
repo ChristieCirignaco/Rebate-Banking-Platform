@@ -1,13 +1,14 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 
 import { updateProfile } from "@/app/account/profile/actions";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/countries";
 import { toast } from "@/lib/toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,11 @@ const GENDERS = [
 
 type Gender = "male" | "female" | "other" | "unspecified";
 
+// Mirrors the server's allowlist in app/api/user/avatar/route.ts — the route is the authority,
+// this just gives an instant, friendlier rejection.
+const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 export type ProfileInitial = {
   firstName: string;
   lastName: string;
@@ -39,7 +45,15 @@ export type ProfileInitial = {
   phone: string;
   gender: Gender;
   address: string;
+  username: string;
+  birthday: string; // yyyy-mm-dd, or "" when unset
+  image: string; // served avatar URL, or "" when unset
 };
+
+function initials(first: string, last: string): string {
+  const letters = `${first.trim()[0] ?? ""}${last.trim()[0] ?? ""}`.toUpperCase();
+  return letters || "U";
+}
 
 export function ProfileForm({ initial }: { initial: ProfileInitial }) {
   const [firstName, setFirstName] = useState(initial.firstName);
@@ -48,8 +62,13 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
   const [phone, setPhone] = useState(initial.phone);
   const [gender, setGender] = useState<Gender>(initial.gender);
   const [address, setAddress] = useState(initial.address);
+  const [username, setUsername] = useState(initial.username);
+  const [birthday, setBirthday] = useState(initial.birthday);
+  const [image, setImage] = useState(initial.image);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [resending, setResending] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,6 +90,9 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
         phone: phone.trim(),
         gender,
         address: address.trim(),
+        username: username.trim().toLowerCase(),
+        birthday,
+        image,
       });
       if (result.ok) toast.success("Profile updated");
       else toast.error(result.error);
@@ -78,6 +100,39 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
       toast.error("Something went wrong. Please try again.");
     }
     setSaving(false);
+  }
+
+  // Upload the photo immediately (so the user sees it right away) but only stage the URL —
+  // "Save changes" is what actually writes User.image, keeping every profile field on one
+  // action behind one gate.
+  async function onAvatarSelect(file: File | undefined) {
+    if (!file) return;
+    if (!AVATAR_TYPES.includes(file.type)) {
+      toast.error("Only PNG, JPEG or WEBP images are allowed.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error("Image must be 2 MB or smaller.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const response = await fetch("/api/user/avatar", { method: "POST", body });
+      const data = (await response.json().catch(() => null)) as
+        | { ok?: boolean; url?: string; error?: string }
+        | null;
+      if (!response.ok || !data?.ok || !data.url) {
+        toast.error(data?.error ?? "Upload failed.");
+      } else {
+        setImage(data.url);
+        toast.success("Photo uploaded. Save to apply.");
+      }
+    } catch {
+      toast.error("Network error during upload.");
+    }
+    setUploading(false);
   }
 
   async function resendVerification() {
@@ -100,6 +155,52 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
     <Card>
       <CardContent className="pt-6">
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+          {/* Avatar — uploads on select, persists on save. */}
+          <div className="flex items-center gap-4">
+            <Avatar size="lg" className="size-16">
+              {image ? <AvatarImage src={image} alt="" /> : null}
+              <AvatarFallback className="bg-blue-600 text-sm font-semibold text-white">
+                {initials(firstName, lastName)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={saving || uploading}
+                >
+                  {uploading ? "Uploading…" : image ? "Change photo" : "Upload photo"}
+                </Button>
+                {image ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setImage("")}
+                    disabled={saving || uploading}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-muted-foreground text-xs">PNG, JPEG or WEBP. Max 2 MB.</p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  void onAvatarSelect(e.target.files?.[0]);
+                  // Reset so picking the SAME file again still fires a change event.
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="firstName" className="text-sm font-semibold">
@@ -160,6 +261,38 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
                 </button>
               </div>
             ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="username" className="text-sm font-semibold">
+                Username
+              </Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="yourname"
+                autoComplete="username"
+                spellCheck={false}
+                disabled={saving}
+              />
+              <p className="text-muted-foreground text-xs">
+                3–20 characters: lowercase letters, numbers or underscores.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="birthday" className="text-sm font-semibold">
+                Date of Birth
+              </Label>
+              <Input
+                id="birthday"
+                type="date"
+                value={birthday}
+                onChange={(e) => setBirthday(e.target.value)}
+                disabled={saving}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

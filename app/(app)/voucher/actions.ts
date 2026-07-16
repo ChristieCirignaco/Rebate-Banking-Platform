@@ -4,6 +4,7 @@ import { randomInt, randomUUID } from "node:crypto";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
+import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
@@ -45,11 +46,16 @@ export async function generateVoucher(input: GenerateVoucherInput): Promise<Vouc
   if (!(await isFeatureEnabled("voucher"))) {
     return { ok: false, error: "Vouchers are currently disabled." };
   }
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { controls: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { controls: true, emailVerified: true, kycStatus: true },
+  });
   if (!user) return { ok: false, error: "Account not found." };
   if (!controlAllows(user.controls, "voucher")) {
     return { ok: false, error: "Vouchers are disabled on your account. Please contact support." };
   }
+  const blocked = requirementBlock(user);
+  if (blocked) return { ok: false, error: blocked };
 
   const amount = AmountSchema.safeParse(input.amount);
   if (!amount.success) {
@@ -160,12 +166,14 @@ export async function redeemVoucher(rawCode: string): Promise<VoucherActionResul
   }
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { controls: true, name: true },
+    select: { controls: true, name: true, emailVerified: true, kycStatus: true },
   });
   if (!user) return { ok: false, error: "Account not found." };
   if (!controlAllows(user.controls, "voucher")) {
     return { ok: false, error: "Vouchers are disabled on your account. Please contact support." };
   }
+  const blocked = requirementBlock(user);
+  if (blocked) return { ok: false, error: blocked };
 
   const code = normalizeVoucherCode(rawCode);
   if (!isValidVoucherCode(code)) return { ok: false, error: "Enter a valid voucher code." };

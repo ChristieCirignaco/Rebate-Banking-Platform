@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
+import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { postLedgerEntry } from "@/lib/money/ledger";
@@ -144,12 +145,14 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
 
   const sender = await prisma.user.findUnique({
     where: { id: userId },
-    select: { currency: true, controls: true, transferCodes: true, transactionPin: true, email: true },
+    select: { currency: true, controls: true, transferCodes: true, transactionPin: true, email: true, emailVerified: true, kycStatus: true },
   });
   if (!sender) return { ok: false, error: "Account not found." };
   if (!controlAllows(sender.controls, "send_money")) {
     return { ok: false, error: "Transfers are disabled on your account. Please contact support." };
   }
+  const blocked = requirementBlock(sender);
+  if (blocked) return { ok: false, error: blocked };
   if (!sender.transactionPin) {
     return { ok: false, error: "Set up your transaction PIN in Security first.", needPin: true };
   }

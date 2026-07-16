@@ -1,5 +1,6 @@
 import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
+import { requirementBlock } from "@/lib/user-gates";
 import { formatCurrency } from "@/lib/format";
 import type { MethodFieldType } from "@/lib/method-fields";
 import { toMajor } from "@/lib/money/money";
@@ -112,7 +113,13 @@ export async function getWithdrawGate(userId: string): Promise<WithdrawGate> {
   const [user, limits] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { controls: true, withdrawalStatus: true, withdrawalMessage: true, kycStatus: true },
+      select: {
+        controls: true,
+        withdrawalStatus: true,
+        withdrawalMessage: true,
+        kycStatus: true,
+        emailVerified: true,
+      },
     }),
     getSettings("limits"),
   ]);
@@ -121,6 +128,10 @@ export async function getWithdrawGate(userId: string): Promise<WithdrawGate> {
   if (!controlAllows(user.controls, "withdraw")) {
     return { allowed: false, reason: "Withdrawals are disabled on your account. Please contact support." };
   }
+  // The account-wide requirement controls (verified email / approved KYC) apply here too — the
+  // global kycRequiredForWithdrawal below is the same rule for everyone rather than per user.
+  const requirement = requirementBlock(user);
+  if (requirement) return { allowed: false, reason: requirement };
   if (user.withdrawalStatus && user.withdrawalStatus !== "allowed") {
     return {
       allowed: false,

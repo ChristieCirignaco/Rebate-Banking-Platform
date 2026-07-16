@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { isAdminTierRole } from "@/lib/auth-guards";
+import { controlDefault, type ControlKind } from "@/lib/controls";
 import { lookupIps } from "@/lib/ipinfo";
 import { toMajor } from "@/lib/money/money";
 import type {
@@ -23,16 +24,24 @@ const CURRENCY_NAMES: Record<string, string> = {
   USDT: "Tether",
 };
 
-export const CONTROL_META: { key: ControlKey; label: string; description: string }[] = [
-  { key: "account_status", label: "Account Status", description: "Controls user login access." },
-  { key: "email_verification", label: "Email Verification", description: "Requires email verification to activate the account." },
-  { key: "kyc_verification", label: "Kyc Verification", description: "Requires KYC verification before transactions." },
-  { key: "deposit", label: "Deposit", description: "Allows users to add funds to their wallet." },
-  { key: "exchange_money", label: "Exchange Money", description: "Allows currency conversion within the wallet." },
-  { key: "send_money", label: "Send Money", description: "Allows sending money to other users." },
-  { key: "request_money", label: "Request Money", description: "Allows users to request money from others." },
-  { key: "voucher", label: "Voucher", description: "Allows generating and redeeming vouchers." },
-  { key: "withdraw", label: "Withdraw", description: "Allows withdrawal to linked bank accounts." },
+// `kind` decides how an absent key is read AND displayed (see lib/controls.ts): a capability is
+// allowed until an admin turns it off, a requirement is off until an admin turns it on. Adding an
+// entry here auto-wires the admin toggle — but a new key only does something once a guard reads it.
+export const CONTROL_META: {
+  key: ControlKey;
+  label: string;
+  description: string;
+  kind: ControlKind;
+}[] = [
+  { key: "account_status", label: "Account Status", description: "Allows the user to sign in.", kind: "capability" },
+  { key: "email_verification", label: "Email Verification", description: "Requires a verified email address before transactions.", kind: "requirement" },
+  { key: "kyc_verification", label: "Kyc Verification", description: "Requires approved KYC before transactions.", kind: "requirement" },
+  { key: "deposit", label: "Deposit", description: "Allows users to add funds to their wallet.", kind: "capability" },
+  { key: "exchange_money", label: "Exchange Money", description: "Allows currency conversion within the wallet.", kind: "capability" },
+  { key: "send_money", label: "Send Money", description: "Allows sending money to other users.", kind: "capability" },
+  { key: "request_money", label: "Request Money", description: "Allows users to request money from others.", kind: "capability" },
+  { key: "voucher", label: "Voucher", description: "Allows generating and redeeming vouchers.", kind: "capability" },
+  { key: "withdraw", label: "Withdraw", description: "Allows withdrawal to linked bank accounts.", kind: "capability" },
 ];
 
 function parseUserAgent(ua?: string | null): { browser: string; os: string } {
@@ -172,10 +181,13 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     }
   }
 
+  // An unset key must display the default the guards actually apply, not a blanket off — a
+  // capability nobody has touched IS allowed, so showing it off told the admin the opposite of
+  // the truth for every user with an empty controls map.
   const controlState = asControls(dbUser.controls);
   const controls: UserControl[] = CONTROL_META.map((meta) => ({
     ...meta,
-    enabled: controlState[meta.key] ?? false,
+    enabled: controlState[meta.key] ?? controlDefault(meta.kind),
   }));
 
   // Money stats are reported in one currency (mixing minor units across currencies is

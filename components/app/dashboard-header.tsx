@@ -1,8 +1,6 @@
-import { Bell } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ComingSoonButton } from "@/components/app/coming-soon-button";
 import { MobileMenu } from "@/components/app/mobile-menu";
+import { NotificationBell } from "@/components/app/notifications/notification-bell";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -21,13 +19,11 @@ export function DashboardHeader({
   name,
   email,
   image,
-  unreadCount,
 }: {
   greeting: string;
   name: string;
   email: string;
   image: string | null | undefined;
-  unreadCount: number;
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -45,18 +41,7 @@ export function DashboardHeader({
         </div>
       </div>
 
-      <ComingSoonButton
-        ariaLabel="Notifications"
-        message="Notifications are coming soon."
-        className={ICON_BTN}
-      >
-        <Bell className="size-5" />
-        {unreadCount > 0 ? (
-          <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        ) : null}
-      </ComingSoonButton>
+      <NotificationBell variant="hero" />
     </div>
   );
 }

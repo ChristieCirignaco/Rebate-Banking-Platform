@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
+import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
@@ -25,12 +26,14 @@ export async function createMoneyRequest(input: RequestInput): Promise<RequestRe
 
   const sender = await prisma.user.findUnique({
     where: { id: userId },
-    select: { controls: true },
+    select: { controls: true, emailVerified: true, kycStatus: true },
   });
   if (!sender) return { ok: false, error: "Account not found." };
   if (!controlAllows(sender.controls, "request_money")) {
     return { ok: false, error: "Money requests are disabled on your account. Please contact support." };
   }
+  const blocked = requirementBlock(sender);
+  if (blocked) return { ok: false, error: blocked };
 
   const amount = AmountSchema.safeParse(input.amount);
   if (!amount.success) {

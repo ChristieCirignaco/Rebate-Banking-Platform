@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
+import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { isDepositProofUrl } from "@/lib/deposit-proof";
 import { awardReferral } from "@/lib/referrals";
@@ -38,12 +39,14 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
 
   const sender = await prisma.user.findUnique({
     where: { id: userId },
-    select: { controls: true, transactionPin: true },
+    select: { controls: true, transactionPin: true, emailVerified: true, kycStatus: true },
   });
   if (!sender) return { ok: false, error: "Account not found." };
   if (!controlAllows(sender.controls, "deposit")) {
     return { ok: false, error: "Deposits are disabled on your account. Please contact support." };
   }
+  const blocked = requirementBlock(sender);
+  if (blocked) return { ok: false, error: blocked };
   if (!sender.transactionPin) {
     return { ok: false, error: "Set up your transaction PIN in Security first.", needPin: true };
   }

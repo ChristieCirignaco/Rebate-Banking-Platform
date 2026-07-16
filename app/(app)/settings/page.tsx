@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, ShieldCheck, UserRound } from "lucide-react";
+import {
+  Bell,
+  BadgeCheck,
+  ChevronRight,
+  ShieldCheck,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { UserSignOutButton } from "@/components/user-sign-out-button";
@@ -13,7 +20,20 @@ const LINKS: { href: string; icon: LucideIcon; label: string; description: strin
     href: "/account/security",
     icon: ShieldCheck,
     label: "Security",
-    description: "Password, two-factor, and login",
+    description: "Transaction PIN and two-factor",
+  },
+  {
+    href: "/kyc",
+    icon: BadgeCheck,
+    label: "Identity Verification",
+    description: "Submit your documents and track approval",
+  },
+  { href: "/wallet", icon: Wallet, label: "Wallets", description: "Your balances and activity" },
+  {
+    href: "/notifications",
+    icon: Bell,
+    label: "Notifications",
+    description: "Messages from the team",
   },
 ];
 
@@ -59,9 +79,6 @@ export default function SettingsPage() {
         <div className="mt-6 flex justify-center">
           <UserSignOutButton />
         </div>
-        <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
-          More settings coming soon.
-        </p>
       </div>
 
       {/* Desktop */}
@@ -75,9 +92,6 @@ export default function SettingsPage() {
             <div className="mt-6">
               <UserSignOutButton />
             </div>
-            <p className="mt-6 text-xs text-slate-400 dark:text-slate-500">
-              More settings coming soon.
-            </p>
           </div>
         </div>
       </div>

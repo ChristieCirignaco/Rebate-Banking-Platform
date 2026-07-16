@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { controlAllows } from "@/lib/controls";
 import { prisma } from "@/lib/db";
 import { needsLoginOtpVerification } from "@/lib/login-otp";
 
@@ -98,11 +99,15 @@ export async function requireActiveUserAccount(): Promise<{
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { status: true, emailVerified: true, name: true, email: true },
+    select: { status: true, emailVerified: true, name: true, email: true, controls: true },
   });
   if (!user) redirect("/login");
   if (user.status === "pending") redirect("/login?notice=pending");
   if (user.status !== "active") redirect("/login?notice=suspended");
+  // The admin's "Account Status" control (Users → detail → User Controls) locks sign-in for one
+  // user without touching their status. Same choke point as the status read above, so it applies
+  // on the very next navigation.
+  if (!controlAllows(user.controls, "account_status")) redirect("/login?notice=suspended");
   return { session, user };
 }
 

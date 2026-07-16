@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
 
+import type { ControlKind } from "@/lib/controls";
+
 // -----------------------------------------------------------------------------
 // Types for the inner user management page (/admin/users/[id]). Presentation is
 // driven entirely by these; live data is mapped into them in lib/admin/user-detail.ts.
@@ -50,6 +52,9 @@ export interface UserControl {
   key: ControlKey;
   label: string;
   description: string;
+  // "capability" = allowed until switched off; "requirement" = off until switched on. See
+  // lib/controls.ts — it decides how an unset key reads and how the toggle renders.
+  kind: ControlKind;
   enabled: boolean;
 }
 

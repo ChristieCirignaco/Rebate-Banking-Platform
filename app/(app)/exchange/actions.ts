@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
+import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
@@ -32,12 +33,14 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
 
   const sender = await prisma.user.findUnique({
     where: { id: userId },
-    select: { controls: true, transactionPin: true },
+    select: { controls: true, transactionPin: true, emailVerified: true, kycStatus: true },
   });
   if (!sender) return { ok: false, error: "Account not found." };
   if (!controlAllows(sender.controls, "exchange_money")) {
     return { ok: false, error: "Exchange is disabled on your account. Please contact support." };
   }
+  const blocked = requirementBlock(sender);
+  if (blocked) return { ok: false, error: blocked };
   if (!sender.transactionPin) {
     return { ok: false, error: "Set up your transaction PIN in Security first.", needPin: true };
   }

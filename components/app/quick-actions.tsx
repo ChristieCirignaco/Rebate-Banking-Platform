@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { ArrowDownUp, LayoutGrid, PackagePlus } from "lucide-react";
 
-import { ComingSoonButton } from "@/components/app/coming-soon-button";
-
-// The Add product / Transfer / more row under the balance hero. "Add product" links to the
-// real submission flow; Transfer and the grid are stubs for now (coming-soon toasts). Textures
-// matched to the mockup: frosted-glass dark, glossy gradient with an inner sheen.
+// The Add product / Transfer / wallets row under the balance hero. Textures matched to the
+// mockup: frosted-glass dark, glossy gradient with an inner sheen.
 export function QuickActions() {
   return (
     <div className="mt-6 flex items-center gap-3">
@@ -23,13 +20,13 @@ export function QuickActions() {
         <ArrowDownUp className="size-4" />
         Transfer
       </Link>
-      <ComingSoonButton
-        ariaLabel="More actions"
-        message="More actions are coming soon."
+      <Link
+        href="/wallet"
+        aria-label="Wallets"
         className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-sm transition-colors hover:bg-white/[0.14]"
       >
         <LayoutGrid className="size-5" />
-      </ComingSoonButton>
+      </Link>
     </div>
   );
 }

@@ -24,6 +24,9 @@ export default async function ProfilePage() {
       phone: true,
       gender: true,
       address: true,
+      username: true,
+      birthday: true,
+      image: true,
     },
   });
   // requireActiveUser already guaranteed the session user; this only covers the row vanishing
@@ -74,6 +77,10 @@ export default async function ProfilePage() {
             phone: user.phone ?? "",
             gender: (user.gender as "male" | "female" | "other" | "unspecified") ?? "unspecified",
             address: user.address ?? "",
+            username: user.username ?? "",
+            // yyyy-mm-dd for the date input — same slice the admin user detail uses.
+            birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : "",
+            image: user.image ?? "",
           }}
         />
       </main>

@@ -21,7 +21,6 @@ export function MobileHome({ view }: { view: DashboardView }) {
           name={view.name}
           email={view.email}
           image={view.image}
-          unreadCount={0}
         />
         <div className="mt-6">
           <BalanceHero balanceLabel={view.balanceLabel} delta={view.delta} />

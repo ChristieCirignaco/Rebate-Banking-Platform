@@ -4,19 +4,18 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
-import { getStatisticData } from "@/lib/statistic";
-import { StatisticView } from "@/components/app/statistic/statistic-view";
+import { getUserNotifications } from "@/lib/notifications";
+import { NotificationsView } from "@/components/app/notifications/notifications-view";
 
-export const metadata: Metadata = { title: "Statistic" };
+export const metadata: Metadata = { title: "Notifications" };
 
-// Charts over the user's own ledger. The query stays here on the server and returns every
-// range for every wallet currency already bucketed and formatted; the client view only chooses
-// which slice to draw, so changing the range or currency costs no round-trip.
-export default async function StatisticPage() {
+// The user's own notices (the email/push rows an admin sends them) — not the admin alert
+// rows that share the `notifications` table. Not flag-gated: notifications are always on.
+export default async function NotificationsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const data = await getStatisticData(session.user.id);
+  const items = await getUserNotifications(session.user.id);
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 lg:px-0 lg:pb-0">
@@ -30,12 +29,12 @@ export default async function StatisticPage() {
             <ChevronLeft className="size-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Statistic</h1>
-            <p className="text-sm text-slate-500">How your money moved over time.</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Notifications</h1>
+            <p className="text-sm text-slate-500">Updates and messages about your account.</p>
           </div>
         </div>
 
-        <StatisticView data={data} />
+        <NotificationsView items={items} />
       </div>
     </div>
   );

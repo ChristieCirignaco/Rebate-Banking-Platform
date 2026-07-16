@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import {
   Drawer,
@@ -58,15 +57,15 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
   );
 }
 
-const QUICK_ACTIONS: { label: string; icon: LucideIcon; href?: string; hint?: string }[] = [
-  { label: "Deposit", icon: ArrowDownToLine, hint: "Deposits are coming soon." },
+const QUICK_ACTIONS: { label: string; icon: LucideIcon; href: string }[] = [
+  { label: "Deposit", icon: ArrowDownToLine, href: "/deposit" },
   { label: "Transfer", icon: ArrowDownUp, href: "/send" },
   { label: "Add product", icon: PackagePlus, href: "/products/new" },
 ];
 
-// The persistent bottom navigation from the mockup: Home · Statistic · ⊕ · Wallet · Settings.
-// Fixed and centered so it overlays the phone-width column on desktop and spans the screen on
-// mobile. The center FAB opens a quick-action sheet; those destinations are stubbed for now.
+// The persistent bottom navigation: Home · Products · ⊕ · Send · Support. Fixed and centered so
+// it overlays the phone-width column on desktop and spans the screen on mobile. The center FAB
+// opens a quick-action sheet; every destination is a real page.
 export function BottomTabBar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -118,19 +117,9 @@ export function BottomTabBar() {
               );
               return (
                 <DrawerClose asChild key={action.label}>
-                  {action.href ? (
-                    <Link href={action.href} className={className}>
-                      {inner}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => action.hint && toast(action.hint)}
-                      className={className}
-                    >
-                      {inner}
-                    </button>
-                  )}
+                  <Link href={action.href} className={className}>
+                    {inner}
+                  </Link>
                 </DrawerClose>
               );
             })}
