@@ -70,6 +70,8 @@ model User {
   products       Product[]
   deposits       Deposit[]
   withdrawals    Withdraw[]
+  sentTransfers     Transfer[] @relation("SentTransfers")
+  receivedTransfers Transfer[] @relation("ReceivedTransfers")
   kycSubmissions KycSubmission[]
   tickets        Ticket[]
   createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
@@ -470,6 +472,58 @@ model WithdrawScheduleDay {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("withdraw_schedule_days")
+}
+
+// ---------------------------------------------------------------------------
+// Transfers. Three kinds via `type`:
+//  - internal: user → user on-platform. Approval credits the recipient's wallet.
+//  - domestic / wire: user → external bank. Approval just completes (funds left the
+//    platform); wire additionally requires the sender to clear the IMF→TAX→COT code gate
+//    (User.transferCodes) before the request is created.
+// All three DEBIT the sender on request (held) and, like withdrawals, refund on reject via a
+// "transfer_reversal" credit. Money model mirrors Withdraw (heldTransactionId / refund) with
+// an extra creditTransactionId for the internal recipient credit.
+// ---------------------------------------------------------------------------
+
+model Transfer {
+  id       String @id @default(uuid())
+  txnId    String @unique @map("txn_id") // human reference, e.g. TRF-XXXXXX
+  userId   String @map("user_id") // sender
+  user     User   @relation("SentTransfers", fields: [userId], references: [id], onDelete: Cascade)
+  type     String // internal | domestic | wire
+  currency String // ISO code (denormalized)
+
+  amountMinor BigInt @map("amount_minor")
+  feeMinor    BigInt @default(0) @map("fee_minor")
+  status      String @default("pending") // pending | completed | rejected | canceled | failed
+
+  // Recipient — internal points at a real user; domestic/wire capture external bank details.
+  recipientUserId  String? @map("recipient_user_id")
+  recipientUser    User?   @relation("ReceivedTransfers", fields: [recipientUserId], references: [id], onDelete: SetNull)
+  recipientName    String? @map("recipient_name") // display snapshot / account holder name
+  recipientDetails Json?   @map("recipient_details") // domestic/wire: { bankName, accountNumber, routingNumber?, swift?, iban?, country?, ... }
+
+  codesVerified Boolean @default(false) @map("codes_verified") // wire: IMF→TAX→COT cleared
+
+  // Ledger links (see money model above).
+  debitTransactionId  String? @map("debit_transaction_id") // sender hold on request
+  creditTransactionId String? @map("credit_transaction_id") // recipient credit (internal, on approve)
+  refundTransactionId String? @map("refund_transaction_id") // sender refund (on reject)
+
+  description    String?
+  remarks        String? // admin remarks on review
+  reviewedById   String?   @map("reviewed_by_id")
+  reviewedByName String?   @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
+  reviewedAt     DateTime? @map("reviewed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type, status])
+  @@index([userId])
+  @@index([recipientUserId])
+  @@index([createdAt])
+  @@map("transfers")
 }
 
 // ---------------------------------------------------------------------------
