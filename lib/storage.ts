@@ -22,19 +22,40 @@ const STORAGE_ROOT = process.env.STORAGE_DIR
   ? path.resolve(process.env.STORAGE_DIR)
   : path.join(process.cwd(), "storage");
 
-// Is a Blob store reachable? This mirrors @vercel/blob's OWN credential resolution, in its
-// order, because a mismatch is silent in the worst way: we'd fall back to the filesystem on a
-// serverless host and every upload would fail or vanish, with no error pointing here.
+// Is a Blob store configured? This picks the backend, so a wrong answer is silent in the worst
+// way: we fall back to the filesystem on a serverless host and every upload fails far from the
+// bad decision.
 //
-//   1. OIDC — VERCEL_OIDC_TOKEN + BLOB_STORE_ID. What a store connected to the project
-//      actually injects today; there is NO BLOB_READ_WRITE_TOKEN in that setup.
-//   2. BLOB_READ_WRITE_TOKEN — the older/manual token, still supported by the SDK.
+// Deliberately does NOT check VERCEL_OIDC_TOKEN. That variable exists at BUILD time and in
+// local dev (`vercel env pull` mints one), but inside a deployed function the OIDC token
+// arrives as a REQUEST HEADER — process.env.VERCEL_OIDC_TOKEN is undefined there, so gating on
+// it fails closed on every single request. Checking it is what broke production uploads.
+//
+// We don't need the token here anyway: the SDK resolves it itself via getVercelOidcToken(),
+// which reads the env var and falls back to the request context. All we must decide is whether
+// a store exists, which either of these answers:
+//
+//   BLOB_STORE_ID          — injected by a store connected to the project (the OIDC path;
+//                            that setup has no read-write token at all).
+//   BLOB_READ_WRITE_TOKEN  — the older/manual token, still supported by the SDK.
 //
 // Read lazily (not at module load) so credentials added later don't need a rebuild, and so
 // local dev never depends on them. NB: not named use* — that reads as a React hook to eslint.
 function blobEnabled(): boolean {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return true;
-  return Boolean(process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID);
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+}
+
+// The filesystem branch is never viable on Vercel: /var/task is read-only and /tmp doesn't
+// survive between invocations. Reaching it there means the store config is missing, so say that
+// — otherwise the symptom is a bare `ENOENT: mkdir '/var/task/storage'` that points at the
+// write instead of at the misconfiguration.
+function assertFilesystemUsable(): void {
+  if (process.env.VERCEL) {
+    throw new Error(
+      "No Vercel Blob store is configured (expected BLOB_STORE_ID or BLOB_READ_WRITE_TOKEN). " +
+        "Uploads cannot fall back to the filesystem on Vercel — connect a Blob store to the project.",
+    );
+  }
 }
 
 // Resolve a key to an absolute path, refusing anything that escapes the storage root
@@ -73,6 +94,7 @@ export async function putObject(
     return key;
   }
 
+  assertFilesystemUsable();
   const full = resolveKey(key);
   await mkdir(path.dirname(full), { recursive: true });
   await writeFile(full, data);
