@@ -10,7 +10,18 @@ export const MEDIA_TYPES: Record<string, string> = {
   svg: "image/svg+xml",
 };
 
-export const MAX_MEDIA_BYTES = 512 * 1024; // brand images are small
+// Brand images render small but ship on every page load, so this stays well below the ticket /
+// KYC caps: it bounds what a logo costs every visitor, not what the platform can store.
+export const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
+
+// The cap in words, DERIVED so a message can never contradict the check it sits next to. The
+// three upload components and the route each hardcoded "512 KB" beside a MAX_MEDIA_BYTES test,
+// so raising the constant alone would have left them all confidently stating the old number.
+export const MAX_MEDIA_LABEL =
+  MAX_MEDIA_BYTES >= 1024 * 1024
+    ? `${Math.round((MAX_MEDIA_BYTES / (1024 * 1024)) * 10) / 10} MB`
+    : `${Math.round(MAX_MEDIA_BYTES / 1024)} KB`;
+
 export const MEDIA_ACCEPT = ".png,.jpg,.jpeg,.webp,.gif,.svg";
 
 export function mediaExtForContentType(contentType: string): string | null {

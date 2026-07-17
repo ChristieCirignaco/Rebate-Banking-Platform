@@ -5,7 +5,7 @@ import { ImagePlus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
-import { MAX_MEDIA_BYTES, MEDIA_ACCEPT, uploadMedia } from "@/lib/media";
+import { MAX_MEDIA_BYTES, MAX_MEDIA_LABEL, MEDIA_ACCEPT, uploadMedia } from "@/lib/media";
 import { SettingsField } from "./settings-ui";
 
 // Uploads the chosen image to object storage via /api/admin/media and stores the returned
@@ -31,7 +31,7 @@ export function ImageField({
       return;
     }
     if (file.size > MAX_MEDIA_BYTES) {
-      toast.error("Image must be under 512 KB.");
+      toast.error(`Image must be under ${MAX_MEDIA_LABEL}.`);
       return;
     }
     setUploading(true);

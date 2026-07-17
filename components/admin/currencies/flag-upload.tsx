@@ -6,7 +6,7 @@ import { ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
-import { MAX_MEDIA_BYTES, MEDIA_ACCEPT, uploadMedia } from "@/lib/media";
+import { MAX_MEDIA_BYTES, MAX_MEDIA_LABEL, MEDIA_ACCEPT, uploadMedia } from "@/lib/media";
 
 // Uploads the chosen image to object storage via /api/admin/media and stores the returned
 // URL on the currency (not a base64 data URL). Swap lib/storage for S3/R2 without changes here.
@@ -27,7 +27,7 @@ export function FlagUpload({
       return;
     }
     if (file.size > MAX_MEDIA_BYTES) {
-      toast.error("Image must be under 512 KB.");
+      toast.error(`Image must be under ${MAX_MEDIA_LABEL}.`);
       return;
     }
     setUploading(true);
@@ -83,7 +83,7 @@ export function FlagUpload({
           }}
         />
       </div>
-      <p className="text-muted-foreground text-xs">PNG, SVG or JPG up to 512 KB.</p>
+      <p className="text-muted-foreground text-xs">PNG, SVG or JPG up to {MAX_MEDIA_LABEL}.</p>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { getAdminSession } from "@/lib/auth-guards";
 import { putObject } from "@/lib/storage";
-import { MAX_MEDIA_BYTES, mediaExtForContentType, mediaUrl } from "@/lib/media";
+import { MAX_MEDIA_BYTES, MAX_MEDIA_LABEL, mediaExtForContentType, mediaUrl } from "@/lib/media";
 
 // POST /api/admin/media — ingest one public brand image (logo / flag) into object storage
 // and return its served URL. Admin-guarded; replaces the old base64 data-URI path.
@@ -13,7 +13,10 @@ export async function POST(request: Request) {
   // still file.size below; this just bounds the obvious case.
   const declared = Number(request.headers.get("content-length") ?? "0");
   if (declared > MAX_MEDIA_BYTES + 16 * 1024) {
-    return Response.json({ ok: false, error: "Image must be 512 KB or smaller." }, { status: 413 });
+    return Response.json(
+      { ok: false, error: `Image must be ${MAX_MEDIA_LABEL} or smaller.` },
+      { status: 413 },
+    );
   }
 
   let form: FormData;
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
   }
   if (file.size <= 0 || file.size > MAX_MEDIA_BYTES) {
     return Response.json(
-      { ok: false, error: "Image must be between 1 byte and 512 KB." },
+      { ok: false, error: `Image must be between 1 byte and ${MAX_MEDIA_LABEL}.` },
       { status: 413 },
     );
   }
