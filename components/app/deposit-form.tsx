@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Clock3, FileCheck2, FileUp, Info, Landmark, Loader2, Wallet, X, Zap } from "lucide-react";
+import { Clock3, FileCheck2, FileUp, Info, Landmark, Loader2, Wallet, X } from "lucide-react";
 
 import { createDeposit, type DepositInput } from "@/app/(app)/deposit/actions";
 import type { DepositMethodView, DepositWalletView } from "@/lib/deposits";
@@ -216,23 +216,13 @@ export function DepositForm({
               </div>
               {method ? (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                      method.type === "auto"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-blue-50 text-blue-700",
-                    )}
-                  >
-                    {method.type === "auto" ? (
-                      <>
-                        <Zap className="size-3" /> Instant
-                      </>
-                    ) : (
-                      <>
-                        <Clock3 className="size-3" /> Manual review
-                      </>
-                    )}
+                  {/* Every method is reviewed by an admin before the wallet is credited, so this
+                      no longer varies by type. Auto methods used to badge "Instant" and credit on
+                      submission with no payment collected; they now take the same path, and
+                      promising "Instant" here would be telling the user their money has landed
+                      when it has not. */}
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
+                    <Clock3 className="size-3" /> Manual review
                   </span>
                   <span>{method.feeLabel}</span>
                   {method.limitLabel ? <span>· {method.limitLabel}</span> : null}
@@ -384,7 +374,7 @@ export function DepositForm({
             </div>
             <p className="text-xs text-slate-400">
               {formatCurrency(amountNum, currency)} will be credited to your {currency} wallet
-              {method.type === "manual" ? " after admin approval" : ""}.
+              after admin approval.
             </p>
           </div>
         ) : null}

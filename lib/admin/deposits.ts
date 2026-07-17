@@ -115,9 +115,16 @@ function toRequest(row: RequestRow): DepositRequest {
   };
 }
 
+// The review queue: every deposit awaiting a human, whatever method the user picked.
+//
+// This deliberately does NOT filter on type. It used to require type "manual", which was right
+// only while auto methods credited themselves on submission and so never sat pending. Now that
+// no deposit is ever credited without an admin approving it (see app/(app)/deposit/actions.ts),
+// a type filter here would hide every auto deposit from the only screen that can approve it —
+// the user's money would sit pending forever, with nothing raising an error anywhere.
 export async function getManualRequests(): Promise<DepositRequest[]> {
   const rows = await prisma.deposit.findMany({
-    where: { type: "manual", status: "pending" },
+    where: { status: "pending" },
     include: requestInclude,
     orderBy: { createdAt: "desc" },
   });

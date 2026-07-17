@@ -8,9 +8,7 @@ import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { isDepositProofUrl } from "@/lib/deposit-proof";
 import { formatCurrency } from "@/lib/format";
-import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
-import { awardReferral } from "@/lib/referrals";
-import { postLedgerEntry } from "@/lib/money/ledger";
+import { notifyAdmins } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
@@ -28,9 +26,8 @@ export type DepositResult =
 
 
 // Create a deposit. Passcode-gated (transaction PIN) and fail-closed on the deposits flag +
-// the per-user deposit control. Manual methods post as `pending` for admin approval (which
-// credits the wallet later); auto methods simulate an instant provider success — completing
-// and crediting the wallet immediately (no external gateway is wired).
+// the per-user deposit control. Every method — auto or manual — posts as `pending` and credits
+// nothing; approveDeposit does the crediting once an admin confirms the money arrived.
 export async function createDeposit(input: DepositInput, pin: string): Promise<DepositResult> {
   const { session } = await requireActiveUser();
   const userId = session.user.id;
@@ -112,93 +109,51 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   const depositId = randomUUID();
   const txnId = txnCode("DEP");
 
-  if (method.type === "manual") {
-    await prisma.deposit.create({
-      data: {
-        id: depositId,
-        txnId,
-        userId,
-        depositMethodId: method.id,
-        type: "manual",
-        currency: wallet.currency,
-        amountMinor,
-        feeMinor,
-        status: "pending",
-        provider,
-        description: `Deposit via ${method.name}`,
-        fieldValues,
-      },
-    });
-    // Best-effort: the deposit is already committed, so a notify failure must never surface as a
-    // failed request.
-    try {
-      await notifyAdmins({
-        type: "deposit_requested",
-        title: "New deposit request",
-        message: `Deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} via ${method.name} is pending approval.`,
-      });
-    } catch {
-      // ignored — the admin queue still shows the deposit.
-    }
-    return {
-      ok: true,
-      next: "/transactions",
-      message: "Deposit request submitted — pending admin approval.",
-    };
-  }
-
-  // Auto: simulate an instant provider success — complete + credit atomically.
+  // EVERY deposit is created pending and credits nothing. The wallet is only credited when an
+  // admin approves it, in approveDeposit — which posts the ledger entry and awards the referral
+  // inside one transaction.
+  //
+  // Auto methods used to self-approve right here: they wrote a `completed` deposit and posted
+  // the credit immediately, justified by the comment "simulate an instant provider success".
+  // Nothing simulated the *payment*. There is no charge call and no webhook anywhere in
+  // lib/payment-gateways — it holds branding and credential schemas only — so this credited
+  // real, spendable balance for money that was never collected. Any user could mint funds by
+  // picking an auto method, limited only by the method's maxAmount.
+  //
+  // Until a gateway is genuinely integrated (charge + webhook confirming settlement), an "auto"
+  // method is a manual one with a logo, so it takes the same path: a human confirms the money
+  // arrived before the ledger moves. That is also why the type is carried through rather than
+  // forced to "manual" — the admin still needs to see which provider the user chose.
+  await prisma.deposit.create({
+    data: {
+      id: depositId,
+      txnId,
+      userId,
+      depositMethodId: method.id,
+      type: method.type,
+      currency: wallet.currency,
+      amountMinor,
+      feeMinor,
+      status: "pending",
+      provider,
+      description: `Deposit via ${method.name}`,
+      fieldValues,
+    },
+  });
+  // Best-effort: the deposit is already committed, so a notify failure must never surface as a
+  // failed request.
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.deposit.create({
-        data: {
-          id: depositId,
-          txnId,
-          userId,
-          depositMethodId: method.id,
-          type: "auto",
-          currency: wallet.currency,
-          amountMinor,
-          feeMinor,
-          status: "completed",
-          provider,
-          description: `Deposit via ${method.name}`,
-        },
-      });
-      const credit = await postLedgerEntry({
-        walletId: wallet.id,
-        userId,
-        currency: wallet.currency,
-        direction: "credit",
-        amountMinor,
-        source: "deposit",
-        idempotencyKey: `deposit:${depositId}`,
-        referenceType: "deposit",
-        referenceId: depositId,
-        provider,
-        description: `Deposit via ${method.name} (${txnId})`,
-        client: tx,
-      });
-      if (!credit.ok) throw new Error("LEDGER");
-      await tx.deposit.update({ where: { id: depositId }, data: { walletTransactionId: credit.id } });
+    await notifyAdmins({
+      type: "deposit_requested",
+      title: "New deposit request",
+      message: `Deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} via ${method.name} is pending approval.`,
     });
   } catch {
-    return { ok: false, error: "Could not process the deposit. Please try again." };
+    // ignored — the admin queue still shows the deposit.
   }
-  // Referral: award the referrer on the referred user's first completed deposit (no-op unless
-  // the trigger is configured + they were referred; idempotent, so safe on every deposit).
-  await awardReferral({
-    referredUserId: userId,
-    trigger: "first_deposit",
-    depositAmountMinor: amountMinor,
-    depositCurrency: wallet.currency,
-  });
-  // The funds are already credited — tell the user. Best-effort (notifyUserOf swallows its own
-  // errors), so it can never undo a completed deposit.
-  await notifyUserOf(userId, {
-    type: "email",
-    title: "Deposit received",
-    message: `Your deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} via ${method.name} has been credited to your ${wallet.currency} wallet.`,
-  });
-  return { ok: true, next: "/transactions", message: "Deposit successful." };
+  return {
+    ok: true,
+    next: "/transactions",
+    message: "Deposit request submitted — pending admin approval.",
+  };
 }
