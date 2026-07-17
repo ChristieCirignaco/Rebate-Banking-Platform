@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { AdminThemeProvider } from "@/components/admin/admin-theme-provider";
 import { ScreenLock } from "@/components/admin/settings/screen-lock";
 import { SiteHeader } from "@/components/site-header";
 import { UserSignOutButton } from "@/components/user-sign-out-button";
@@ -63,27 +64,29 @@ export default async function AdminLayout({
   const security = await getSettings("security");
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" user={adminUser} />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
-          {children}
-        </div>
-      </SidebarInset>
-      <ScreenLock
-        enabled={security.screenLockEnabled}
-        idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
-        adminName={session.user.name}
-        adminEmail={session.user.email}
-      />
-    </SidebarProvider>
+    <AdminThemeProvider>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" user={adminUser} />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+            {children}
+          </div>
+        </SidebarInset>
+        <ScreenLock
+          enabled={security.screenLockEnabled}
+          idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
+          adminName={session.user.name}
+          adminEmail={session.user.email}
+        />
+      </SidebarProvider>
+    </AdminThemeProvider>
   );
 }
