@@ -30,7 +30,7 @@ const GENDERS = [
 
 type Gender = "male" | "female" | "other" | "unspecified";
 
-// Mirrors the server allowlist in app/api/user/avatar/route.ts — the route is the authority;
+// Mirrors the server allowlist in app/api/admin/avatar/route.ts — the route is the authority;
 // this just gives an instant, friendlier rejection.
 const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
@@ -116,7 +116,7 @@ export function AdminProfileForm({ initial }: { initial: AdminProfileInitial }) 
     try {
       const body = new FormData();
       body.append("file", file);
-      const response = await fetch("/api/user/avatar", { method: "POST", body });
+      const response = await fetch("/api/admin/avatar", { method: "POST", body });
       const data = (await response.json().catch(() => null)) as
         | { ok?: boolean; url?: string; error?: string }
         | null;
