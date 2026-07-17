@@ -66,6 +66,13 @@ type NavGroup = { label: string; items: NavItem[] };
 
 type AppSidebarProps = ComponentProps<typeof Sidebar> & {
   user: { name: string; email: string };
+  // Admin Branding + brand name from System Settings. Either logo may be null; the sidebar
+  // swaps between them on theme and falls back to a brand mark + name when neither is set.
+  branding: {
+    logoLight: string | null;
+    logoDark: string | null;
+    brandName: string;
+  };
 };
 
 // Mirrors the admin route map in the design spec (§10).
@@ -196,9 +203,15 @@ function hasActiveChild(item: NavItem, pathname: string): boolean {
   return !!item.children?.some((child) => isActive(pathname, child.href));
 }
 
-export function AppSidebar({ user, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, branding, ...props }: AppSidebarProps) {
   const pathname = usePathname();
   const activeHref = mostSpecificActiveHref(pathname);
+
+  const { logoLight, logoDark, brandName } = branding;
+  const hasLogo = Boolean(logoLight || logoDark);
+  // If only one variant is uploaded, reuse it for both themes so a logo never disappears.
+  const lightSrc = logoLight || logoDark || "";
+  const darkSrc = logoDark || logoLight || "";
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -210,10 +223,31 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link href="/admin">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md">
-                  <Landmark className="size-4" />
-                </div>
-                <span className="text-base font-semibold">Rebate Bank</span>
+                {hasLogo ? (
+                  <>
+                    {/* Theme-aware brand logo (System Settings → Branding). The `.dark` class
+                        lives on <html> via AdminThemeProvider, so the swap is pure CSS. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={lightSrc}
+                      alt={brandName}
+                      className="h-6 w-auto max-w-36 object-contain dark:hidden"
+                    />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={darkSrc}
+                      alt={brandName}
+                      className="hidden h-6 w-auto max-w-36 object-contain dark:block"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-md">
+                      <Landmark className="size-4" />
+                    </div>
+                    <span className="text-base font-semibold">{brandName}</span>
+                  </>
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
