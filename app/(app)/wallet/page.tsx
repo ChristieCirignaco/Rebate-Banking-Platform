@@ -12,10 +12,10 @@ import { WalletList } from "@/components/app/wallet/wallet-list";
 
 export const metadata: Metadata = { title: "Wallets" };
 
-// The user's currency wallets: balance per wallet, which one is the primary, and each wallet's
-// most recent ledger activity. The only mutation here is adding a wallet (the primary is created
-// at signup and up to two extras may be added) — deposits/withdrawals/exchanges each have their
-// own screen — so everything but the add dialog renders on the server.
+// The user's currency wallets: a grid of cards, one per wallet, each showing its balance and a
+// Manage dialog (make primary / remove / jump to deposit, withdraw or transactions). Deposits,
+// withdrawals and exchanges each have their own screen, and history lives on /transactions, so
+// everything but the dialogs renders on the server.
 export default async function WalletPage() {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -41,7 +41,7 @@ export default async function WalletPage() {
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold tracking-tight text-slate-900">Wallets</h1>
-            <p className="text-sm text-slate-500">Your balances and recent activity.</p>
+            <p className="text-sm text-slate-500">Your currency wallets and balances.</p>
           </div>
           <AddWalletDialog currencies={addable} remaining={remaining} />
         </div>

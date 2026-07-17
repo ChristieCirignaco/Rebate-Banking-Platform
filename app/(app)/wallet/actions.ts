@@ -3,18 +3,47 @@
 import { revalidatePath } from "next/cache";
 
 import { requireActiveUser } from "@/lib/auth-guards";
-import { addWalletFor, type WalletMutationResult } from "@/lib/wallets";
+import {
+  addWalletFor,
+  removeWalletFor,
+  setDefaultWalletFor,
+  type WalletMutationResult,
+} from "@/lib/wallets";
 
-// A user adds their own extra wallets: the primary is created at signup and they may add up to
-// two more. The cap and the currency check live in lib/wallets so the admin's assign action on
-// the user-detail page can't drift from this one.
-//
-// The user is derived from the session — never from an argument — so one user can never add a
-// wallet to another account. Removing is deliberately admin-only (the delete guards live in
-// lib/wallets); a user's wallet can only be dropped while empty and history-free.
+// A user's own wallet mutations. Every one derives the user from the session — never from an
+// argument — so no caller can reach another account's wallets, and every rule (the cap, the
+// currency check, the delete guards) lives in lib/wallets so the admin's equivalents on the
+// user-detail page can't drift from these.
+
+// The primary is created at signup; a user may add up to two more.
 export async function addWallet(currencyCode: string): Promise<WalletMutationResult> {
   const { session } = await requireActiveUser();
   const result = await addWalletFor(session.user.id, currencyCode);
   if (result.ok) revalidatePath("/wallet");
+  return result;
+}
+
+// Remove one of your own wallets. removeWalletFor refuses the primary, the last remaining
+// wallet, anything holding a balance, and anything with ledger history — so this can only ever
+// drop a wallet that was added and never used. It was admin-only until now for no reason beyond
+// there being no user-facing surface to call it from.
+export async function removeWallet(walletId: string): Promise<WalletMutationResult> {
+  const { session } = await requireActiveUser();
+  const result = await removeWalletFor(session.user.id, walletId);
+  if (result.ok) revalidatePath("/wallet");
+  return result;
+}
+
+// Make one of your wallets primary. Also moves user.currency — see setDefaultWalletFor for why
+// the two must not be changed independently.
+export async function setDefaultWallet(walletId: string): Promise<WalletMutationResult> {
+  const { session } = await requireActiveUser();
+  const result = await setDefaultWalletFor(session.user.id, walletId);
+  if (result.ok) {
+    // The primary currency reaches further than this page: the dashboard shows the primary
+    // balance, and send/products read user.currency.
+    revalidatePath("/wallet");
+    revalidatePath("/dashboard");
+  }
   return result;
 }

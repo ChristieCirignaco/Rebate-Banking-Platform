@@ -123,3 +123,39 @@ export async function removeWalletFor(
   await prisma.wallet.delete({ where: { id: wallet.id } });
   return { ok: true };
 }
+
+// Make one of a user's wallets their primary.
+//
+// "Primary" is stored in two places, and they must move together:
+//   wallet.isDefault — the primary wallet row; orders this module's queries and backs the
+//                      converted total on /wallet.
+//   user.currency    — the User column that products (app/(app)/products/actions.ts) and
+//                      transfers (app/(app)/send/actions.ts) read to decide what currency a
+//                      user transacts in.
+//
+// Nothing kept them in sync before, because nothing could change a primary: signup writes
+// isDefault and never touches user.currency, which just keeps its "USD" column default. That is
+// invisible today only because the configured default currency IS USD — every user is USD/USD.
+// Flipping isDefault alone would make it visible immediately: the wallet page would show EUR as
+// primary while new products were still submitted in USD.
+export async function setDefaultWalletFor(
+  userId: string,
+  walletId: string,
+): Promise<WalletMutationResult> {
+  const wallet = await prisma.wallet.findFirst({
+    where: { id: walletId, userId },
+    select: { id: true, currency: true, isDefault: true },
+  });
+  if (!wallet) return { ok: false, error: "Wallet not found." };
+  if (wallet.isDefault) return { ok: false, error: "This is already your primary wallet." };
+
+  // One transaction: clearing the old primary and setting the new one must not be separable, or
+  // a crash between them leaves the user with no primary wallet at all — and computeTotal and
+  // loadUserWallets both assume exactly one.
+  await prisma.$transaction([
+    prisma.wallet.updateMany({ where: { userId, isDefault: true }, data: { isDefault: false } }),
+    prisma.wallet.update({ where: { id: wallet.id }, data: { isDefault: true } }),
+    prisma.user.update({ where: { id: userId }, data: { currency: wallet.currency } }),
+  ]);
+  return { ok: true };
+}
