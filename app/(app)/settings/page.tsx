@@ -11,24 +11,43 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { UserSignOutButton } from "@/components/user-sign-out-button";
+import { getEnabledFlags } from "@/lib/settings/feature-flags";
+import type { FeatureFlagKey } from "@/lib/settings/feature-flags";
 
 export const metadata: Metadata = { title: "Settings" };
 
-const LINKS: { href: string; icon: LucideIcon; label: string; description: string }[] = [
+// `flag` omitted = always shown. Profile, Security and Notifications have no flag because
+// there is none to have: they aren't switchable features, they're the account itself.
+type SettingsLink = {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  flag?: FeatureFlagKey;
+};
+
+const LINKS: SettingsLink[] = [
   { href: "/account/profile", icon: UserRound, label: "Profile", description: "Your personal details" },
   {
     href: "/account/security",
     icon: ShieldCheck,
     label: "Security",
-    description: "Transaction PIN and two-factor",
+    description: "Password, transaction PIN and two-factor",
   },
   {
     href: "/kyc",
     icon: BadgeCheck,
     label: "Identity Verification",
     description: "Submit your documents and track approval",
+    flag: "kyc_submission",
   },
-  { href: "/wallet", icon: Wallet, label: "Wallets", description: "Your balances and activity" },
+  {
+    href: "/wallet",
+    icon: Wallet,
+    label: "Wallets",
+    description: "Your balances and activity",
+    flag: "wallets",
+  },
   {
     href: "/notifications",
     icon: Bell,
@@ -37,10 +56,10 @@ const LINKS: { href: string; icon: LucideIcon; label: string; description: strin
   },
 ];
 
-function SettingsLinks() {
+function SettingsLinks({ links }: { links: SettingsLink[] }) {
   return (
     <div className="flex flex-col gap-2">
-      {LINKS.map((link) => {
+      {links.map((link) => {
         const Icon = link.icon;
         return (
           <Link
@@ -67,7 +86,15 @@ function SettingsLinks() {
 
 // Settings hub into the existing account pages. Mobile: light stacked list. Desktop: a
 // dark-scoped card in the dark content panel.
-export default function SettingsPage() {
+//
+// Flag-filtered like every other nav surface. This was the one that wasn't: the sidebar, the
+// mobile drawer and the bottom tab bar all filter through visibleNav(), while this list was
+// static — so turning off Wallets or KYC in /admin left rows here that walked the user into a
+// redirect back to the dashboard, which reads as a broken link rather than a disabled feature.
+export default async function SettingsPage() {
+  const enabled = await getEnabledFlags();
+  const links = LINKS.filter((link) => !link.flag || enabled.has(link.flag));
+
   return (
     <>
       {/* Mobile */}
@@ -75,7 +102,7 @@ export default function SettingsPage() {
         <header className="py-4">
           <h1 className="text-center text-base font-bold text-slate-900 dark:text-white">Settings</h1>
         </header>
-        <SettingsLinks />
+        <SettingsLinks links={links} />
         <div className="mt-6 flex justify-center">
           <UserSignOutButton />
         </div>
@@ -88,7 +115,7 @@ export default function SettingsPage() {
             Settings
           </h1>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-            <SettingsLinks />
+            <SettingsLinks links={links} />
             <div className="mt-6">
               <UserSignOutButton />
             </div>
