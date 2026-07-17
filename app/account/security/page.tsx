@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Landmark } from "lucide-react";
 
 import { TwoFactorSetup } from "@/components/auth/two-factor-setup";
+import { PasswordForm } from "@/components/account/password-form";
 import { TransactionPinForm } from "@/components/account/transaction-pin-form";
 import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { requireActiveUser } from "@/lib/auth-guards";
@@ -15,10 +16,18 @@ export default async function SecurityPage() {
   // Same full gate as the dashboard: active account + email-OTP cleared.
   const { session } = await requireActiveUser();
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { twoFactorEnabled: true, transactionPin: true },
-  });
+  const [dbUser, credential] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { twoFactorEnabled: true, transactionPin: true },
+    }),
+    // Better Auth stores the password on the credential account row, not on User — its absence
+    // is what "signs in without a password" means, so the card needs this rather than a User field.
+    prisma.account.findFirst({
+      where: { userId: session.user.id, providerId: "credential" },
+      select: { id: true },
+    }),
+  ]);
 
   return (
     <div className="bg-muted/30 min-h-svh">
@@ -49,6 +58,7 @@ export default async function SecurityPage() {
           </p>
         </div>
 
+        <PasswordForm hasPassword={Boolean(credential)} />
         <TwoFactorSetup initialEnabled={dbUser?.twoFactorEnabled ?? false} />
         <TransactionPinForm hasPin={Boolean(dbUser?.transactionPin)} />
       </main>

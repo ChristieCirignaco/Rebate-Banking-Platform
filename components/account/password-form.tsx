@@ -1,0 +1,127 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useState } from "react";
+import { Loader2, Lock } from "lucide-react";
+
+import { changePassword } from "@/app/account/security/actions";
+import { toast } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+// Change the sign-in password. Sits on the security page beside the PIN and 2FA — before this
+// existed a signed-in user had no way to change their password at all and had to sign out and
+// use the forgot-password email instead.
+//
+// hasPassword is false for an account with no credential row (social sign-in only): there is no
+// password to change, so the form would fail on submit no matter what was typed. Say so instead.
+export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await changePassword({ currentPassword, newPassword, confirmPassword });
+      if (res.ok) {
+        toast.success("Password updated. Any other devices were signed out.");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(res.error);
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
+    // Always reset, including after an error — otherwise a failed attempt leaves the form
+    // permanently disabled with no way back but a reload.
+    setSaving(false);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-md">
+            <Lock className="size-4" />
+          </span>
+          <div>
+            <CardTitle>Password</CardTitle>
+            <CardDescription>
+              {hasPassword
+                ? "Change the password you use to sign in."
+                : "This account signs in without a password."}
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {hasPassword ? (
+          <form onSubmit={onSubmit} className="flex max-w-xs flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="currentPassword">Current password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="newPassword">New password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="confirmPassword">Confirm new password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={saving}
+              />
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Changing your password signs out every other device.
+            </p>
+            <Button type="submit" disabled={saving} className="w-fit">
+              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+              Update password
+            </Button>
+          </form>
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            You signed up with a provider rather than a password, so there&apos;s nothing to change
+            here. Two-factor authentication and your transaction PIN still apply.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
