@@ -15,13 +15,3 @@ export type DashboardView = {
   groups: TransactionGroup[];
   upcoming: { dateLabel: string; amountLabel: string } | null;
 };
-
-// The nav destinations shared by the desktop sidebar and the mobile bottom bar, so both stay
-// in sync. Icons are attached where each is rendered (keeps this a plain data module).
-export const APP_NAV = [
-  { href: "/dashboard", label: "Home" },
-  { href: "/statistic", label: "Statistic" },
-  { href: "/wallet", label: "Wallet" },
-  { href: "/transactions", label: "Transactions" },
-  { href: "/settings", label: "Settings" },
-] as const;

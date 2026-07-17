@@ -39,14 +39,25 @@ export function AddWalletDialog({
   const nothingLeft = currencies.length === 0;
   const disabled = atCap || nothingLeft;
 
+  // `code` is the user's pick, but the list of addable currencies changes underneath it: after a
+  // successful add, router.refresh() drops the currency we just added from `currencies` while
+  // this component stays mounted — so useState's initializer never re-runs and `code` still
+  // names a currency the user now owns. Reopening and submitting then sends that stale code and
+  // addWalletFor rejects it with "A USD wallet already exists."
+  //
+  // So treat a pick that is no longer addable as no pick at all and fall back to the first real
+  // option. Deriving it every render also self-heals if `currencies` changes for any other
+  // reason (an admin deactivating a currency mid-session, say).
+  const selected = currencies.some((c) => c.code === code) ? code : (currencies[0]?.code ?? "");
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (saving || !code) return;
+    if (saving || !selected) return;
     setSaving(true);
     try {
-      const res = await addWallet(code);
+      const res = await addWallet(selected);
       if (res.ok) {
-        toast.success(`${code} wallet added`);
+        toast.success(`${selected} wallet added`);
         setOpen(false);
         router.refresh();
       } else {
@@ -101,7 +112,7 @@ export function AddWalletDialog({
               </Label>
               <select
                 id="w-currency"
-                value={code}
+                value={selected}
                 onChange={(e) => setCode(e.target.value)}
                 className={SELECT}
               >
