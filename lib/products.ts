@@ -41,6 +41,7 @@ function present(row: {
     name: row.name,
     quantity: row.quantity,
     unitLabel: formatCurrency(toMajor(row.priceMinor), row.currency),
+    priceMajor: toMajor(row.priceMinor),
     totalLabel: formatCurrency(toMajor(lineTotalMinor), row.currency),
     status: toStatus(row.status),
     imageUrl: row.imageUrl,

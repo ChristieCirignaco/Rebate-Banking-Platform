@@ -41,6 +41,10 @@ export type ProductRowView = {
   name: string;
   quantity: number;
   unitLabel: string; // formatted unit price
+  // The raw unit price, for prefilling the owner's edit form. unitLabel is formatted for display
+  // ("$12.00") and parsing it back would be guesswork across currencies and separators, so the
+  // number travels alongside its own presentation rather than being reconstructed from it.
+  priceMajor: number;
   totalLabel: string; // unit price × quantity
   status: ProductStatus;
   imageUrl: string | null;

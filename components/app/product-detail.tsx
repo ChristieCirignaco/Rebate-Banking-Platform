@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Package } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,7 +22,17 @@ function DetailRow({ label, value, bold }: { label: string; value: string; bold?
 
 // The product submission detail body, shown inside the mobile drawer / desktop dialog. Pure
 // presentational; rendered in the (light) portal so the dark: variants stay inert.
-export function ProductDetail({ product }: { product: ProductRowView }) {
+//
+// `actions` is a slot rather than owner controls baked in, to keep this presentational: the
+// buttons need client state and server actions, and this component is the thing both the mobile
+// drawer and the desktop dialog render. The caller decides whether an owner is looking.
+export function ProductDetail({
+  product,
+  actions,
+}: {
+  product: ProductRowView;
+  actions?: ReactNode;
+}) {
   const meta = PRODUCT_STATUS_META[product.status];
   return (
     <div className="flex flex-col gap-4">
@@ -68,6 +79,8 @@ export function ProductDetail({ product }: { product: ProductRowView }) {
           Awaiting review — you&apos;ll be notified once it&apos;s reviewed.
         </p>
       ) : null}
+
+      {actions}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { PRODUCT_STATUS_META, type ProductRowView } from "@/lib/products-view";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 import { ProductDetail } from "@/components/app/product-detail";
+import { ProductActions } from "@/components/app/product-actions";
 
 // The tappable submissions list. Each row opens a detail view — a bottom drawer on mobile, a
 // centered dialog on desktop — chosen by the `variant` the page passes (each viewport renders
@@ -86,7 +87,7 @@ export function ProductList({
             <DrawerTitle className="sr-only">{selected?.name ?? "Product"}</DrawerTitle>
             <DrawerDescription className="sr-only">Rebate submission details</DrawerDescription>
             <div className="px-4 pt-2 pb-6">
-              {selected ? <ProductDetail product={selected} /> : null}
+              {selected ? <ProductDetail product={selected} actions={<ProductActions product={selected} />} /> : null}
             </div>
           </DrawerContent>
         </Drawer>
@@ -101,7 +102,7 @@ export function ProductList({
         <DialogContent className="sm:max-w-md">
           <DialogTitle className="sr-only">{selected?.name ?? "Product"}</DialogTitle>
           <DialogDescription className="sr-only">Rebate submission details</DialogDescription>
-          {selected ? <ProductDetail product={selected} /> : null}
+          {selected ? <ProductDetail product={selected} actions={<ProductActions product={selected} />} /> : null}
         </DialogContent>
       </Dialog>
     </>
