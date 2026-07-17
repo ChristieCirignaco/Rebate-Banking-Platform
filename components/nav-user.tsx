@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BellIcon,
@@ -97,13 +98,17 @@ export function NavUser({ user }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <CircleUserRoundIcon />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href="/admin/profile">
+                  <CircleUserRoundIcon />
+                  Account
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon />
-                Notifications
+              <DropdownMenuItem asChild>
+                <Link href="/admin/notifications">
+                  <BellIcon />
+                  Notifications
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
