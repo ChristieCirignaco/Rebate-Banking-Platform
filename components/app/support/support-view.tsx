@@ -3,10 +3,11 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Loader2, MessageSquarePlus, Plus } from "lucide-react";
+import { ChevronRight, FileText, Loader2, MessageSquarePlus, Paperclip, Plus, X } from "lucide-react";
 
-import { createTicket } from "@/app/(app)/support/actions";
+import { createTicket, type TicketAttachmentInput } from "@/app/(app)/support/actions";
 import { toast } from "@/lib/toast";
+import { TICKET_FILE_ACCEPT, uploadTicketAttachment } from "@/lib/tickets/files";
 import { cn } from "@/lib/utils";
 import type { SupportCategoryOption, SupportTicketRow } from "@/lib/support";
 import type { TicketStatus } from "@/components/admin/support-tickets/types";
@@ -114,6 +115,8 @@ function NewTicketDialog({
   const [categoryId, setCategoryId] = useState("");
   const [priority, setPriority] = useState("medium");
   const [message, setMessage] = useState("");
+  const [attachments, setAttachments] = useState<TicketAttachmentInput[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   function reset() {
@@ -121,6 +124,17 @@ function NewTicketDialog({
     setCategoryId("");
     setPriority("medium");
     setMessage("");
+    setAttachments([]);
+    setUploading(false);
+  }
+
+  async function onAttach(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    const res = await uploadTicketAttachment(file);
+    if (res.ok) setAttachments((a) => [...a, res.file]);
+    else toast.error(res.error);
+    setUploading(false);
   }
 
   async function onSubmit(event: FormEvent) {
@@ -134,6 +148,10 @@ function NewTicketDialog({
       toast.error("Enter a message.");
       return;
     }
+    if (uploading) {
+      toast.error("Wait for the file to finish uploading.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await createTicket({
@@ -141,6 +159,7 @@ function NewTicketDialog({
         categoryId: categoryId || undefined,
         priority,
         message: message.trim(),
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       if (res.ok) {
         toast.success("Ticket created");
@@ -235,9 +254,62 @@ function NewTicketDialog({
             />
           </div>
 
+          {/* Attachments. The backend already accepted these on the very first message —
+              CreateTicketInput.attachments, sanitized like any reply — but there was no way to
+              pick a file here, so a user reporting a problem had to create the ticket and then
+              attach the screenshot in a follow-up reply. */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-semibold">Attachments (optional)</Label>
+            {attachments.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((a, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                  >
+                    <FileText className="size-3.5 text-slate-400" />
+                    <span className="max-w-[10rem] truncate">{a.name}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${a.name}`}
+                      onClick={() => setAttachments((list) => list.filter((_, idx) => idx !== i))}
+                      className="text-slate-400 hover:text-red-600"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <label
+              className={cn(
+                "inline-flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600",
+                (uploading || submitting) && "pointer-events-none opacity-60",
+              )}
+            >
+              <input
+                type="file"
+                accept={TICKET_FILE_ACCEPT}
+                className="sr-only"
+                disabled={uploading || submitting}
+                onChange={(e) => {
+                  void onAttach(e.target.files?.[0]);
+                  // Clear the input so picking the same file twice still fires onChange.
+                  e.target.value = "";
+                }}
+              />
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Paperclip className="size-4" />
+              )}
+              {uploading ? "Uploading…" : "Attach a file"}
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || uploading}
             className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
           >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : null}

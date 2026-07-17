@@ -5,7 +5,7 @@ import { FileText, Loader2, Lock, Paperclip, Send, X } from "lucide-react";
 
 import { sendTicketMessage, type TicketAttachmentInput } from "@/app/(app)/support/actions";
 import { toast } from "@/lib/toast";
-import { TICKET_FILE_ACCEPT } from "@/lib/tickets/files";
+import { TICKET_FILE_ACCEPT, uploadTicketAttachment } from "@/lib/tickets/files";
 import { cn } from "@/lib/utils";
 import type {
   TicketAttachmentView,
@@ -166,31 +166,9 @@ export function TicketChat({
   async function onAttach(file: File | undefined) {
     if (!file) return;
     setUploading(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      const r = await fetch("/api/user/tickets/upload", { method: "POST", body: form });
-      const data = (await r.json().catch(() => null)) as
-        | { ok?: boolean; name?: string; key?: string; url?: string; contentType?: string; size?: number; token?: string; error?: string }
-        | null;
-      if (r.ok && data?.ok && data.url) {
-        setAttachments((a) => [
-          ...a,
-          {
-            name: data.name ?? file.name,
-            key: data.key ?? "",
-            url: data.url!,
-            contentType: data.contentType ?? file.type,
-            size: data.size,
-            token: data.token,
-          },
-        ]);
-      } else {
-        toast.error(data?.error ?? "Couldn't upload the file.");
-      }
-    } catch {
-      toast.error("Couldn't upload the file.");
-    }
+    const res = await uploadTicketAttachment(file);
+    if (res.ok) setAttachments((a) => [...a, res.file]);
+    else toast.error(res.error);
     setUploading(false);
   }
 
