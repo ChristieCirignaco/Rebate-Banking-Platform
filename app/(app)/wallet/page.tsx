@@ -9,6 +9,7 @@ import { getWalletPageData } from "@/lib/wallet-page";
 import { addableCurrencies, MAX_WALLETS } from "@/lib/wallets";
 import { AddWalletDialog } from "@/components/app/wallet/add-wallet-dialog";
 import { WalletList } from "@/components/app/wallet/wallet-list";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Wallets" };
 
@@ -40,10 +41,18 @@ export default async function WalletPage() {
             <ChevronLeft className="size-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Wallets</h1>
-            <p className="text-sm text-slate-500">Your currency wallets and balances.</p>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Wallets
+            </h1>
+            <p className="text-sm text-slate-500">
+              Your currency wallets and balances.
+            </p>
           </div>
           <AddWalletDialog currencies={addable} remaining={remaining} />
+          {/* Chat lives in the desktop header already, so only surface it here on mobile. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <WalletList data={data} />

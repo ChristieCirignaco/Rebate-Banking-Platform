@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth-guards";
 import { getKycData } from "@/lib/kyc";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { KycView } from "@/components/app/kyc/kyc-view";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Identity Verification" };
 
@@ -31,12 +32,18 @@ export default async function KycPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Identity verification
             </h1>
-            <p className="text-sm text-slate-500">Verify your identity to unlock your account.</p>
+            <p className="text-sm text-slate-500">
+              Verify your identity to unlock your account.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <KycView data={data} />

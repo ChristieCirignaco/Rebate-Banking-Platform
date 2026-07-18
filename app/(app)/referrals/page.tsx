@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth-guards";
 import { getReferralData } from "@/lib/referrals";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { ReferralView } from "@/components/app/referral-view";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Referrals" };
 
@@ -30,10 +31,18 @@ export default async function ReferralsPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Referrals</h1>
-            <p className="text-sm text-slate-500">Invite friends and earn rewards.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Referrals
+            </h1>
+            <p className="text-sm text-slate-500">
+              Invite friends and earn rewards.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <ReferralView data={data} />

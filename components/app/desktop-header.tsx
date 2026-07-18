@@ -3,6 +3,7 @@ import { Landmark } from "lucide-react";
 import { greetingForDate } from "@/lib/dashboard/transactions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
+import { ChatButton } from "@/components/app/chat/chat-button";
 import { TransactionSearch } from "@/components/app/search/transaction-search";
 
 function initials(name: string): string {
@@ -40,6 +41,7 @@ export function DesktopHeader({ name, image }: { name: string; image: string | n
         <div className="flex items-center gap-2">
           {/* Renders both triggers itself: the wide pill at xl+, the icon button below it. */}
           <TransactionSearch variant="header" />
+          <ChatButton variant="surface" />
           <NotificationBell variant="surface" />
           <Avatar size="default" className="ring-2 ring-slate-200 dark:ring-slate-700">
             {image ? <AvatarImage src={image} alt={name} /> : null}

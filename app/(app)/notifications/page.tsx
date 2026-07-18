@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { getSession } from "@/lib/auth-guards";
 import { getUserNotifications } from "@/lib/notifications";
 import { NotificationsView } from "@/components/app/notifications/notifications-view";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -28,10 +29,18 @@ export default async function NotificationsPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Notifications</h1>
-            <p className="text-sm text-slate-500">Updates and messages about your account.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Notifications
+            </h1>
+            <p className="text-sm text-slate-500">
+              Updates and messages about your account.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <NotificationsView items={items} />

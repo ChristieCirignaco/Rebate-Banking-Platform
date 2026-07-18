@@ -7,6 +7,7 @@ import { Loader2, Plus } from "lucide-react";
 
 import { addWallet } from "@/app/(app)/wallet/actions";
 import { toast } from "@/lib/toast";
+import { HeaderIconButton } from "@/components/app/header-icon-button";
 import {
   Dialog,
   DialogContent,
@@ -69,24 +70,24 @@ export function AddWalletDialog({
     setSaving(false);
   }
 
+  // Icon-only round button so it sits in the header alongside the back and chat controls; the
+  // tooltip carries the label, and the reason when it's disabled.
+  const label = atCap
+    ? "You hold the maximum of 3 wallets"
+    : nothingLeft
+      ? "You already hold every available currency"
+      : "Add wallet";
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
+      <HeaderIconButton
+        label={label}
+        variant="primary"
         disabled={disabled}
-        title={
-          atCap
-            ? "You've reached the maximum of 3 wallets"
-            : nothingLeft
-              ? "You already hold every available currency"
-              : undefined
-        }
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        onClick={() => setOpen(true)}
       >
-        <Plus className="size-4" />
-        Add wallet
-      </button>
+        <Plus className="size-5" />
+      </HeaderIconButton>
 
       <Dialog
         open={open}

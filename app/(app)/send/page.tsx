@@ -7,9 +7,13 @@ import { getSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
-import { getEnabledFlags, isFeatureEnabled } from "@/lib/settings/feature-flags";
+import {
+  getEnabledFlags,
+  isFeatureEnabled,
+} from "@/lib/settings/feature-flags";
 import { enabledTransferKinds } from "@/components/app/app-nav";
 import { SendForm } from "@/components/app/send-form";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Send money" };
 
@@ -33,7 +37,10 @@ export default async function SendPage() {
     where: { userId_currency: { userId: session.user.id, currency } },
     select: { balanceMinor: true },
   });
-  const balanceLabel = formatCurrency(toMajor(wallet?.balanceMinor ?? 0n), currency);
+  const balanceLabel = formatCurrency(
+    toMajor(wallet?.balanceMinor ?? 0n),
+    currency,
+  );
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 lg:px-0 lg:pb-0">
@@ -46,12 +53,24 @@ export default async function SendPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Send money</h1>
-            <p className="text-sm text-slate-500">Transfer to a user, a domestic bank, or by wire.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Send money
+            </h1>
+            <p className="text-sm text-slate-500">
+              Transfer to a user, a domestic bank, or by wire.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
-        <SendForm balanceLabel={balanceLabel} currency={currency} kinds={kinds} />
+        <SendForm
+          balanceLabel={balanceLabel}
+          currency={currency}
+          kinds={kinds}
+        />
       </div>
     </div>
   );

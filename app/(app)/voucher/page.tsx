@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth-guards";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getVoucherData } from "@/lib/vouchers";
 import { VoucherView } from "@/components/app/voucher-view";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Voucher" };
 
@@ -30,13 +31,25 @@ export default async function VoucherPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Vouchers</h1>
-            <p className="text-sm text-slate-500">Generate a voucher or redeem a code.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Vouchers
+            </h1>
+            <p className="text-sm text-slate-500">
+              Generate a voucher or redeem a code.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
-        <VoucherView wallets={wallets} vouchers={vouchers} baseCode={baseCode} />
+        <VoucherView
+          wallets={wallets}
+          vouchers={vouchers}
+          baseCode={baseCode}
+        />
       </div>
     </div>
   );

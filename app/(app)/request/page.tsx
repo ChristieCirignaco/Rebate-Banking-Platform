@@ -8,6 +8,7 @@ import { getRequestPageData, type RequestStatus } from "@/lib/requests";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { cn } from "@/lib/utils";
 import { RequestForm } from "@/components/app/request-form";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Request Money" };
 
@@ -37,25 +38,44 @@ export default async function RequestPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Request money</h1>
-            <p className="text-sm text-slate-500">Ask an admin to credit your wallet.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Request money
+            </h1>
+            <p className="text-sm text-slate-500">
+              Ask an admin to credit your wallet.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <RequestForm wallets={wallets} />
 
         {requests.length > 0 ? (
           <div className="mt-8 flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">Your requests</h2>
+            <h2 className="text-sm font-semibold text-slate-900">
+              Your requests
+            </h2>
             <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
               {requests.map((r) => (
-                <div key={r.id} className="flex items-start justify-between gap-3 p-3.5">
+                <div
+                  key={r.id}
+                  className="flex items-start justify-between gap-3 p-3.5"
+                >
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900">{r.amountLabel}</p>
-                    <p className="truncate text-xs text-slate-500">{r.reason?.trim() || "No reason given"}</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {r.amountLabel}
+                    </p>
+                    <p className="truncate text-xs text-slate-500">
+                      {r.reason?.trim() || "No reason given"}
+                    </p>
                     {r.remarks?.trim() ? (
-                      <p className="mt-0.5 truncate text-xs text-slate-400">Admin: {r.remarks}</p>
+                      <p className="mt-0.5 truncate text-xs text-slate-400">
+                        Admin: {r.remarks}
+                      </p>
                     ) : null}
                     <p className="mt-0.5 font-mono text-[11px] text-slate-400">
                       {r.txnId} · {r.createdAtLabel}

@@ -8,6 +8,7 @@ import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { prisma } from "@/lib/db";
 import { presentTransaction } from "@/lib/dashboard/transactions";
 import { TransactionFilters } from "@/components/app/transaction-filters";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Transaction History" };
 
@@ -41,10 +42,18 @@ export default async function TransactionsPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Transaction history</h1>
-            <p className="text-sm text-slate-500">Your full ledger across all wallets.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Transaction history
+            </h1>
+            <p className="text-sm text-slate-500">
+              Your full ledger across all wallets.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <TransactionFilters transactions={transactions} />

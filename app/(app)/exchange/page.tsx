@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth-guards";
 import { getExchangeData } from "@/lib/exchange";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { ExchangeForm } from "@/components/app/exchange-form";
+import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Exchange Money" };
 
@@ -30,28 +31,47 @@ export default async function ExchangePage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Exchange money</h1>
-            <p className="text-sm text-slate-500">Convert instantly between your wallets.</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Exchange money
+            </h1>
+            <p className="text-sm text-slate-500">
+              Convert instantly between your wallets.
+            </p>
           </div>
+          {/* Chat is in the desktop header already; surface it here on mobile only. */}
+          <span className="lg:hidden">
+            <ChatButton variant="muted" />
+          </span>
         </div>
 
         <ExchangeForm wallets={wallets} hasPin={hasPin} />
 
         {history.length > 0 ? (
           <div className="mt-8 flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">Recent exchanges</h2>
+            <h2 className="text-sm font-semibold text-slate-900">
+              Recent exchanges
+            </h2>
             <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
               {history.map((e) => (
-                <div key={e.id} className="flex items-center justify-between gap-3 p-3.5">
+                <div
+                  key={e.id}
+                  className="flex items-center justify-between gap-3 p-3.5"
+                >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">{e.fromLabel}</span>
+                    <span className="text-sm font-semibold text-slate-900">
+                      {e.fromLabel}
+                    </span>
                     <ArrowRight className="size-3.5 shrink-0 text-slate-400" />
-                    <span className="text-sm font-semibold text-emerald-600">{e.toLabel}</span>
+                    <span className="text-sm font-semibold text-emerald-600">
+                      {e.toLabel}
+                    </span>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-[11px] text-slate-400">{e.rateLabel}</p>
-                    <p className="font-mono text-[11px] text-slate-400">{e.createdAtLabel}</p>
+                    <p className="font-mono text-[11px] text-slate-400">
+                      {e.createdAtLabel}
+                    </p>
                   </div>
                 </div>
               ))}

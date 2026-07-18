@@ -2,9 +2,12 @@ import type { ReactNode } from "react";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { getEnabledFlags } from "@/lib/settings/feature-flags";
+import { getSettings } from "@/lib/settings/store";
 import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopHeader } from "@/components/app/desktop-header";
+import { ChatConfigProvider } from "@/components/app/chat/chat-config";
+import { ChatLauncherManager } from "@/components/app/chat/chat-launcher-manager";
 
 // Shell for the whole authenticated user area. Full gate runs once here.
 //
@@ -18,7 +21,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // One batched read for the whole shell — the nav asks about a dozen flags, and each page
   // re-checks its own (React cache makes that the same round-trip). Only the keys cross into
   // the client components; the nav itself can't (its icons are React components).
-  const enabled = [...(await getEnabledFlags())];
+  const [enabledFlags, plugins] = await Promise.all([
+    getEnabledFlags(),
+    getSettings("plugins"),
+  ]);
+  const enabled = [...enabledFlags];
+  // The provider is only "live" when chat is both enabled and configured; otherwise "" so the
+  // header button hides itself and the launcher manager is a no-op.
+  const chatProvider =
+    plugins.chatEnabled && plugins.chatProvider ? plugins.chatProvider : "";
   const user = {
     name: session.user.name ?? "there",
     email: session.user.email ?? "",
@@ -26,24 +37,27 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-svh bg-white lg:flex lg:h-svh lg:flex-col lg:overflow-hidden lg:bg-slate-200 dark:bg-slate-950 dark:lg:bg-black">
-      {/* Full-width header across the top — over both sidebar and content */}
-      <DesktopHeader name={user.name} image={user.image} />
+    <ChatConfigProvider provider={chatProvider}>
+      <ChatLauncherManager />
+      <div className="min-h-svh bg-white lg:flex lg:h-svh lg:flex-col lg:overflow-hidden lg:bg-slate-200 dark:bg-slate-950 dark:lg:bg-black">
+        {/* Full-width header across the top — over both sidebar and content */}
+        <DesktopHeader name={user.name} image={user.image} />
 
-      {/* Body: detached sidebar + main container, below the header */}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3 lg:p-3 lg:pt-0">
-        <DesktopSidebar user={user} enabled={enabled} />
+        {/* Body: detached sidebar + main container, below the header */}
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3 lg:p-3 lg:pt-0">
+          <DesktopSidebar user={user} enabled={enabled} />
 
-        {/* Main container (light card) — does NOT scroll; wraps the dark content panel */}
-        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:rounded-2xl lg:bg-[#f8fafc] lg:p-3 lg:shadow-sm dark:lg:bg-slate-900">
-          {/* Dark content area — the only scrollable region on desktop; subtle scrollbar */}
-          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:rounded-2xl lg:bg-[#0b1120] lg:p-5 lg:[scrollbar-color:#334155_transparent] lg:[scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2">
-            {children}
+          {/* Main container (light card) — does NOT scroll; wraps the dark content panel */}
+          <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:rounded-2xl lg:bg-[#f8fafc] lg:p-3 lg:shadow-sm dark:lg:bg-slate-900">
+            {/* Dark content area — the only scrollable region on desktop; subtle scrollbar */}
+            <div className="lg:min-h-0 lg:flex-1 lg:[scrollbar-width:thin] lg:[scrollbar-color:#334155_transparent] lg:overflow-y-auto lg:rounded-2xl lg:bg-[#0b1120] lg:p-5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-700 hover:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-track]:bg-transparent">
+              {children}
+            </div>
           </div>
         </div>
-      </div>
 
-      <BottomTabBar enabled={enabled} />
-    </div>
+        <BottomTabBar enabled={enabled} />
+      </div>
+    </ChatConfigProvider>
   );
 }
