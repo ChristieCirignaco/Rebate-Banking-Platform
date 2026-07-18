@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -29,6 +30,7 @@ import {
   FAQ,
 } from "@/components/home/content";
 import { getLatestNews, type NewsItem } from "@/lib/home/news";
+import { getMarketingConfig } from "@/lib/home/site-config";
 
 const HERO_STEPS = [
   { icon: IdCard, title: "Register Account", text: "Create your portal access and set up your secure profile" },
@@ -38,6 +40,15 @@ const HERO_STEPS = [
 
 const CASHOUT_ICONS = [DollarSign, Upload, Banknote];
 const FEATURE_ICONS = [ShieldCheck, BadgeCheck, Headphones, Zap];
+
+// The landing page's tab title is just the site title — no "· Brand" suffix. `absolute` is what
+// makes that stick: without it the site title inherits the root layout's "%s · Brand" template
+// and doubles up (e.g. "TRBPAYOUTSUPPORT · TRBPAYOUTSUPPORT"). Sub-pages like /about keep the
+// suffix via their own titles + the (home) layout template.
+export async function generateMetadata(): Promise<Metadata> {
+  const c = await getMarketingConfig();
+  return { title: { absolute: c.siteTitle } };
+}
 
 export default async function Home() {
   // Real Trump/markets/investing headlines, merged from several feeds and cached 5 min.
