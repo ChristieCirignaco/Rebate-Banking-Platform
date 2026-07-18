@@ -57,7 +57,9 @@ export function TransactionRow({
         <Icon className="size-5" />
       </span>
 
-      <div className="min-w-0 flex-1">
+      {/* Transaction title/subtitle carry recipient names, providers and memos — financial data
+          that stays out of the translator. */}
+      <div translate="no" className="notranslate min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
           {txn.title}
         </p>

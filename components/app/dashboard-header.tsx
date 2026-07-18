@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
+import { LanguageDropdown } from "@/components/app/translate/language-dropdown";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -31,12 +32,16 @@ export function DashboardHeader({
         </Avatar>
         <div className="min-w-0 leading-tight">
           <p className="text-xs text-white/70">{greeting}!</p>
-          <p className="truncate text-base font-semibold text-white">{name}</p>
+          {/* The user's own name is PII — never send it to the translator. */}
+          <p translate="no" className="notranslate truncate text-base font-semibold text-white">
+            {name}
+          </p>
         </div>
       </div>
 
-      {/* shrink-0: the name truncates, the bell never does. */}
+      {/* shrink-0: the name truncates, the controls never do. */}
       <div className="flex shrink-0 items-center gap-2">
+        <LanguageDropdown triggerClassName="bg-white/10 text-white hover:bg-white/20" />
         <NotificationBell variant="hero" />
       </div>
     </div>

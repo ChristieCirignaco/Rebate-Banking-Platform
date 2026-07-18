@@ -172,7 +172,8 @@ export function BottomNavMenu({ user, enabled = [] }: { user: MenuUser; enabled?
                     {initials(user.name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
+                {/* Name + email are PII — kept out of the translator. */}
+                <div translate="no" className="notranslate min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">
                     {user.name}
                   </p>

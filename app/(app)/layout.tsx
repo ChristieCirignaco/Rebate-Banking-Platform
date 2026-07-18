@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { getEnabledFlags } from "@/lib/settings/feature-flags";
+import { SOURCE_LANG, TRANSLATE_COOKIE } from "@/lib/translate/config";
 import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopHeader } from "@/components/app/desktop-header";
+import { TranslateProvider } from "@/components/app/translate/translate-provider";
 
 // Shell for the whole authenticated user area. Full gate runs once here.
 //
@@ -24,9 +27,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     email: session.user.email ?? "",
     image: session.user.image,
   };
+  // The user's chosen UI language, so a returning user's page is translated on first paint.
+  const initialLang = (await cookies()).get(TRANSLATE_COOKIE)?.value || SOURCE_LANG;
 
   return (
-    <>
+    <TranslateProvider initialLang={initialLang}>
       {/* Lift the live-chat launcher above the mobile bottom nav. The chat widget floats
           site-wide (SitePluginScripts), but only the signed-in app has a bottom tab bar, and the
           vendor bubble sits at bottom:24px right:12px — directly over it. This style is present
@@ -62,6 +67,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
         <BottomTabBar enabled={enabled} user={user} />
       </div>
-    </>
+    </TranslateProvider>
   );
 }

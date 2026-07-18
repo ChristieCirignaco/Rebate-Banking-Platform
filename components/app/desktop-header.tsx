@@ -3,6 +3,7 @@ import { Landmark } from "lucide-react";
 import { greetingForDate } from "@/lib/dashboard/transactions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
+import { LanguageDropdown } from "@/components/app/translate/language-dropdown";
 import { TransactionSearch } from "@/components/app/search/transaction-search";
 
 function initials(name: string): string {
@@ -43,13 +44,18 @@ export function DesktopHeader({
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {greetingForDate()},
           </p>
-          <p className="truncate text-xl font-bold text-slate-900 dark:text-white">
+          {/* The user's own name is PII — never send it to the translator. */}
+          <p
+            translate="no"
+            className="notranslate truncate text-xl font-bold text-slate-900 dark:text-white"
+          >
             {name}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Renders both triggers itself: the wide pill at xl+, the icon button below it. */}
           <TransactionSearch variant="header" />
+          <LanguageDropdown triggerClassName="bg-white text-slate-600 shadow-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" />
           <NotificationBell variant="surface" />
           <Avatar
             size="default"
