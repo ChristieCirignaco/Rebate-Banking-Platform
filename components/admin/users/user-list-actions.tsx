@@ -5,8 +5,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, UserPlus } from "lucide-react";
 
-import { createActivationCode, createUser } from "@/app/admin/users/actions";
+import { createUser } from "@/app/admin/users/actions";
 import { toast } from "@/lib/toast";
+import { CreateCodeDialog } from "@/components/admin/activation-codes/create-code-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,18 +45,6 @@ export function UserListActions() {
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
-  function handleCreateCode() {
-    startTransition(async () => {
-      const result = await createActivationCode();
-      if (result.ok) {
-        toast.success(`Activation code created: ${result.code}`);
-        router.refresh();
-      } else {
-        toast.error(result.error);
-      }
-    });
-  }
-
   function handleAddUser() {
     startTransition(async () => {
       const result = await createUser(form);
@@ -72,10 +61,12 @@ export function UserListActions() {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" onClick={handleCreateCode} disabled={isPending}>
-        <Lock className="size-4" />
-        Create Activation Code
-      </Button>
+      <CreateCodeDialog onCreated={() => router.refresh()}>
+        <Button variant="outline">
+          <Lock className="size-4" />
+          Create Activation Code
+        </Button>
+      </CreateCodeDialog>
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogTrigger asChild>

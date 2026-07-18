@@ -30,8 +30,15 @@ function KeywordsInput({
   const [draft, setDraft] = useState("");
 
   function commit() {
-    const tag = draft.trim().replace(/,$/, "").trim();
-    if (tag && !value.includes(tag)) onChange([...value, tag]);
+    // Split on commas so a pasted/typed comma-separated string (e.g. "book,pen,go,") becomes
+    // one chip per keyword, not a single keyword. Trims, drops empties, and dedupes both
+    // against the existing keywords and within the batch itself.
+    const next = [...value];
+    for (const raw of draft.split(",")) {
+      const tag = raw.trim();
+      if (tag && !next.includes(tag)) next.push(tag);
+    }
+    if (next.length !== value.length) onChange(next);
     setDraft("");
   }
 

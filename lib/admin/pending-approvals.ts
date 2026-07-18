@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { REGULAR_USER_WHERE } from "@/lib/admin/user-scope";
 
 // A regular user awaiting manual approval (status = "pending"). `emailVerified` splits the
 // queue into "ready to approve" (true) and "awaiting email verification" (false).
@@ -22,7 +23,7 @@ export type PendingApprovals = {
 // newest first. Verified accounts sort ahead so the actionable queue is at the top.
 export async function getPendingApprovals(): Promise<PendingApprovals> {
   const users = await prisma.user.findMany({
-    where: { status: "pending", OR: [{ role: "user" }, { role: null }] },
+    where: { status: "pending", ...REGULAR_USER_WHERE },
     orderBy: [{ emailVerified: "desc" }, { createdAt: "desc" }],
     select: {
       id: true,

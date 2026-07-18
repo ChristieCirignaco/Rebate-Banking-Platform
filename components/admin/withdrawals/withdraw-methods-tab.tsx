@@ -29,7 +29,7 @@ export function WithdrawMethodsTab({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground text-sm">
           {methodType === "auto"
-            ? "Gateway-backed methods processed automatically."
+            ? "Gateway-backed withdrawal methods."
             : "Manually-processed withdrawal methods with custom user fields."}
         </p>
         <WithdrawMethodDialog

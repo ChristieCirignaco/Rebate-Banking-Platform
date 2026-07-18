@@ -70,6 +70,25 @@ export const auth = betterAuth({
         },
       },
     },
+    session: {
+      create: {
+        // Stamp the user's last login on every session creation, so the "online" dot and the
+        // "Last Login" column reflect reality (previously lastLoginAt was only ever seeded and
+        // never updated on an actual sign-in). Keyed on userId — NOT the session id — so it is
+        // immune to the throwaway-session race described below (that concern is specifically
+        // about child rows keyed on the session). Best-effort: never block a sign-in over it.
+        after: async (session) => {
+          try {
+            await prisma.user.update({
+              where: { id: session.userId },
+              data: { lastLoginAt: new Date() },
+            });
+          } catch {
+            // ignore — a last-login timestamp must never fail the login itself
+          }
+        },
+      },
+    },
     // Note: the "email OTP on login" gate is intentionally NOT wired as a session-create
     // hook. Better Auth's 2FA sign-in creates a throwaway session and immediately deletes
     // it to start the challenge, which races any hook that writes a child row keyed on the
@@ -130,7 +149,16 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    adminPlugin({ ac, roles, defaultRole: "user", adminRoles: ["admin", "super_admin"] }),
+    adminPlugin({
+      ac,
+      roles,
+      defaultRole: "user",
+      adminRoles: ["admin", "super_admin"],
+      // "Login as User" impersonation: a 1-hour session, and never allow impersonating another
+      // admin-tier account (no role here holds `impersonate-admins`, so this is belt-and-braces).
+      impersonationSessionDuration: 60 * 60,
+      allowImpersonatingAdmins: false,
+    }),
     // TOTP authenticator + 10 encrypted backup codes. The row is created unverified and
     // only flips twoFactorEnabled once the user confirms a code during enrollment.
     twoFactor({ issuer: "Rebate Bank", skipVerificationOnEnable: false }),

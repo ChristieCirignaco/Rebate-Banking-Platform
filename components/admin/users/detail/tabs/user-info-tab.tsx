@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,8 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { Gender, UserDetail } from "../types";
+
+// Mirrors the server allowlist in app/api/admin/avatar/route.ts — the route is the authority;
+// this just gives an instant, friendlier rejection.
+const AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 function initials(name: string): string {
   return name
@@ -49,9 +55,12 @@ function Field({
 export function UserInfoTab({
   user,
   onUpdate,
+  onChangeAvatar,
 }: {
   user: UserDetail;
   onUpdate: (values: Partial<UserDetail>) => void;
+  // Persists the new avatar URL to this user and reports success (view runs the server action).
+  onChangeAvatar: (url: string) => Promise<boolean>;
 }) {
   const [values, setValues] = useState({
     firstName: user.firstName,
@@ -61,6 +70,9 @@ export function UserInfoTab({
     birthday: user.birthday,
     address: user.address,
   });
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<typeof values>) =>
     setValues((current) => ({ ...current, ...patch }));
@@ -70,6 +82,38 @@ export function UserInfoTab({
     onUpdate(values);
   }
 
+  // Upload the chosen photo to the admin media route, then persist its URL to this user. The
+  // avatar changes on its own — it isn't tied to the "Update Information" button.
+  async function onAvatarSelect(file: File | undefined) {
+    if (!file || uploading) return;
+    if (!AVATAR_TYPES.includes(file.type)) {
+      toast.error("Only PNG, JPEG or WEBP images are allowed.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast.error("Image must be 2 MB or smaller.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const response = await fetch("/api/admin/avatar", { method: "POST", body });
+      const data = (await response.json().catch(() => null)) as
+        | { ok?: boolean; url?: string; error?: string }
+        | null;
+      if (!response.ok || !data?.ok || !data.url) {
+        toast.error(data?.error ?? "Upload failed.");
+      } else if (await onChangeAvatar(data.url)) {
+        setAvatarUrl(data.url);
+      }
+    } catch {
+      toast.error("Network error during upload.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <Card>
       <CardContent>
@@ -77,8 +121,8 @@ export function UserInfoTab({
           <div className="flex flex-col items-center gap-2">
             <div className="relative">
               <Avatar className="size-20">
-                {user.avatarUrl ? (
-                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt={user.name} />
                 ) : null}
                 <AvatarFallback className="text-lg">
                   {initials(user.name)}
@@ -89,13 +133,26 @@ export function UserInfoTab({
                 size="icon"
                 variant="secondary"
                 title="Change avatar"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
                 className="absolute -right-1 -bottom-1 size-8 rounded-full"
               >
                 <Camera className="size-4" />
               </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  void onAvatarSelect(event.target.files?.[0]);
+                  // Reset so re-picking the SAME file still fires a change event.
+                  event.target.value = "";
+                }}
+              />
             </div>
             <p className="text-muted-foreground text-xs">
-              Click camera icon to change avatar
+              {uploading ? "Uploading…" : "Click camera icon to change avatar. PNG, JPEG or WEBP, max 2 MB."}
             </p>
           </div>
 

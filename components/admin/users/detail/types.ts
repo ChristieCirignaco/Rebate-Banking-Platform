@@ -24,6 +24,7 @@ export interface UserDetail {
   country: string;
   address: string;
   avatarUrl?: string;
+  accountStatus: "active" | "suspended" | "pending"; // sign-in status (rejected registrations are suspended)
   lastLogin?: string; // ISO
   browser: string; // e.g. "Chrome on macOS"
   withdrawalStatus: WithdrawalStatus;
@@ -49,16 +50,21 @@ export interface DetailWallet {
   removeBlockedReason: string | null;
 }
 
-export type ControlKey =
-  | "account_status"
-  | "email_verification"
-  | "kyc_verification"
-  | "deposit"
-  | "exchange_money"
-  | "send_money"
-  | "request_money"
-  | "voucher"
-  | "withdraw";
+// Runtime list is the single source of truth so a Server Action can validate an incoming key
+// (a payload is caller-controlled) without drifting from the ControlKey union.
+export const CONTROL_KEYS = [
+  "account_status",
+  "email_verification",
+  "kyc_verification",
+  "deposit",
+  "exchange_money",
+  "send_money",
+  "request_money",
+  "voucher",
+  "withdraw",
+] as const;
+
+export type ControlKey = (typeof CONTROL_KEYS)[number];
 
 export interface UserControl {
   key: ControlKey;
@@ -150,6 +156,9 @@ export interface ActivityEntry {
   org?: string; // network / operator, when resolved via IPinfo
   browser: string; // "Chrome"
   os: string; // "macOS"
+  // Set when this session is an admin "Login as User" impersonation — the acting admin's name,
+  // shown as the audit log. Absent for the user's own real logins.
+  impersonatorName?: string;
 }
 
 // ----- Dialog handler payloads -----
@@ -180,6 +189,5 @@ export type WithdrawalStatus =
   "allowed" | "pending" | "hold" | "suspended" | "restricted";
 export interface WithdrawalControlPayload {
   status: WithdrawalStatus;
-  adminNote?: string;
   userMessage?: string;
 }

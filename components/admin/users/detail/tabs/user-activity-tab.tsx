@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { History, Search, SearchCode } from "lucide-react";
+import { History, Search, SearchCode, UserCog } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,14 +16,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
-import { DateRangeSelect, EmptyState } from "../shared";
+import { DateRangeSelect, EmptyState, rangeCutoffMs } from "../shared";
 import type { ActivityEntry } from "../types";
 
 export function UserActivityTab({ activity }: { activity: ActivityEntry[] }) {
   const [range, setRange] = useState("30d");
   const [search, setSearch] = useState("");
 
+  const cutoff = rangeCutoffMs(range);
   const filtered = activity.filter((entry) => {
+    if (cutoff !== null && new Date(entry.loginAt).getTime() < cutoff) return false;
     const query = search.trim().toLowerCase();
     if (!query) return true;
     return [entry.ip, entry.country, entry.browser, entry.os].some((value) =>
@@ -68,13 +71,19 @@ export function UserActivityTab({ activity }: { activity: ActivityEntry[] }) {
               {filtered.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-sm whitespace-nowrap">
                         {formatDateTime(entry.loginAt)}
                       </span>
                       <span className="text-muted-foreground text-xs">
                         {formatRelativeTime(entry.loginAt)}
                       </span>
+                      {entry.impersonatorName ? (
+                        <Badge className="mt-0.5 w-fit gap-1 border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                          <UserCog className="size-3" />
+                          Impersonation · {entry.impersonatorName}
+                        </Badge>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>

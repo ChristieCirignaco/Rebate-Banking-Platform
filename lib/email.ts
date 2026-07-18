@@ -30,6 +30,18 @@ async function resolveFrom(): Promise<string> {
   return "Rebate Bank <onboarding@resend.dev>";
 }
 
+// The admin-configured Reply-To (General → Email Identity), if any. Replies to transactional
+// mail go here instead of the (often no-reply) From address.
+async function resolveReplyTo(): Promise<string | undefined> {
+  try {
+    const row = await prisma.siteSetting.findUnique({ where: { key: "general" } });
+    const general = (row?.value ?? {}) as { replyTo?: string };
+    return general.replyTo?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Transactional mailer. Sends via Resend when RESEND_API_KEY is set; otherwise logs to the
 // server console (dev — reset/verify/OTP tokens are readable there). Callers fire-and-
 // forget (do not await), so failures are logged, never thrown.
@@ -39,16 +51,19 @@ export async function sendEmail({ to, subject, text, html }: SendEmailArgs): Pro
     return;
   }
   try {
-    const from = await resolveFrom();
+    const [from, replyTo] = await Promise.all([resolveFrom(), resolveReplyTo()]);
+    // Send both parts when there's HTML: Resend builds the multipart/alternative, and the text
+    // stays the fallback rather than being replaced by it. reply_to is included only when set.
+    const payload: Record<string, unknown> = { from, to, subject, text };
+    if (html) payload.html = html;
+    if (replyTo) payload.reply_to = replyTo;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      // Send both parts when there's HTML: Resend builds the multipart/alternative, and the
-      // text stays the fallback rather than being replaced by it.
-      body: JSON.stringify(html ? { from, to, subject, text, html } : { from, to, subject, text }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");

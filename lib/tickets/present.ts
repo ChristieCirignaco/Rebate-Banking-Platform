@@ -55,6 +55,9 @@ type LoadedTicket = {
     id: string;
     senderType: string;
     senderName: string;
+    // Optional: the admin read layer resolves the sender's avatar; the user-side loader leaves
+    // it unset and the view degrades to initials.
+    senderImage?: string | null;
     body: string;
     attachments: unknown;
     createdAt: Date;
@@ -83,6 +86,7 @@ export function toTicketDetail(ticket: LoadedTicket): TicketDetail {
         id: m.id,
         senderType: m.senderType as "user" | "admin",
         senderName: m.senderName,
+        senderImage: m.senderImage ?? undefined,
         body: m.body,
         attachments: toTicketAttachmentViews(m.attachments),
         createdAt: m.createdAt.toISOString(),

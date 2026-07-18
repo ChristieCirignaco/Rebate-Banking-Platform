@@ -169,7 +169,8 @@ export function PendingApprovalsView({ data }: { data: PendingApprovals }) {
             <DialogTitle>Reject this registration?</DialogTitle>
             <DialogDescription>
               {rejectTarget?.name} ({rejectTarget?.email}) will be suspended and won&apos;t be
-              able to sign in. You can reactivate them later from the Users list.
+              able to sign in. You can reactivate them later from their profile (open the account
+              from the Users list).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

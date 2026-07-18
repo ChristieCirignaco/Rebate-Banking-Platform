@@ -115,6 +115,13 @@ export const DATE_RANGES = [
   { value: "all", label: "All time" },
 ] as const;
 
+// A range value -> the epoch-ms lower bound to filter rows by, or null for "all" (no bound).
+// Shared so the Transactions and Activity tabs filter their lists consistently.
+export function rangeCutoffMs(range: string): number | null {
+  const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : null;
+  return days === null ? null : Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
 export function DateRangeSelect({
   value,
   onChange,

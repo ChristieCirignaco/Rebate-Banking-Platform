@@ -12,6 +12,7 @@ import { isValidPin } from "@/lib/transaction-pin";
 import { toMajor } from "@/lib/money/money";
 import { deliverEmailNotices, notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
 import { addWalletFor, removeWalletFor } from "@/lib/wallets";
+import { CONTROL_KEYS } from "@/components/admin/users/detail/types";
 import type {
   ControlKey,
   ManageFundsPayload,
@@ -28,6 +29,10 @@ const NOT_ADMIN_TARGET: ActionResult = {
   ok: false,
   error: "Manage this account from /admin/users/admin instead.",
 };
+
+// An avatar we produced: the served URL of an upload from /api/admin/avatar. Anything else is
+// refused, so User.image can only ever point at our own media route (mirrors the profile actions).
+const AVATAR_URL = /^\/api\/media\/[A-Za-z0-9._-]+$/;
 
 function revalidate(userId: string) {
   revalidatePath(`/admin/users/${userId}`);
@@ -54,6 +59,34 @@ export async function updateUserInfo(
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
   const targetError = await assertRegularUserTarget(userId);
   if (targetError) return targetError;
+
+  const GENDERS = ["male", "female", "other", "unspecified"] as const;
+  if (
+    values.gender !== undefined &&
+    !GENDERS.includes(values.gender as (typeof GENDERS)[number])
+  ) {
+    return { ok: false, error: "Invalid gender." };
+  }
+
+  // Birthday: an empty string clears it (-> null); a value must be a real, non-future date;
+  // an absent key leaves it untouched. (The old `? new Date() : undefined` made a set birthday
+  // un-clearable, since Prisma skips undefined.)
+  let birthday: Date | null | undefined = undefined;
+  if (values.birthday !== undefined) {
+    if (values.birthday === "") {
+      birthday = null;
+    } else {
+      const parsed = new Date(values.birthday);
+      if (Number.isNaN(parsed.getTime())) {
+        return { ok: false, error: "Enter a valid date of birth." };
+      }
+      if (parsed.getTime() > Date.now()) {
+        return { ok: false, error: "Date of birth can't be in the future." };
+      }
+      birthday = parsed;
+    }
+  }
+
   const name = [values.firstName, values.lastName].filter(Boolean).join(" ").trim();
   await prisma.user.update({
     where: { id: userId },
@@ -62,9 +95,49 @@ export async function updateUserInfo(
       phone: values.phone,
       gender: values.gender,
       address: values.address,
-      birthday: values.birthday ? new Date(values.birthday) : undefined,
+      birthday,
     },
   });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Set (or clear, with "") a user's avatar from the Information tab. The bytes are already stored
+// by /api/admin/avatar, which returns the /api/media/<key> URL persisted here.
+export async function adminSetUserAvatar(
+  userId: string,
+  imageUrl: string,
+): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const url = imageUrl.trim();
+  if (url && !AVATAR_URL.test(url)) return { ok: false, error: "That image isn't valid." };
+
+  await prisma.user.update({ where: { id: userId }, data: { image: url || null } });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Reactivate a suspended account (e.g. one rejected from the pending queue, which sets status ->
+// suspended): status -> active. Only a suspended target is eligible; pending/active accounts are
+// left to their own flows. This is the "reactivate later" path the reject dialog promises.
+export async function reactivateUser(userId: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { status: true },
+  });
+  if (!target) return { ok: false, error: "User not found." };
+  if (target.status !== "suspended") {
+    return { ok: false, error: "Only a suspended account can be reactivated." };
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { status: "active" } });
   revalidate(userId);
   return { ok: true };
 }
@@ -75,6 +148,9 @@ export async function toggleControl(
   value: boolean,
 ): Promise<ActionResult> {
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  // The key is caller-controlled at runtime — reject anything outside the known set so the
+  // controls JSON can't accumulate junk keys that no guard ever reads.
+  if (!CONTROL_KEYS.includes(key)) return { ok: false, error: "Invalid control." };
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { controls: true, role: true },
@@ -169,7 +245,21 @@ export async function saveTransferCodes(
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
   const targetError = await assertRegularUserTarget(userId);
   if (targetError) return targetError;
-  await prisma.user.update({ where: { id: userId }, data: { transferCodes: codes } });
+
+  // Sanitize and enforce the rule the dialog advertises ("minimum of 3 codes, or none"): trim,
+  // drop empties, then reject any group left with 1 or 2 codes so the stored value matches the
+  // promise instead of persisting the payload verbatim.
+  const GROUPS = ["imf", "tax", "cot"] as const;
+  const sanitized: TransferCodes = { imf: [], tax: [], cot: [] };
+  for (const group of GROUPS) {
+    const cleaned = (codes?.[group] ?? []).map((code) => code.trim()).filter(Boolean);
+    if (cleaned.length > 0 && cleaned.length < 3) {
+      return { ok: false, error: `${group.toUpperCase()} needs at least 3 codes, or none.` };
+    }
+    sanitized[group] = cleaned;
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { transferCodes: sanitized } });
   revalidate(userId);
   return { ok: true };
 }

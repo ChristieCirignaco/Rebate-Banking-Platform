@@ -1,6 +1,7 @@
 import { ArrowLeftRight, Coins, Users, Wallet } from "lucide-react";
 
 import { prisma } from "@/lib/db";
+import { REGULAR_USER_WHERE } from "@/lib/admin/user-scope";
 import { toMajor } from "@/lib/money/money";
 import type {
   LatestUserRow,
@@ -10,14 +11,6 @@ import type {
   TransactionType,
   WalletSummaryItem,
 } from "@/components/admin/overview/types";
-
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "British Pound",
-  NGN: "Nigerian Naira",
-  USDT: "Tether",
-};
 
 function startOfUtcDay(date: Date): Date {
   const copy = new Date(date);
@@ -53,7 +46,8 @@ function bucketByDay(
 export async function getStatWidgets(): Promise<StatWidget[]> {
   const [balance, totalUsers, txnCount, fees] = await Promise.all([
     prisma.wallet.aggregate({ _sum: { balanceMinor: true } }),
-    prisma.user.count(),
+    // Exclude admin-tier accounts — "Total Users" counts the regular user population only.
+    prisma.user.count({ where: REGULAR_USER_WHERE }),
     prisma.walletTransaction.count(),
     prisma.walletTransaction.aggregate({
       _sum: { amountMinor: true },
@@ -82,7 +76,7 @@ export async function getStatWidgets(): Promise<StatWidget[]> {
       value: txnCount,
       icon: ArrowLeftRight,
       tint: "violet",
-      href: "/admin/withdrawals",
+      href: "/admin/transaction",
     },
     {
       label: "Fees Earned",
@@ -148,9 +142,19 @@ export async function getWalletSummary(): Promise<WalletSummaryItem[]> {
     _count: { _all: true },
     orderBy: { currency: "asc" },
   });
+  // Display names come from the admin-configured Currency table (fall back to the raw code for a
+  // since-deleted currency), not a hardcoded map that goes stale when currencies are added.
+  const names = new Map(
+    (
+      await prisma.currency.findMany({
+        where: { code: { in: grouped.map((group) => group.currency) } },
+        select: { code: true, name: true },
+      })
+    ).map((currency) => [currency.code, currency.name]),
+  );
   return grouped.map((group) => ({
     currency: group.currency,
-    name: CURRENCY_NAMES[group.currency] ?? group.currency,
+    name: names.get(group.currency) ?? group.currency,
     walletCount: group._count._all,
     balance: toMajor(group._sum.balanceMinor ?? 0n),
   }));
@@ -181,6 +185,8 @@ export async function getLatestTransactions(
 
 export async function getLatestUsers(limit = 5): Promise<LatestUserRow[]> {
   const users = await prisma.user.findMany({
+    // Latest *users* — never surface admin-tier accounts in this list.
+    where: REGULAR_USER_WHERE,
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
@@ -188,6 +194,7 @@ export async function getLatestUsers(limit = 5): Promise<LatestUserRow[]> {
       name: true,
       email: true,
       emailVerified: true,
+      image: true,
       createdAt: true,
     },
   });
@@ -196,6 +203,7 @@ export async function getLatestUsers(limit = 5): Promise<LatestUserRow[]> {
     name: user.name,
     email: user.email,
     verified: user.emailVerified,
+    avatarUrl: user.image ?? undefined,
     joinedAt: user.createdAt.toISOString(),
   }));
 }

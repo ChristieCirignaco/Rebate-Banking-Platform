@@ -102,12 +102,18 @@ export async function requireActiveUserAccount(): Promise<{
     select: { status: true, emailVerified: true, name: true, email: true, controls: true },
   });
   if (!user) redirect("/login");
-  if (user.status === "pending") redirect("/login?notice=pending");
-  if (user.status !== "active") redirect("/login?notice=suspended");
-  // The admin's "Account Status" control (Users → detail → User Controls) locks sign-in for one
-  // user without touching their status. Same choke point as the status read above, so it applies
-  // on the very next navigation.
-  if (!controlAllows(user.controls, "account_status")) redirect("/login?notice=suspended");
+  // An admin "Login as User" impersonation session may view the app regardless of the target's
+  // account status — that's the support case (inspect a pending/suspended user's own screens),
+  // and it also avoids stranding the admin on /login with no impersonation banner to exit from.
+  // A real user still hits every status gate below.
+  if (!session.session.impersonatedBy) {
+    if (user.status === "pending") redirect("/login?notice=pending");
+    if (user.status !== "active") redirect("/login?notice=suspended");
+    // The admin's "Account Status" control (Users → detail → User Controls) locks sign-in for one
+    // user without touching their status. Same choke point as the status read above, so it applies
+    // on the very next navigation.
+    if (!controlAllows(user.controls, "account_status")) redirect("/login?notice=suspended");
+  }
   return { session, user };
 }
 
@@ -119,7 +125,14 @@ export async function requireActiveUser(): Promise<{
   user: UserAccountState;
 }> {
   const gate = await requireActiveUserAccount();
-  if (await needsLoginOtpVerification(gate.session.session.id, gate.session.user.role)) {
+  // An impersonation session ("Login as User") bypasses the email-OTP gate: the acting admin
+  // can't complete the target's email challenge, and the impersonation was already authorized by
+  // the admin's own session when it was minted. Without this, turning email-OTP on would trap
+  // every impersonation at /verify-otp.
+  if (
+    !gate.session.session.impersonatedBy &&
+    (await needsLoginOtpVerification(gate.session.session.id, gate.session.user.role))
+  ) {
     redirect("/verify-otp");
   }
   return gate;

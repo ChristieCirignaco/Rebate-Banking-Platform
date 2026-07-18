@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import type { CSSProperties, ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { AdminThemeProvider } from "@/components/admin/admin-theme-provider";
 import { ScreenLock } from "@/components/admin/settings/screen-lock";
 import { SiteHeader } from "@/components/site-header";
 import { UserSignOutButton } from "@/components/user-sign-out-button";
@@ -22,6 +24,14 @@ import { getSettings } from "@/lib/settings/store";
 // getAdminSession()'s single null return can't distinguish. getAdminSession() is
 // request-cached, so a page that also calls it (e.g. to compute a super-admin-only view)
 // reuses this same result instead of re-querying.
+// Admin browser-tab title comes from System Settings (brand name), scoped to /admin so it
+// doesn't affect the marketing or user surfaces (which set their own).
+export async function generateMetadata(): Promise<Metadata> {
+  const general = await getSettings("general");
+  const brand = general.brandName || general.siteTitle || "Rebate Bank";
+  return { title: { default: brand, template: `%s · ${brand}` } };
+}
+
 export default async function AdminLayout({
   children,
 }: {
@@ -59,31 +69,50 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  const adminUser = { name: session.user.name, email: session.user.email };
-  const security = await getSettings("security");
+  const adminUser = {
+    name: session.user.name,
+    email: session.user.email,
+    image: session.user.image ?? null,
+  };
+  const [security, branding, general] = await Promise.all([
+    getSettings("security"),
+    getSettings("branding"),
+    getSettings("general"),
+  ]);
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" user={adminUser} />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
-          {children}
-        </div>
-      </SidebarInset>
-      <ScreenLock
-        enabled={security.screenLockEnabled}
-        idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
-        adminName={session.user.name}
-        adminEmail={session.user.email}
-      />
-    </SidebarProvider>
+    <AdminThemeProvider>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as CSSProperties
+        }
+      >
+        <AppSidebar
+          variant="inset"
+          user={adminUser}
+          branding={{
+            logoLight: branding.logoLight,
+            logoDark: branding.logoDark,
+            brandName: general.brandName,
+          }}
+        />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="@container/main flex flex-1 flex-col gap-4 py-4 md:gap-6 md:py-6">
+            {children}
+          </div>
+        </SidebarInset>
+        <ScreenLock
+          enabled={security.screenLockEnabled}
+          idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
+          adminName={session.user.name}
+          adminEmail={session.user.email}
+          adminImage={session.user.image ?? null}
+        />
+      </SidebarProvider>
+    </AdminThemeProvider>
   );
 }

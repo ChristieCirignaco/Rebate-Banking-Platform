@@ -44,7 +44,10 @@ export function NotifyUserDialog({
       type,
       title: type === "email" ? title : undefined,
       message,
-      scheduleAt: scheduleAt || undefined,
+      // Scheduling only applies to in-app (push) notices — a scheduled row surfaces in the
+      // bell at its time. There is no worker that dispatches scheduled EMAIL, so an email is
+      // always sent now; carrying a schedule for it would silently never deliver.
+      scheduleAt: type === "push" ? scheduleAt || undefined : undefined,
     });
     setOpen(false);
   }
@@ -102,15 +105,20 @@ export function NotifyUserDialog({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="notify-schedule">Schedule At</Label>
-            <Input
-              id="notify-schedule"
-              type="datetime-local"
-              value={scheduleAt}
-              onChange={(event) => setScheduleAt(event.target.value)}
-            />
-          </div>
+          {type === "push" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="notify-schedule">Schedule At</Label>
+              <Input
+                id="notify-schedule"
+                type="datetime-local"
+                value={scheduleAt}
+                onChange={(event) => setScheduleAt(event.target.value)}
+              />
+              <p className="text-muted-foreground text-xs">
+                Optional — the notice appears in the user&apos;s bell at this time.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter>

@@ -19,14 +19,6 @@ import type {
   UserDetail,
 } from "@/components/admin/users/detail/types";
 
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "British Pound",
-  NGN: "Nigerian Naira",
-  USDT: "Tether",
-};
-
 // `kind` decides how an absent key is read AND displayed (see lib/controls.ts): a capability is
 // allowed until an admin turns it off, a requirement is off until an admin turns it on. Adding an
 // entry here auto-wires the admin toggle — but a new key only does something once a guard reads it.
@@ -106,7 +98,11 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
       // providerId "credential" is Better Auth's password row; a social-only account has none.
       accounts: { select: { providerId: true } },
       transactions: { orderBy: { createdAt: "desc" }, take: 100 },
-      referrals: { select: { id: true, name: true, email: true, image: true, createdAt: true } },
+      referrals: {
+        select: { id: true, name: true, email: true, image: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      },
       sessions: { orderBy: { createdAt: "desc" }, take: 25 },
     },
   });
@@ -133,6 +129,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     country: dbUser.country ?? "",
     address: dbUser.address ?? "",
     avatarUrl: dbUser.image ?? undefined,
+    accountStatus: (dbUser.status as UserDetail["accountStatus"]) ?? "active",
     lastLogin: dbUser.lastLoginAt?.toISOString(),
     browser: latestSession ? Object.values(parseUserAgent(latestSession.userAgent)).join(" on ") : "Unknown",
     withdrawalStatus: (dbUser.withdrawalStatus as UserDetail["withdrawalStatus"]) ?? "allowed",
@@ -140,7 +137,12 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     hasPassword: dbUser.accounts.some((account) => account.providerId === "credential"),
     hasPin: Boolean(dbUser.transactionPin),
     twoFactorEnabled: dbUser.twoFactorEnabled ?? false,
-    activeSessions: dbUser.sessions.length,
+    // Only genuinely-live sessions count as "active" — an expired-but-not-yet-pruned row is not
+    // a device the user is currently signed in on, and an admin impersonation session (carries
+    // impersonatedBy) is not the user's device at all.
+    activeSessions: dbUser.sessions.filter(
+      (s) => s.expiresAt.getTime() > Date.now() && !s.impersonatedBy,
+    ).length,
   };
 
   // Which wallets carry ledger history — one grouped count rather than a query per wallet.
@@ -152,6 +154,15 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     _count: { _all: true },
   });
   const withHistory = new Set(historyRows.map((row) => row.walletId));
+
+  // Currency display names come from the admin-configured Currency table (fall back to the raw
+  // code for a since-deleted currency), not a hardcoded map that goes stale as currencies change.
+  const currencyNames = new Map(
+    (await prisma.currency.findMany({ select: { code: true, name: true } })).map((currency) => [
+      currency.code,
+      currency.name,
+    ]),
+  );
 
   const wallets: DetailWallet[] = dbUser.wallets.map((wallet) => {
     const blocked = wallet.isDefault
@@ -166,7 +177,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     return {
       id: wallet.id,
       currency: wallet.currency,
-      name: CURRENCY_NAMES[wallet.currency] ?? wallet.currency,
+      name: currencyNames.get(wallet.currency) ?? wallet.currency,
       balance: toMajor(wallet.balanceMinor),
       isDefault: wallet.isDefault,
       removable: blocked === null,
@@ -227,6 +238,24 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     }
   }
 
+  // Impersonation audit log (admin-only surface): label any impersonation session with the
+  // acting admin's name. `activity` is a 1:1 map of dbUser.sessions, so attach by index.
+  const impersonatorIds = [
+    ...new Set(dbUser.sessions.map((s) => s.impersonatedBy).filter((v): v is string => Boolean(v))),
+  ];
+  if (impersonatorIds.length > 0) {
+    const admins = await prisma.user.findMany({
+      where: { id: { in: impersonatorIds } },
+      select: { id: true, name: true },
+    });
+    const nameById = new Map(admins.map((a) => [a.id, a.name]));
+    dbUser.sessions.forEach((session, index) => {
+      if (session.impersonatedBy) {
+        activity[index].impersonatorName = nameById.get(session.impersonatedBy) ?? "an admin";
+      }
+    });
+  }
+
   // An unset key must display the default the guards actually apply, not a blanket off — a
   // capability nobody has touched IS allowed, so showing it off told the admin the opposite of
   // the truth for every user with an empty controls map.
@@ -246,9 +275,12 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
 
   // Aggregate over the whole ledger, not the 100 rows fetched for the table, so the
   // totals are true lifetime figures.
+  // 90-day window so the Transaction Summary chart's "Last 3 months" / "All time" ranges have
+  // real data to slice (the chart caps at 90 days); shorter ranges just take the tail.
+  const SUMMARY_DAYS = 90;
   const since = new Date();
   since.setUTCHours(0, 0, 0, 0);
-  since.setUTCDate(since.getUTCDate() - 29);
+  since.setUTCDate(since.getUTCDate() - (SUMMARY_DAYS - 1));
 
   const [statusGroups, sourceGroups, recentTxns, productStats, ticketCount, pendingRows, failedRows] =
     await Promise.all([
@@ -327,7 +359,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     "Referrals Made": dbUser.referrals.length,
   };
 
-  // Daily completed/pending/failed counts over the last 30 days.
+  // Daily completed/pending/failed counts over the summary window.
   const summaryMap = new Map<string, { completed: number; pending: number; failed: number }>();
   for (const tx of recentTxns) {
     const key = tx.createdAt.toISOString().slice(0, 10);
@@ -339,7 +371,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
   }
   const txnSummary: TxnSummaryPoint[] = [];
   const cursor = new Date(since);
-  for (let i = 0; i < 30; i += 1) {
+  for (let i = 0; i < SUMMARY_DAYS; i += 1) {
     const key = cursor.toISOString().slice(0, 10);
     txnSummary.push({ date: key, ...(summaryMap.get(key) ?? { completed: 0, pending: 0, failed: 0 }) });
     cursor.setUTCDate(cursor.getUTCDate() + 1);
