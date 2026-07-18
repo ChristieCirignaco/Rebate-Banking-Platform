@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Bell,
   BadgeCheck,
+  ChevronLeft,
   ChevronRight,
   ShieldCheck,
   UserRound,
@@ -27,7 +28,12 @@ type SettingsLink = {
 };
 
 const LINKS: SettingsLink[] = [
-  { href: "/account/profile", icon: UserRound, label: "Profile", description: "Your personal details" },
+  {
+    href: "/account/profile",
+    icon: UserRound,
+    label: "Profile",
+    description: "Your personal details",
+  },
   {
     href: "/account/security",
     icon: ShieldCheck,
@@ -71,7 +77,9 @@ function SettingsLinks({ links }: { links: SettingsLink[] }) {
               <Icon className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{link.label}</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {link.label}
+              </p>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                 {link.description}
               </p>
@@ -99,8 +107,19 @@ export default async function SettingsPage() {
     <>
       {/* Mobile */}
       <div className="mx-auto flex min-h-svh w-full max-w-2xl flex-col px-5 pb-28 lg:hidden">
-        <header className="py-4">
-          <h1 className="text-center text-base font-bold text-slate-900 dark:text-white">Settings</h1>
+        <header className="flex items-center gap-3 py-4">
+          <Link
+            href="/dashboard"
+            aria-label="Back"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            <ChevronLeft className="size-5" />
+          </Link>
+          <h1 className="flex-1 text-center text-base font-bold text-slate-900 dark:text-white">
+            Settings
+          </h1>
+          {/* Balances the back button so the title stays centred. */}
+          <span className="size-10 shrink-0" aria-hidden />
         </header>
         <SettingsLinks links={links} />
         <div className="mt-6 flex justify-center">
@@ -111,9 +130,18 @@ export default async function SettingsPage() {
       {/* Desktop */}
       <div className="dark hidden lg:block">
         <div className="mx-auto max-w-2xl">
-          <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Settings
-          </h1>
+          <div className="mb-4 flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              aria-label="Back"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              <ChevronLeft className="size-5" />
+            </Link>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Settings
+            </h1>
+          </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <SettingsLinks links={links} />
             <div className="mt-6">
