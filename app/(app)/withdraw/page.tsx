@@ -31,11 +31,11 @@ export default async function WithdrawPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Withdraw money
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-500">
               Send your balance to a bank or crypto address.
             </p>
           </div>

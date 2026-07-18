@@ -37,11 +37,11 @@ export default async function RequestPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Request money
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-500">
               Ask an admin to credit your wallet.
             </p>
           </div>

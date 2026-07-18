@@ -32,11 +32,11 @@ export default async function StatisticPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Statistic
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-500">
               How your money moved over time.
             </p>
           </div>

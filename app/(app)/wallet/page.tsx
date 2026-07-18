@@ -43,7 +43,7 @@ export default async function WalletPage() {
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Wallets
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-500">
               Your currency wallets and balances.
             </p>
           </div>
