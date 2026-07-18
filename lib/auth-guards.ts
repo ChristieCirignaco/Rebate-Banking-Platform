@@ -119,7 +119,14 @@ export async function requireActiveUser(): Promise<{
   user: UserAccountState;
 }> {
   const gate = await requireActiveUserAccount();
-  if (await needsLoginOtpVerification(gate.session.session.id, gate.session.user.role)) {
+  // An impersonation session ("Login as User") bypasses the email-OTP gate: the acting admin
+  // can't complete the target's email challenge, and the impersonation was already authorized by
+  // the admin's own session when it was minted. Without this, turning email-OTP on would trap
+  // every impersonation at /verify-otp.
+  if (
+    !gate.session.session.impersonatedBy &&
+    (await needsLoginOtpVerification(gate.session.session.id, gate.session.user.role))
+  ) {
     redirect("/verify-otp");
   }
   return gate;

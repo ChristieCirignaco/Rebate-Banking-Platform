@@ -5,6 +5,7 @@ import { getEnabledFlags } from "@/lib/settings/feature-flags";
 import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopHeader } from "@/components/app/desktop-header";
+import { ImpersonationBanner } from "@/components/app/impersonation-banner";
 
 // Shell for the whole authenticated user area. Full gate runs once here.
 //
@@ -15,6 +16,10 @@ import { DesktopHeader } from "@/components/app/desktop-header";
 // `children` renders once; each page provides its mobile + desktop view.
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const { session } = await requireActiveUser();
+  // True when an admin reached this area via "Login as User" — the session carries the acting
+  // admin's id. Drives the impersonation banner (the only surface that reveals it; the user
+  // themself has no session view, so a real login never shows this).
+  const impersonatedBy = session.session.impersonatedBy;
   // One batched read for the whole shell — the nav asks about a dozen flags, and each page
   // re-checks its own (React cache makes that the same round-trip). Only the keys cross into
   // the client components; the nav itself can't (its icons are React components).
@@ -27,6 +32,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-svh bg-white lg:flex lg:h-svh lg:flex-col lg:overflow-hidden lg:bg-slate-200 dark:bg-slate-950 dark:lg:bg-black">
+      {impersonatedBy ? (
+        <ImpersonationBanner userName={user.name} userId={session.user.id} />
+      ) : null}
+
       {/* Full-width header across the top — over both sidebar and content */}
       <DesktopHeader name={user.name} image={user.image} />
 

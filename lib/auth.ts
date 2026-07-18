@@ -149,7 +149,16 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    adminPlugin({ ac, roles, defaultRole: "user", adminRoles: ["admin", "super_admin"] }),
+    adminPlugin({
+      ac,
+      roles,
+      defaultRole: "user",
+      adminRoles: ["admin", "super_admin"],
+      // "Login as User" impersonation: a 1-hour session, and never allow impersonating another
+      // admin-tier account (no role here holds `impersonate-admins`, so this is belt-and-braces).
+      impersonationSessionDuration: 60 * 60,
+      allowImpersonatingAdmins: false,
+    }),
     // TOTP authenticator + 10 encrypted backup codes. The row is created unverified and
     // only flips twoFactorEnabled once the user confirms a code during enrollment.
     twoFactor({ issuer: "Rebate Bank", skipVerificationOnEnable: false }),

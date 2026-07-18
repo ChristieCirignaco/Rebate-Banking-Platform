@@ -14,6 +14,7 @@ import {
   type ActionResult,
 } from "@/app/admin/users/[id]/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 import { UserControls } from "./user-controls";
 import { UserProfilePanel } from "./user-profile-panel";
@@ -103,7 +104,18 @@ export function UserDetailView({
           user={user}
           wallets={wallets}
           transferCodes={transferCodes}
-          onLoginAsUser={() => toast("Login as user is available in a later phase.")}
+          onLoginAsUser={async () => {
+            // Impersonate: Better Auth mints a session for this user (impersonatedBy = admin),
+            // stashes the admin's own session so it can be restored, and swaps the cookie. A full
+            // navigation makes the new session take effect from the first request. Silent — the
+            // user is not notified; the impersonation shows only in this page's Activity log.
+            const { error } = await authClient.admin.impersonateUser({ userId: user.id });
+            if (error) {
+              toast.error(error.message || "Couldn't start impersonation.");
+              return;
+            }
+            window.location.href = "/dashboard";
+          }}
           onNotify={(payload) => run(notifyUser(user.id, payload), "Notification sent")}
           onManageFunds={(payload) => run(manageFunds(user.id, payload), "Balance updated")}
           onSaveTransferCodes={(codes) => run(saveTransferCodes(user.id, codes), "Transfer codes saved")}

@@ -144,9 +144,12 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     hasPassword: dbUser.accounts.some((account) => account.providerId === "credential"),
     hasPin: Boolean(dbUser.transactionPin),
     twoFactorEnabled: dbUser.twoFactorEnabled ?? false,
-    // Only genuinely-live sessions count as "active" — an expired-but-not-yet-pruned row
-    // is not a device the user is currently signed in on.
-    activeSessions: dbUser.sessions.filter((s) => s.expiresAt.getTime() > Date.now()).length,
+    // Only genuinely-live sessions count as "active" — an expired-but-not-yet-pruned row is not
+    // a device the user is currently signed in on, and an admin impersonation session (carries
+    // impersonatedBy) is not the user's device at all.
+    activeSessions: dbUser.sessions.filter(
+      (s) => s.expiresAt.getTime() > Date.now() && !s.impersonatedBy,
+    ).length,
   };
 
   // Which wallets carry ledger history — one grouped count rather than a query per wallet.
@@ -231,6 +234,24 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
       if (location) entry.country = location;
       if (info.org) entry.org = info.org;
     }
+  }
+
+  // Impersonation audit log (admin-only surface): label any impersonation session with the
+  // acting admin's name. `activity` is a 1:1 map of dbUser.sessions, so attach by index.
+  const impersonatorIds = [
+    ...new Set(dbUser.sessions.map((s) => s.impersonatedBy).filter((v): v is string => Boolean(v))),
+  ];
+  if (impersonatorIds.length > 0) {
+    const admins = await prisma.user.findMany({
+      where: { id: { in: impersonatorIds } },
+      select: { id: true, name: true },
+    });
+    const nameById = new Map(admins.map((a) => [a.id, a.name]));
+    dbUser.sessions.forEach((session, index) => {
+      if (session.impersonatedBy) {
+        activity[index].impersonatorName = nameById.get(session.impersonatedBy) ?? "an admin";
+      }
+    });
   }
 
   // An unset key must display the default the guards actually apply, not a blanket off — a

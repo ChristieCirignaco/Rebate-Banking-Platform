@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { History, Search, SearchCode } from "lucide-react";
+import { History, Search, SearchCode, UserCog } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,13 +71,19 @@ export function UserActivityTab({ activity }: { activity: ActivityEntry[] }) {
               {filtered.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-sm whitespace-nowrap">
                         {formatDateTime(entry.loginAt)}
                       </span>
                       <span className="text-muted-foreground text-xs">
                         {formatRelativeTime(entry.loginAt)}
                       </span>
+                      {entry.impersonatorName ? (
+                        <Badge className="mt-0.5 w-fit gap-1 border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                          <UserCog className="size-3" />
+                          Impersonation · {entry.impersonatorName}
+                        </Badge>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>

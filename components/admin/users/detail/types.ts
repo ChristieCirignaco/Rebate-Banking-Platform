@@ -155,6 +155,9 @@ export interface ActivityEntry {
   org?: string; // network / operator, when resolved via IPinfo
   browser: string; // "Chrome"
   os: string; // "macOS"
+  // Set when this session is an admin "Login as User" impersonation — the acting admin's name,
+  // shown as the audit log. Absent for the user's own real logins.
+  impersonatorName?: string;
 }
 
 // ----- Dialog handler payloads -----
