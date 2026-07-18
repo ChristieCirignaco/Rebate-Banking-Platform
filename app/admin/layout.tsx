@@ -82,6 +82,12 @@ export default async function AdminLayout({
 
   return (
     <AdminThemeProvider>
+      {/* Hide the live-chat launcher on admin. The widget loads site-wide (SitePluginScripts in
+          the root layout) and persists across client navigation, so it can't just be skipped —
+          this style, present only while an admin page is mounted, keeps the floating bubble off
+          the admin console. Same Smartsupp launcher selector the (app) layout offsets; update
+          both if the configured provider changes. */}
+      <style>{`div[data-testid="widgetButtonFrame"] { display: none !important; }`}</style>
       <SidebarProvider
         style={
           {
