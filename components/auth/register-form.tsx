@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -16,6 +16,11 @@ import {
   AuthSubmitButton,
 } from "@/components/auth/auth-shell";
 import { TermsCheckbox } from "@/components/auth/terms-dialog";
+import {
+  RecaptchaField,
+  type RecaptchaConfig,
+  type RecaptchaHandle,
+} from "@/components/auth/recaptcha-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -58,11 +63,14 @@ export function RegisterForm({
   logoUrl,
   termsContent,
   refCode,
+  recaptcha,
 }: {
   logoUrl?: string | null;
   termsContent: string;
   refCode?: string;
+  recaptcha: RecaptchaConfig;
 }) {
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -121,6 +129,17 @@ export function RegisterForm({
         ? Intl.DateTimeFormat().resolvedOptions().timeZone
         : undefined;
 
+    // Mint a captcha token if reCAPTCHA is on. getToken returns "" when it's off — the server
+    // treats "" as a hard fail only while reCAPTCHA is enabled, so nothing special is needed for
+    // the disabled case. For a v2 checkbox, "" means the user didn't tick the box; catch that
+    // here for a clear message rather than a round-trip to the generic server error.
+    const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+    if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+      toast.error("Please confirm you're not a robot.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const result = await registerUser({
         firstName: firstName.trim(),
@@ -134,6 +153,7 @@ export function RegisterForm({
         address: address.trim(),
         timezone,
         ...(refCode ? { ref: refCode } : {}),
+        ...(recaptchaToken ? { recaptchaToken } : {}),
         acceptedTerms: true,
       });
       if (result.ok) {
@@ -143,8 +163,12 @@ export function RegisterForm({
         return; // keep the spinner while the page unloads
       }
       toast.error(result.error);
+      // A v2 token is single-use and was consumed by the server's verify call, so the box must
+      // be re-solved before another attempt — reset it rather than leave a spent checkmark.
+      recaptchaRef.current?.reset();
     } catch {
       toast.error("Something went wrong. Please try again.");
+      recaptchaRef.current?.reset();
     }
     setIsLoading(false);
   }
@@ -384,6 +408,8 @@ export function RegisterForm({
           disabled={isLoading}
           error={errors.terms}
         />
+
+        <RecaptchaField ref={recaptchaRef} config={recaptcha} action="register" />
 
         <AuthSubmitButton loading={isLoading} loadingLabel="Creating account…">
           Create Account

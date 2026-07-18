@@ -9,6 +9,7 @@ import { auth } from "@/lib/auth";
 import { getCountryByCode } from "@/lib/countries";
 import { prisma } from "@/lib/db";
 import { awardReferral, referrerIdForCode } from "@/lib/referrals";
+import { verifyRecaptcha } from "@/lib/recaptcha";
 import { REGISTRATION_COOKIE, signRegistrationToken } from "@/lib/registration-token";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
@@ -32,6 +33,9 @@ const RegisterSchema = z.object({
   address: z.string().trim().min(3, "Enter your home address.").max(200),
   timezone: z.string().trim().max(64).optional(),
   ref: z.string().trim().max(32).optional(), // referral share code from /register?ref=
+  // reCAPTCHA token from the client widget. Optional in the schema because it's only present
+  // when the admin has enabled reCAPTCHA — verifyRecaptcha decides whether its absence matters.
+  recaptchaToken: z.string().max(4000).optional(),
   acceptedTerms: z.literal(true, { message: "Please accept the Terms and Conditions." }),
 });
 
@@ -136,6 +140,12 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
   if (tooMany) {
     return { ok: false, error: "Too many attempts. Please try again in a few minutes." };
   }
+
+  // Bot gate. After the rate limiter (in-memory, cheapest) and before argon2 + the email send
+  // (the expensive work), so a failed captcha costs nothing. A no-op unless the admin enabled
+  // reCAPTCHA in Plugins — see verifyRecaptcha.
+  const captcha = await verifyRecaptcha(data.recaptchaToken, "register");
+  if (!captcha.ok) return { ok: false, error: captcha.error };
 
   const name = `${data.firstName} ${data.lastName}`.replace(/\s+/g, " ").trim();
 
