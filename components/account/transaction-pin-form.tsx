@@ -7,13 +7,7 @@ import { KeyRound, Loader2 } from "lucide-react";
 import { setTransactionPin } from "@/app/account/security/actions";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingsCard } from "@/components/account/settings-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -46,7 +40,9 @@ export function TransactionPinForm({ hasPin }: { hasPin: boolean }) {
         confirmPin,
       });
       if (res.ok) {
-        toast.success(enabled ? "Transaction PIN updated." : "Transaction PIN set.");
+        toast.success(
+          enabled ? "Transaction PIN updated." : "Transaction PIN set.",
+        );
         setEnabled(true);
         setCurrentPin("");
         setNewPin("");
@@ -61,62 +57,53 @@ export function TransactionPinForm({ hasPin }: { hasPin: boolean }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-md">
-            <KeyRound className="size-4" />
-          </span>
-          <div>
-            <CardTitle>Transaction PIN</CardTitle>
-            <CardDescription>
-              {enabled
-                ? "A PIN is set. It's required to authorize every transfer."
-                : "Set a 4–6 digit PIN to authorize transfers."}
-            </CardDescription>
+    <SettingsCard
+      icon={KeyRound}
+      title="Transaction PIN"
+      description={
+        enabled
+          ? "A PIN is set. It's required to authorize every transfer."
+          : "Set a 4–6 digit PIN to authorize transfers."
+      }
+    >
+      <form onSubmit={onSubmit} className="flex max-w-xs flex-col gap-4">
+        {enabled ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="currentPin">Current PIN</Label>
+            <Input
+              id="currentPin"
+              value={currentPin}
+              onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
+              disabled={saving}
+              {...PIN_INPUT_PROPS}
+            />
           </div>
+        ) : null}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="newPin">{enabled ? "New PIN" : "PIN"}</Label>
+          <Input
+            id="newPin"
+            value={newPin}
+            onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+            disabled={saving}
+            {...PIN_INPUT_PROPS}
+          />
         </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="flex max-w-xs flex-col gap-4">
-          {enabled ? (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="currentPin">Current PIN</Label>
-              <Input
-                id="currentPin"
-                value={currentPin}
-                onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
-                disabled={saving}
-                {...PIN_INPUT_PROPS}
-              />
-            </div>
-          ) : null}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="newPin">{enabled ? "New PIN" : "PIN"}</Label>
-            <Input
-              id="newPin"
-              value={newPin}
-              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
-              disabled={saving}
-              {...PIN_INPUT_PROPS}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="confirmPin">Confirm PIN</Label>
-            <Input
-              id="confirmPin"
-              value={confirmPin}
-              onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
-              disabled={saving}
-              {...PIN_INPUT_PROPS}
-            />
-          </div>
-          <Button type="submit" disabled={saving} className="w-fit">
-            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-            {enabled ? "Update PIN" : "Set PIN"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="confirmPin">Confirm PIN</Label>
+          <Input
+            id="confirmPin"
+            value={confirmPin}
+            onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+            disabled={saving}
+            {...PIN_INPUT_PROPS}
+          />
+        </div>
+        <Button type="submit" disabled={saving} className="w-fit">
+          {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+          {enabled ? "Update PIN" : "Set PIN"}
+        </Button>
+      </form>
+    </SettingsCard>
   );
 }

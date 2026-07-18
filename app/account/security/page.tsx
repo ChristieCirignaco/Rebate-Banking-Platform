@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Landmark } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import { TwoFactorSetup } from "@/components/auth/two-factor-setup";
 import { PasswordForm } from "@/components/account/password-form";
 import { TransactionPinForm } from "@/components/account/transaction-pin-form";
-import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 
@@ -30,38 +29,32 @@ export default async function SecurityPage() {
   ]);
 
   return (
-    <div className="bg-muted/30 min-h-svh">
-      <header className="bg-background border-b">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-              <Landmark className="size-4" />
-            </div>
-            <span className="font-semibold">Rebate Bank</span>
-          </div>
-          <UserSignOutButton />
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8">
-        <div className="flex flex-col gap-2">
+    <div className="min-h-svh bg-slate-50 dark:bg-slate-950">
+      <div className="mx-auto max-w-2xl px-5 pb-24">
+        <div className="flex items-center gap-3 py-4">
           <Link
-            href="/dashboard"
-            className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm transition-colors"
+            href="/settings"
+            aria-label="Back"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
-            <ArrowLeft className="size-4" />
-            Back to dashboard
+            <ChevronLeft className="size-5" />
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
-          <p className="text-muted-foreground text-sm">
-            Manage how you sign in and protect your account.
-          </p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Security
+            </h1>
+            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+              Manage how you sign in and protect your account.
+            </p>
+          </div>
         </div>
 
-        <PasswordForm hasPassword={Boolean(credential)} />
-        <TwoFactorSetup initialEnabled={dbUser?.twoFactorEnabled ?? false} />
-        <TransactionPinForm hasPin={Boolean(dbUser?.transactionPin)} />
-      </main>
+        <div className="flex flex-col gap-4">
+          <PasswordForm hasPassword={Boolean(credential)} />
+          <TwoFactorSetup initialEnabled={dbUser?.twoFactorEnabled ?? false} />
+          <TransactionPinForm hasPin={Boolean(dbUser?.transactionPin)} />
+        </div>
+      </div>
     </div>
   );
 }

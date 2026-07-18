@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Landmark } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import { ProfileForm } from "@/components/account/profile-form";
-import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { requireActiveUser } from "@/lib/auth-guards";
 import { COUNTRIES } from "@/lib/countries";
 import { prisma } from "@/lib/db";
@@ -36,35 +35,28 @@ export default async function ProfilePage() {
   const [firstName, ...rest] = (user.name ?? "").split(" ");
   const lastName = rest.join(" ");
   // Stored country is the display name; resolve back to its code so the Select can preselect.
-  const countryCode = COUNTRIES.find((c) => c.name === user.country)?.code ?? "";
+  const countryCode =
+    COUNTRIES.find((c) => c.name === user.country)?.code ?? "";
 
   return (
-    <div className="bg-muted/30 min-h-svh">
-      <header className="bg-background border-b">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-              <Landmark className="size-4" />
-            </div>
-            <span className="font-semibold">Rebate Bank</span>
-          </div>
-          <UserSignOutButton />
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-8">
-        <div className="flex flex-col gap-2">
+    <div className="min-h-svh bg-slate-50 dark:bg-slate-950">
+      <div className="mx-auto max-w-2xl px-5 pb-24">
+        <div className="flex items-center gap-3 py-4">
           <Link
-            href="/dashboard"
-            className="text-muted-foreground hover:text-foreground inline-flex w-fit items-center gap-1.5 text-sm transition-colors"
+            href="/settings"
+            aria-label="Back"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
           >
-            <ArrowLeft className="size-4" />
-            Back to dashboard
+            <ChevronLeft className="size-5" />
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-          <p className="text-muted-foreground text-sm">
-            Your personal details and contact information.
-          </p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Profile
+            </h1>
+            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+              Your personal details and contact information.
+            </p>
+          </div>
         </div>
 
         <ProfileForm
@@ -75,15 +67,19 @@ export default async function ProfilePage() {
             emailVerified: user.emailVerified,
             countryCode,
             phone: user.phone ?? "",
-            gender: (user.gender as "male" | "female" | "other" | "unspecified") ?? "unspecified",
+            gender:
+              (user.gender as "male" | "female" | "other" | "unspecified") ??
+              "unspecified",
             address: user.address ?? "",
             username: user.username ?? "",
             // yyyy-mm-dd for the date input — same slice the admin user detail uses.
-            birthday: user.birthday ? user.birthday.toISOString().slice(0, 10) : "",
+            birthday: user.birthday
+              ? user.birthday.toISOString().slice(0, 10)
+              : "",
             image: user.image ?? "",
           }}
         />
-      </main>
+      </div>
     </div>
   );
 }

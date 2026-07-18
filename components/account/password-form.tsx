@@ -7,13 +7,7 @@ import { Loader2, Lock } from "lucide-react";
 import { changePassword } from "@/app/account/security/actions";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingsCard } from "@/components/account/settings-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -34,7 +28,11 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
     if (saving) return;
     setSaving(true);
     try {
-      const res = await changePassword({ currentPassword, newPassword, confirmPassword });
+      const res = await changePassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
       if (res.ok) {
         toast.success("Password updated. Any other devices were signed out.");
         setCurrentPassword("");
@@ -52,76 +50,68 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <span className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-md">
-            <Lock className="size-4" />
-          </span>
-          <div>
-            <CardTitle>Password</CardTitle>
-            <CardDescription>
-              {hasPassword
-                ? "Change the password you use to sign in."
-                : "This account signs in without a password."}
-            </CardDescription>
+    <SettingsCard
+      icon={Lock}
+      title="Password"
+      description={
+        hasPassword
+          ? "Change the password you use to sign in."
+          : "This account signs in without a password."
+      }
+    >
+      {hasPassword ? (
+        <form onSubmit={onSubmit} className="flex max-w-xs flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="currentPassword">Current password</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              disabled={saving}
+            />
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {hasPassword ? (
-          <form onSubmit={onSubmit} className="flex max-w-xs flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="currentPassword">Current password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="newPassword">New password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                autoComplete="new-password"
-                placeholder="At least 8 characters"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirmPassword">Confirm new password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <p className="text-muted-foreground text-xs">
-              Changing your password signs out every other device.
-            </p>
-            <Button type="submit" disabled={saving} className="w-fit">
-              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-              Update password
-            </Button>
-          </form>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            You signed up with a provider rather than a password, so there&apos;s nothing to change
-            here. Two-factor authentication and your transaction PIN still apply.
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="newPassword">New password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="confirmPassword">Confirm new password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Changing your password signs out every other device.
           </p>
-        )}
-      </CardContent>
-    </Card>
+          <Button type="submit" disabled={saving} className="w-fit">
+            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+            Update password
+          </Button>
+        </form>
+      ) : (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          You signed up with a provider rather than a password, so there&apos;s
+          nothing to change here. Two-factor authentication and your transaction
+          PIN still apply.
+        </p>
+      )}
+    </SettingsCard>
   );
 }

@@ -9,13 +9,7 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { SettingsCard } from "@/components/account/settings-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -47,7 +41,7 @@ function BackupCodes({ codes }: { codes: string[] }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="bg-muted/50 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border p-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border bg-slate-50 p-3 dark:bg-slate-800/50">
         {codes.map((code) => (
           <code key={code} className="font-mono text-sm tabular-nums">
             {code}
@@ -151,26 +145,23 @@ export function TwoFactorSetup({ initialEnabled }: Props) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Two-factor authentication</CardTitle>
-        <CardDescription>
-          Add a second step at sign-in using an authenticator app like Google
-          Authenticator, 1Password, or Authy.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
+    <SettingsCard
+      icon={ShieldCheck}
+      title="Two-factor authentication"
+      description="Add a second step at sign-in using an authenticator app like Google Authenticator, 1Password, or Authy."
+    >
+      <div className="flex flex-col gap-5">
         {/* ── Resting status view ─────────────────────────────────────────── */}
         {view === "status" && (
           <div className="flex flex-col gap-5">
             {initialEnabled ? (
               <>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-emerald-500/12 border-transparent text-emerald-700 dark:text-emerald-400">
+                  <Badge className="border-transparent bg-emerald-500/12 text-emerald-700 dark:text-emerald-400">
                     <ShieldCheck className="size-3" />
                     Enabled
                   </Badge>
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     Your account is protected with an authenticator app.
                   </span>
                 </div>
@@ -209,7 +200,7 @@ export function TwoFactorSetup({ initialEnabled }: Props) {
               <>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Not enabled</Badge>
-                  <span className="text-muted-foreground text-sm">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     Two-factor authentication is currently off.
                   </span>
                 </div>
@@ -254,10 +245,10 @@ export function TwoFactorSetup({ initialEnabled }: Props) {
                   />
                 )}
                 <div className="flex flex-col gap-1">
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     Can&apos;t scan? Enter this key manually:
                   </p>
-                  <code className="text-muted-foreground bg-muted/50 rounded border px-2 py-1 text-xs break-all">
+                  <code className="rounded border bg-slate-50 px-2 py-1 text-xs break-all text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
                     {totpUri}
                   </code>
                 </div>
@@ -331,8 +322,8 @@ export function TwoFactorSetup({ initialEnabled }: Props) {
             onCancel={resetToStatus}
           />
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsCard>
   );
 }
 
@@ -378,10 +369,19 @@ function PasswordPrompt({
         />
       </div>
       <div className="flex gap-2">
-        <Button type="submit" variant={confirmVariant} disabled={loading || !password}>
+        <Button
+          type="submit"
+          variant={confirmVariant}
+          disabled={loading || !password}
+        >
           {loading ? "Please wait…" : confirmLabel}
         </Button>
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={loading}
+        >
           Cancel
         </Button>
       </div>
