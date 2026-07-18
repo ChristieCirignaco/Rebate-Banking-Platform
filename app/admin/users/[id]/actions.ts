@@ -30,6 +30,10 @@ const NOT_ADMIN_TARGET: ActionResult = {
   error: "Manage this account from /admin/users/admin instead.",
 };
 
+// An avatar we produced: the served URL of an upload from /api/admin/avatar. Anything else is
+// refused, so User.image can only ever point at our own media route (mirrors the profile actions).
+const AVATAR_URL = /^\/api\/media\/[A-Za-z0-9._-]+$/;
+
 function revalidate(userId: string) {
   revalidatePath(`/admin/users/${userId}`);
   // Name / account-status / withdrawal edits here are surfaced on the list too.
@@ -94,6 +98,24 @@ export async function updateUserInfo(
       birthday,
     },
   });
+  revalidate(userId);
+  return { ok: true };
+}
+
+// Set (or clear, with "") a user's avatar from the Information tab. The bytes are already stored
+// by /api/admin/avatar, which returns the /api/media/<key> URL persisted here.
+export async function adminSetUserAvatar(
+  userId: string,
+  imageUrl: string,
+): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const url = imageUrl.trim();
+  if (url && !AVATAR_URL.test(url)) return { ok: false, error: "That image isn't valid." };
+
+  await prisma.user.update({ where: { id: userId }, data: { image: url || null } });
   revalidate(userId);
   return { ok: true };
 }

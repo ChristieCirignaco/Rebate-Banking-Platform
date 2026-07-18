@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Activity, BarChart3, ListOrdered, Share2, ShieldCheck, User } from "lucide-react";
 
 import {
+  adminSetUserAvatar,
   manageFunds,
   notifyUser,
   saveTransferCodes,
@@ -172,6 +173,7 @@ export function UserDetailView({
             <UserInfoTab
               user={user}
               onUpdate={(values) => run(updateUserInfo(user.id, values), "Information updated")}
+              onChangeAvatar={(url) => run(adminSetUserAvatar(user.id, url), "Avatar updated")}
             />
           </TabsContent>
           <TabsContent value="transaction">
