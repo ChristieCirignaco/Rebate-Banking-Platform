@@ -8,13 +8,10 @@ export type TransferType = "internal" | "domestic" | "wire";
 export type TransferStatus = "pending" | "completed" | "rejected" | "canceled" | "failed";
 
 export const TRANSFER_TYPES: TransferType[] = ["internal", "domestic", "wire"];
-export const TRANSFER_STATUSES: TransferStatus[] = [
-  "pending",
-  "completed",
-  "rejected",
-  "canceled",
-  "failed",
-];
+// Only the statuses a transfer can actually reach — created "pending", then "completed" (approve)
+// or "rejected" (reject). "canceled"/"failed" are never written to transfers, so they're kept on
+// the type (for defensive display) but excluded from the filter so it can't offer empty results.
+export const TRANSFER_STATUSES: TransferStatus[] = ["pending", "completed", "rejected"];
 
 export type AdminTransferView = {
   id: string;

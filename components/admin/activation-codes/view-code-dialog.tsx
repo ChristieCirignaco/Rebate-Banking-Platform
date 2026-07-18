@@ -97,7 +97,7 @@ export function ViewCodeDialog({
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Used At</TableHead>
+                      <TableHead>Joined</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

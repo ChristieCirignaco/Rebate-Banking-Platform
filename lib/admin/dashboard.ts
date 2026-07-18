@@ -12,14 +12,6 @@ import type {
   WalletSummaryItem,
 } from "@/components/admin/overview/types";
 
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "British Pound",
-  NGN: "Nigerian Naira",
-  USDT: "Tether",
-};
-
 function startOfUtcDay(date: Date): Date {
   const copy = new Date(date);
   copy.setUTCHours(0, 0, 0, 0);
@@ -84,7 +76,7 @@ export async function getStatWidgets(): Promise<StatWidget[]> {
       value: txnCount,
       icon: ArrowLeftRight,
       tint: "violet",
-      href: "/admin/withdrawals",
+      href: "/admin/transaction",
     },
     {
       label: "Fees Earned",
@@ -150,9 +142,19 @@ export async function getWalletSummary(): Promise<WalletSummaryItem[]> {
     _count: { _all: true },
     orderBy: { currency: "asc" },
   });
+  // Display names come from the admin-configured Currency table (fall back to the raw code for a
+  // since-deleted currency), not a hardcoded map that goes stale when currencies are added.
+  const names = new Map(
+    (
+      await prisma.currency.findMany({
+        where: { code: { in: grouped.map((group) => group.currency) } },
+        select: { code: true, name: true },
+      })
+    ).map((currency) => [currency.code, currency.name]),
+  );
   return grouped.map((group) => ({
     currency: group.currency,
-    name: CURRENCY_NAMES[group.currency] ?? group.currency,
+    name: names.get(group.currency) ?? group.currency,
     walletCount: group._count._all,
     balance: toMajor(group._sum.balanceMinor ?? 0n),
   }));

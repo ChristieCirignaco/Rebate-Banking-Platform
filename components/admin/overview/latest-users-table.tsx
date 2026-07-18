@@ -70,7 +70,7 @@ export function LatestUsersTable({ users }: { users: LatestUserRow[] }) {
                 </TableCell>
                 <TableCell className="text-right">
                   <Button asChild variant="ghost" size="sm">
-                    <Link href="/admin/users">View</Link>
+                    <Link href={`/admin/users/${user.id}`}>View</Link>
                   </Button>
                 </TableCell>
               </TableRow>

@@ -32,8 +32,8 @@ export default async function AdminDashboardPage() {
     getStatWidgets(),
     getTransactionSeries(90),
     getWalletSummary(),
-    getDailyFees(30),
-    getDailyWalletGrowth(30),
+    getDailyFees(90),
+    getDailyWalletGrowth(90),
     getLatestTransactions(6),
     getLatestUsers(5),
   ]);

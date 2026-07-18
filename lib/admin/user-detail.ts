@@ -19,14 +19,6 @@ import type {
   UserDetail,
 } from "@/components/admin/users/detail/types";
 
-const CURRENCY_NAMES: Record<string, string> = {
-  USD: "US Dollar",
-  EUR: "Euro",
-  GBP: "British Pound",
-  NGN: "Nigerian Naira",
-  USDT: "Tether",
-};
-
 // `kind` decides how an absent key is read AND displayed (see lib/controls.ts): a capability is
 // allowed until an admin turns it off, a requirement is off until an admin turns it on. Adding an
 // entry here auto-wires the admin toggle — but a new key only does something once a guard reads it.
@@ -162,6 +154,15 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
   });
   const withHistory = new Set(historyRows.map((row) => row.walletId));
 
+  // Currency display names come from the admin-configured Currency table (fall back to the raw
+  // code for a since-deleted currency), not a hardcoded map that goes stale as currencies change.
+  const currencyNames = new Map(
+    (await prisma.currency.findMany({ select: { code: true, name: true } })).map((currency) => [
+      currency.code,
+      currency.name,
+    ]),
+  );
+
   const wallets: DetailWallet[] = dbUser.wallets.map((wallet) => {
     const blocked = wallet.isDefault
       ? "The primary wallet can't be removed."
@@ -175,7 +176,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     return {
       id: wallet.id,
       currency: wallet.currency,
-      name: CURRENCY_NAMES[wallet.currency] ?? wallet.currency,
+      name: currencyNames.get(wallet.currency) ?? wallet.currency,
       balance: toMajor(wallet.balanceMinor),
       isDefault: wallet.isDefault,
       removable: blocked === null,
