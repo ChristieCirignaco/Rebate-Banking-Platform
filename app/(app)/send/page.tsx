@@ -13,7 +13,6 @@ import {
 } from "@/lib/settings/feature-flags";
 import { enabledTransferKinds } from "@/components/app/app-nav";
 import { SendForm } from "@/components/app/send-form";
-import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Send money" };
 
@@ -53,7 +52,7 @@ export default async function SendPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div className="min-w-0 flex-1">
+          <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Send money
             </h1>
@@ -61,10 +60,6 @@ export default async function SendPage() {
               Transfer to a user, a domestic bank, or by wire.
             </p>
           </div>
-          {/* Chat is in the desktop header already; surface it here on mobile only. */}
-          <span className="lg:hidden">
-            <ChatButton variant="muted" />
-          </span>
         </div>
         <SendForm
           balanceLabel={balanceLabel}

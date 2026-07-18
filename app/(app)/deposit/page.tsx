@@ -7,7 +7,6 @@ import { getSession } from "@/lib/auth-guards";
 import { getDepositData } from "@/lib/deposits";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { DepositForm } from "@/components/app/deposit-form";
-import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Deposit Money" };
 
@@ -31,7 +30,7 @@ export default async function DepositPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div className="min-w-0 flex-1">
+          <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Deposit money
             </h1>
@@ -39,10 +38,6 @@ export default async function DepositPage() {
               Fund your wallet via a payment provider.
             </p>
           </div>
-          {/* Chat is in the desktop header already; surface it here on mobile only. */}
-          <span className="lg:hidden">
-            <ChatButton variant="muted" />
-          </span>
         </div>
         <DepositForm wallets={wallets} methods={methods} hasPin={hasPin} />
       </div>

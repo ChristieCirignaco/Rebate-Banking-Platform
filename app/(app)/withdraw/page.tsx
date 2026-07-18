@@ -7,7 +7,6 @@ import { getSession } from "@/lib/auth-guards";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getWithdrawData } from "@/lib/withdrawals";
 import { WithdrawView } from "@/components/app/withdraw/withdraw-view";
-import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Withdrawals" };
 
@@ -32,7 +31,7 @@ export default async function WithdrawPage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div className="min-w-0 flex-1">
+          <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Withdraw money
             </h1>
@@ -40,10 +39,6 @@ export default async function WithdrawPage() {
               Send your balance to a bank or crypto address.
             </p>
           </div>
-          {/* Chat is in the desktop header already; surface it here on mobile only. */}
-          <span className="lg:hidden">
-            <ChatButton variant="muted" />
-          </span>
         </div>
 
         <WithdrawView data={data} />

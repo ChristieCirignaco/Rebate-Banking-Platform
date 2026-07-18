@@ -3,7 +3,6 @@ import { Landmark } from "lucide-react";
 import { greetingForDate } from "@/lib/dashboard/transactions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
-import { ChatButton } from "@/components/app/chat/chat-button";
 import { TransactionSearch } from "@/components/app/search/transaction-search";
 
 function initials(name: string): string {
@@ -19,7 +18,13 @@ function initials(name: string): string {
 // Desktop-only full-width header (shown at lg+) that spans the very top over BOTH the sidebar
 // and the content. Left segment (aligned to the sidebar width) holds the brand; the rest holds
 // the greeting + search / notifications / profile. Sits on the page background; never scrolls.
-export function DesktopHeader({ name, image }: { name: string; image: string | null | undefined }) {
+export function DesktopHeader({
+  name,
+  image,
+}: {
+  name: string;
+  image: string | null | undefined;
+}) {
   return (
     <header className="hidden h-20 shrink-0 items-center gap-3 px-3 lg:flex">
       {/* Brand — aligned over the sidebar */}
@@ -35,15 +40,21 @@ export function DesktopHeader({ name, image }: { name: string; image: string | n
       {/* Greeting + controls — over the content */}
       <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
         <div className="min-w-0 leading-tight">
-          <p className="text-xs text-slate-500 dark:text-slate-400">{greetingForDate()},</p>
-          <p className="truncate text-xl font-bold text-slate-900 dark:text-white">{name}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {greetingForDate()},
+          </p>
+          <p className="truncate text-xl font-bold text-slate-900 dark:text-white">
+            {name}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {/* Renders both triggers itself: the wide pill at xl+, the icon button below it. */}
           <TransactionSearch variant="header" />
-          <ChatButton variant="surface" />
           <NotificationBell variant="surface" />
-          <Avatar size="default" className="ring-2 ring-slate-200 dark:ring-slate-700">
+          <Avatar
+            size="default"
+            className="ring-2 ring-slate-200 dark:ring-slate-700"
+          >
             {image ? <AvatarImage src={image} alt={name} /> : null}
             <AvatarFallback className="bg-blue-600 text-xs font-semibold text-white">
               {initials(name)}

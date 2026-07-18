@@ -7,7 +7,6 @@ import { getSession } from "@/lib/auth-guards";
 import { getExchangeData } from "@/lib/exchange";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { ExchangeForm } from "@/components/app/exchange-form";
-import { ChatButton } from "@/components/app/chat/chat-button";
 
 export const metadata: Metadata = { title: "Exchange Money" };
 
@@ -31,7 +30,7 @@ export default async function ExchangePage() {
           >
             <ChevronLeft className="size-5" />
           </Link>
-          <div className="min-w-0 flex-1">
+          <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               Exchange money
             </h1>
@@ -39,10 +38,6 @@ export default async function ExchangePage() {
               Convert instantly between your wallets.
             </p>
           </div>
-          {/* Chat is in the desktop header already; surface it here on mobile only. */}
-          <span className="lg:hidden">
-            <ChatButton variant="muted" />
-          </span>
         </div>
 
         <ExchangeForm wallets={wallets} hasPin={hasPin} />

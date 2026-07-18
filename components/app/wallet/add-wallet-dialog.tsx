@@ -7,7 +7,6 @@ import { Loader2, Plus } from "lucide-react";
 
 import { addWallet } from "@/app/(app)/wallet/actions";
 import { toast } from "@/lib/toast";
-import { HeaderIconButton } from "@/components/app/header-icon-button";
 import {
   Dialog,
   DialogContent,
@@ -49,7 +48,9 @@ export function AddWalletDialog({
   // So treat a pick that is no longer addable as no pick at all and fall back to the first real
   // option. Deriving it every render also self-heals if `currencies` changes for any other
   // reason (an admin deactivating a currency mid-session, say).
-  const selected = currencies.some((c) => c.code === code) ? code : (currencies[0]?.code ?? "");
+  const selected = currencies.some((c) => c.code === code)
+    ? code
+    : (currencies[0]?.code ?? "");
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -70,24 +71,24 @@ export function AddWalletDialog({
     setSaving(false);
   }
 
-  // Icon-only round button so it sits in the header alongside the back and chat controls; the
-  // tooltip carries the label, and the reason when it's disabled.
-  const label = atCap
-    ? "You hold the maximum of 3 wallets"
-    : nothingLeft
-      ? "You already hold every available currency"
-      : "Add wallet";
-
   return (
     <>
-      <HeaderIconButton
-        label={label}
-        variant="primary"
-        disabled={disabled}
+      <button
+        type="button"
         onClick={() => setOpen(true)}
+        disabled={disabled}
+        title={
+          atCap
+            ? "You've reached the maximum of 3 wallets"
+            : nothingLeft
+              ? "You already hold every available currency"
+              : undefined
+        }
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <Plus className="size-5" />
-      </HeaderIconButton>
+        <Plus className="size-4" />
+        Add wallet
+      </button>
 
       <Dialog
         open={open}

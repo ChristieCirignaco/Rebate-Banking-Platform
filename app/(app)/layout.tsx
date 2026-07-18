@@ -2,12 +2,9 @@ import type { ReactNode } from "react";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { getEnabledFlags } from "@/lib/settings/feature-flags";
-import { getSettings } from "@/lib/settings/store";
 import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopHeader } from "@/components/app/desktop-header";
-import { ChatConfigProvider } from "@/components/app/chat/chat-config";
-import { ChatLauncherManager } from "@/components/app/chat/chat-launcher-manager";
 
 // Shell for the whole authenticated user area. Full gate runs once here.
 //
@@ -21,15 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // One batched read for the whole shell — the nav asks about a dozen flags, and each page
   // re-checks its own (React cache makes that the same round-trip). Only the keys cross into
   // the client components; the nav itself can't (its icons are React components).
-  const [enabledFlags, plugins] = await Promise.all([
-    getEnabledFlags(),
-    getSettings("plugins"),
-  ]);
-  const enabled = [...enabledFlags];
-  // The provider is only "live" when chat is both enabled and configured; otherwise "" so the
-  // header button hides itself and the launcher manager is a no-op.
-  const chatProvider =
-    plugins.chatEnabled && plugins.chatProvider ? plugins.chatProvider : "";
+  const enabled = [...(await getEnabledFlags())];
   const user = {
     name: session.user.name ?? "there",
     email: session.user.email ?? "",
@@ -37,8 +26,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ChatConfigProvider provider={chatProvider}>
-      <ChatLauncherManager />
+    <>
+      {/* Lift the live-chat launcher above the mobile bottom nav. The chat widget floats
+          site-wide (SitePluginScripts), but only the signed-in app has a bottom tab bar, and the
+          vendor bubble sits at bottom:24px right:12px — directly over it. This style is present
+          only while an app page is mounted (so marketing/auth keep the bubble at its default
+          spot) and only applies below lg, where the tab bar exists. The offset clears the bar
+          plus the device's safe-area inset, matching the bar's own bottom padding.
+          Selector is Smartsupp's launcher frame; add other vendors' launcher selectors here if
+          the configured provider changes. */}
+      <style>{`
+        @media (max-width: 1023.98px) {
+          div[data-testid="widgetButtonFrame"] {
+            bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+          }
+        }
+      `}</style>
+
       <div className="min-h-svh bg-white lg:flex lg:h-svh lg:flex-col lg:overflow-hidden lg:bg-slate-200 dark:bg-slate-950 dark:lg:bg-black">
         {/* Full-width header across the top — over both sidebar and content */}
         <DesktopHeader name={user.name} image={user.image} />
@@ -58,6 +62,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
         <BottomTabBar enabled={enabled} />
       </div>
-    </ChatConfigProvider>
+    </>
   );
 }

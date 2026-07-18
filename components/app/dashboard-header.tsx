@@ -1,7 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MobileMenu } from "@/components/app/mobile-menu";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
-import { ChatButton } from "@/components/app/chat/chat-button";
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -55,9 +54,12 @@ export function DashboardHeader({
 
       {/* shrink-0: the name truncates, the controls never do. */}
       <div className="flex shrink-0 items-center gap-2">
-        <ChatButton variant="hero" />
         <NotificationBell variant="hero" />
-        <MobileMenu user={{ name, email, image }} triggerClassName={ICON_BTN} enabled={enabled} />
+        <MobileMenu
+          user={{ name, email, image }}
+          triggerClassName={ICON_BTN}
+          enabled={enabled}
+        />
       </div>
     </div>
   );
