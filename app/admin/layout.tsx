@@ -69,7 +69,11 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  const adminUser = { name: session.user.name, email: session.user.email };
+  const adminUser = {
+    name: session.user.name,
+    email: session.user.email,
+    image: session.user.image ?? null,
+  };
   const [security, branding, general] = await Promise.all([
     getSettings("security"),
     getSettings("branding"),
@@ -106,6 +110,7 @@ export default async function AdminLayout({
           idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
           adminName={session.user.name}
           adminEmail={session.user.email}
+          adminImage={session.user.image ?? null}
         />
       </SidebarProvider>
     </AdminThemeProvider>

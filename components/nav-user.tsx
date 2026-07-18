@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/sidebar";
 
 type NavUserProps = {
-  user: { name: string; email: string };
+  user: { name: string; email: string; image: string | null };
 };
 
 function initials(name: string): string {
@@ -62,6 +62,7 @@ export function NavUser({ user }: NavUserProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
+                {user.image ? <AvatarImage src={user.image} alt={user.name} /> : null}
                 <AvatarFallback className="rounded-lg">
                   {initials(user.name)}
                 </AvatarFallback>

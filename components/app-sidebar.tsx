@@ -65,7 +65,7 @@ type NavItem = {
 type NavGroup = { label: string; items: NavItem[] };
 
 type AppSidebarProps = ComponentProps<typeof Sidebar> & {
-  user: { name: string; email: string };
+  user: { name: string; email: string; image: string | null };
   // Admin Branding + brand name from System Settings. Either logo may be null; the sidebar
   // swaps between them on theme and falls back to a brand mark + name when neither is set.
   branding: {

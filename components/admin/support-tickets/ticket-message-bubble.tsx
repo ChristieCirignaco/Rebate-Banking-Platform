@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDateTime } from "@/lib/format";
 import { cn, initials } from "@/lib/utils";
 import { TicketAttachmentPreview } from "./ticket-attachment-preview";
@@ -13,6 +13,9 @@ export function TicketMessageBubble({ message }: { message: TicketMessageView })
   return (
     <div className={cn("flex gap-3", isAdmin && "flex-row-reverse")}>
       <Avatar className="size-8 shrink-0">
+        {message.senderImage ? (
+          <AvatarImage src={message.senderImage} alt={message.senderName} />
+        ) : null}
         <AvatarFallback className="text-xs">{initials(message.senderName)}</AvatarFallback>
       </Avatar>
       <div className={cn("flex max-w-[80%] flex-col gap-1", isAdmin && "items-end")}>

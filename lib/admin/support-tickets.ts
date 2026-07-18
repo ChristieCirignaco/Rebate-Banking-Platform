@@ -98,5 +98,23 @@ export async function getTicketDetail(id: string): Promise<TicketDetail | null> 
     },
   });
   if (!ticket) return null;
-  return toTicketDetail(ticket);
+
+  // Resolve each message sender's avatar (senderId is the replying admin or the ticket's user).
+  // One batched lookup keyed by the distinct sender ids, attached before presenting.
+  const senderIds = [...new Set(ticket.messages.map((m) => m.senderId))];
+  const senders = senderIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: senderIds } },
+        select: { id: true, image: true },
+      })
+    : [];
+  const imageBySender = new Map(senders.map((s) => [s.id, s.image]));
+
+  return toTicketDetail({
+    ...ticket,
+    messages: ticket.messages.map((m) => ({
+      ...m,
+      senderImage: imageBySender.get(m.senderId) ?? null,
+    })),
+  });
 }

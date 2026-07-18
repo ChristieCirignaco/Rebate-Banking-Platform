@@ -55,6 +55,9 @@ export interface TicketMessageView {
   id: string;
   senderType: TicketSenderType;
   senderName: string;
+  // The sender's uploaded avatar URL, when enriched by the read layer. Optional so loaders
+  // that don't resolve it (e.g. the user-side ticket view) degrade to initials.
+  senderImage?: string;
   body: string;
   attachments: TicketAttachmentView[];
   createdAt: string;

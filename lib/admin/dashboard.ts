@@ -188,6 +188,7 @@ export async function getLatestUsers(limit = 5): Promise<LatestUserRow[]> {
       name: true,
       email: true,
       emailVerified: true,
+      image: true,
       createdAt: true,
     },
   });
@@ -196,6 +197,7 @@ export async function getLatestUsers(limit = 5): Promise<LatestUserRow[]> {
     name: user.name,
     email: user.email,
     verified: user.emailVerified,
+    avatarUrl: user.image ?? undefined,
     joinedAt: user.createdAt.toISOString(),
   }));
 }

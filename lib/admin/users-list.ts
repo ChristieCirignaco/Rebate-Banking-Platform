@@ -22,6 +22,7 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
   return users.map((user) => ({
     id: user.id,
     name: user.name,
+    avatarUrl: user.image ?? undefined,
     username: user.username ?? user.email.split("@")[0],
     accountStatus: (user.status as AccountStatus) ?? "active",
     email: user.email,

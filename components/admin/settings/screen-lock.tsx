@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 
 import { unlockScreen } from "@/app/admin/settings/actions";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { initials } from "@/lib/utils";
@@ -21,11 +21,13 @@ export function ScreenLock({
   idleMs,
   adminName,
   adminEmail,
+  adminImage,
 }: {
   enabled: boolean;
   idleMs: number;
   adminName: string;
   adminEmail: string;
+  adminImage: string | null;
 }) {
   const [locked, setLocked] = useState(false);
   // Skip the persist effect's first run so it can't clear the stored flag on mount before
@@ -80,6 +82,7 @@ export function ScreenLock({
     <LockOverlay
       adminName={adminName}
       adminEmail={adminEmail}
+      adminImage={adminImage}
       onUnlocked={() => {
         // Clear the persisted flag synchronously — before the overlay's router.refresh()
         // can remount this component and have its restore read a stale "locked" flag.
@@ -93,10 +96,12 @@ export function ScreenLock({
 function LockOverlay({
   adminName,
   adminEmail,
+  adminImage,
   onUnlocked,
 }: {
   adminName: string;
   adminEmail: string;
+  adminImage: string | null;
   onUnlocked: () => void;
 }) {
   const router = useRouter();
@@ -144,6 +149,7 @@ function LockOverlay({
         </div>
         <div className="flex items-center gap-2">
           <Avatar className="size-8">
+            {adminImage ? <AvatarImage src={adminImage} alt={adminName} /> : null}
             <AvatarFallback className="text-xs">{initials(adminName)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
