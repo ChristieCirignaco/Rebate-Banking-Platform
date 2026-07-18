@@ -15,14 +15,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
-import { DateRangeSelect, EmptyState } from "../shared";
+import { DateRangeSelect, EmptyState, rangeCutoffMs } from "../shared";
 import type { ActivityEntry } from "../types";
 
 export function UserActivityTab({ activity }: { activity: ActivityEntry[] }) {
   const [range, setRange] = useState("30d");
   const [search, setSearch] = useState("");
 
+  const cutoff = rangeCutoffMs(range);
   const filtered = activity.filter((entry) => {
+    if (cutoff !== null && new Date(entry.loginAt).getTime() < cutoff) return false;
     const query = search.trim().toLowerCase();
     if (!query) return true;
     return [entry.ip, entry.country, entry.browser, entry.os].some((value) =>

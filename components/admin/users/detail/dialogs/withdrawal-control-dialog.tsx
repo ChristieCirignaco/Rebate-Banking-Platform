@@ -111,7 +111,6 @@ export function WithdrawalControlDialog({
   const [status, setStatus] = React.useState<WithdrawalStatus>(
     user.withdrawalStatus,
   );
-  const [adminNote, setAdminNote] = React.useState("");
   const [userMessage, setUserMessage] = React.useState(user.withdrawalMessage);
 
   // Seed the form from the user's actual saved control each time it opens — the props are
@@ -121,7 +120,6 @@ export function WithdrawalControlDialog({
     setOpen(next);
     if (next) {
       setStatus(user.withdrawalStatus);
-      setAdminNote("");
       setUserMessage(user.withdrawalMessage);
     }
   }
@@ -133,7 +131,6 @@ export function WithdrawalControlDialog({
   function handleUpdate() {
     onUpdateStatus({
       status,
-      adminNote: adminNote || undefined,
       userMessage: userMessage || undefined,
     });
     setOpen(false);
@@ -227,17 +224,6 @@ export function WithdrawalControlDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="wc-admin-note">Admin Note</Label>
-              <Textarea
-                id="wc-admin-note"
-                rows={2}
-                value={adminNote}
-                onChange={(event) => setAdminNote(event.target.value)}
-                placeholder="Internal note (not shown to the user)"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
               <Label htmlFor="wc-user-message">User Message</Label>
               <Textarea
                 id="wc-user-message"
@@ -261,7 +247,6 @@ export function WithdrawalControlDialog({
                   Any non-allowed status redirects the user to a status page.
                 </li>
                 <li>An email is sent to the user with your message.</li>
-                <li>All changes are logged for audit.</li>
               </ul>
             </div>
           </div>

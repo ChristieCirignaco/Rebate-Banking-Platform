@@ -60,18 +60,24 @@ export function ManageFundsDialog({
     if (!selectedWallet || pending) return;
     if (!requestIdRef.current) requestIdRef.current = crypto.randomUUID();
     setPending(true);
-    const ok = await onUpdateBalance({
-      walletCurrency,
-      op,
-      description: description || undefined,
-      amount: Number(amount) || 0,
-      adminNote: adminNote || undefined,
-      requestId: requestIdRef.current,
-    });
-    setPending(false);
-    if (ok) {
-      requestIdRef.current = null;
-      setOpen(false);
+    // finally so a thrown/rejected action (e.g. a network failure, not an ActionResult error)
+    // still clears `pending` — otherwise the button freezes on "Updating…" and blocks the retry
+    // the request nonce was built to make safe.
+    try {
+      const ok = await onUpdateBalance({
+        walletCurrency,
+        op,
+        description: description || undefined,
+        amount: Number(amount) || 0,
+        adminNote: adminNote || undefined,
+        requestId: requestIdRef.current,
+      });
+      if (ok) {
+        requestIdRef.current = null;
+        setOpen(false);
+      }
+    } finally {
+      setPending(false);
     }
   }
 

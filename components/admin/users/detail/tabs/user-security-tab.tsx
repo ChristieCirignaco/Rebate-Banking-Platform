@@ -148,6 +148,7 @@ export function UserSecurityTab({ user }: { user: UserDetail }) {
 
   const [clearPinOpen, setClearPinOpen] = useState(false);
   const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
 
   // Run an action, toast either way, and refresh so the card state re-reads from the server.
   // `onSuccess` closes the dialog — on failure it stays open with the input intact.
@@ -493,9 +494,7 @@ export function UserSecurityTab({ user }: { user: UserDetail }) {
         <div>
           <Button
             variant="destructive"
-            onClick={() =>
-              run("sessions", () => adminRevokeSessions(user.id), "User signed out everywhere")
-            }
+            onClick={() => setSessionsOpen(true)}
             disabled={isPending || user.activeSessions === 0}
             title={user.activeSessions === 0 ? "This user has no active sessions" : undefined}
           >
@@ -511,6 +510,22 @@ export function UserSecurityTab({ user }: { user: UserDetail }) {
           two-factor, and can sign back in right away.
         </p>
       </SecurityCard>
+
+      <ConfirmDialog
+        open={sessionsOpen}
+        onOpenChange={setSessionsOpen}
+        title="Sign out every device?"
+        description={`This immediately ends ${
+          user.activeSessions === 1 ? "the active session" : `all ${user.activeSessions} active sessions`
+        } for ${user.name}. They keep their password, PIN and two-factor, and can sign back in right away.`}
+        confirmLabel="Sign out everywhere"
+        pending={isPending && busy === "sessions"}
+        onConfirm={() =>
+          run("sessions", () => adminRevokeSessions(user.id), "User signed out everywhere", () =>
+            setSessionsOpen(false),
+          )
+        }
+      />
     </div>
   );
 }

@@ -49,6 +49,8 @@ export function WalletList({
 
   const atCap = slotsLeft <= 0;
   const nothingLeft = assignable.length === 0;
+  // The cap, derived from the server-provided slots so it can't drift from lib/wallets' MAX_WALLETS.
+  const maxWallets = wallets.length + Math.max(0, slotsLeft);
 
   function onAssign() {
     if (!code || isPending) return;
@@ -84,7 +86,7 @@ export function WalletList({
           disabled={atCap || nothingLeft}
           title={
             atCap
-              ? "This user already holds the maximum of 3 wallets"
+              ? `This user already holds the maximum of ${maxWallets} wallets`
               : nothingLeft
                 ? "This user already holds every active currency"
                 : undefined

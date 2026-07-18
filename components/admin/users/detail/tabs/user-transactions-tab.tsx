@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { formatCurrency, formatRelativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { DateRangeSelect, EmptyState } from "../shared";
+import { DateRangeSelect, EmptyState, rangeCutoffMs } from "../shared";
 import type { DetailTransaction, DetailTxnStatus } from "../types";
 
 const STATUS: Record<DetailTxnStatus, { label: string; className: string }> = {
@@ -46,7 +46,9 @@ export function UserTransactionsTab({
   const [range, setRange] = useState("30d");
   const [search, setSearch] = useState("");
 
+  const cutoff = rangeCutoffMs(range);
   const filtered = transactions.filter((transaction) => {
+    if (cutoff !== null && new Date(transaction.createdAt).getTime() < cutoff) return false;
     const query = search.trim().toLowerCase();
     if (!query) return true;
     return [transaction.description, transaction.id, transaction.provider].some(

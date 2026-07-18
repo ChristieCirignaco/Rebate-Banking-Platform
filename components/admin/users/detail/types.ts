@@ -49,16 +49,21 @@ export interface DetailWallet {
   removeBlockedReason: string | null;
 }
 
-export type ControlKey =
-  | "account_status"
-  | "email_verification"
-  | "kyc_verification"
-  | "deposit"
-  | "exchange_money"
-  | "send_money"
-  | "request_money"
-  | "voucher"
-  | "withdraw";
+// Runtime list is the single source of truth so a Server Action can validate an incoming key
+// (a payload is caller-controlled) without drifting from the ControlKey union.
+export const CONTROL_KEYS = [
+  "account_status",
+  "email_verification",
+  "kyc_verification",
+  "deposit",
+  "exchange_money",
+  "send_money",
+  "request_money",
+  "voucher",
+  "withdraw",
+] as const;
+
+export type ControlKey = (typeof CONTROL_KEYS)[number];
 
 export interface UserControl {
   key: ControlKey;
@@ -180,6 +185,5 @@ export type WithdrawalStatus =
   "allowed" | "pending" | "hold" | "suspended" | "restricted";
 export interface WithdrawalControlPayload {
   status: WithdrawalStatus;
-  adminNote?: string;
   userMessage?: string;
 }
