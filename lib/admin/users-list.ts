@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { REGULAR_USER_WHERE } from "@/lib/admin/user-scope";
 import type {
   AccountStatus,
   AdminUser,
@@ -14,7 +15,7 @@ const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 // silently drop NULL rows under three-valued SQL logic.
 export async function getAdminUsers(): Promise<AdminUser[]> {
   const users = await prisma.user.findMany({
-    where: { OR: [{ role: "user" }, { role: null }] },
+    where: REGULAR_USER_WHERE,
     orderBy: { createdAt: "desc" },
   });
   const now = Date.now();

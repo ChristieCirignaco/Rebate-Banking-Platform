@@ -1,6 +1,7 @@
 import { ArrowLeftRight, Coins, Users, Wallet } from "lucide-react";
 
 import { prisma } from "@/lib/db";
+import { REGULAR_USER_WHERE } from "@/lib/admin/user-scope";
 import { toMajor } from "@/lib/money/money";
 import type {
   LatestUserRow,
@@ -53,7 +54,8 @@ function bucketByDay(
 export async function getStatWidgets(): Promise<StatWidget[]> {
   const [balance, totalUsers, txnCount, fees] = await Promise.all([
     prisma.wallet.aggregate({ _sum: { balanceMinor: true } }),
-    prisma.user.count(),
+    // Exclude admin-tier accounts — "Total Users" counts the regular user population only.
+    prisma.user.count({ where: REGULAR_USER_WHERE }),
     prisma.walletTransaction.count(),
     prisma.walletTransaction.aggregate({
       _sum: { amountMinor: true },
@@ -181,6 +183,8 @@ export async function getLatestTransactions(
 
 export async function getLatestUsers(limit = 5): Promise<LatestUserRow[]> {
   const users = await prisma.user.findMany({
+    // Latest *users* — never surface admin-tier accounts in this list.
+    where: REGULAR_USER_WHERE,
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
