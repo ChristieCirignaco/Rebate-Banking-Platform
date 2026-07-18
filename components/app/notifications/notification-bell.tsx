@@ -12,7 +12,7 @@ import {
 } from "@/app/(app)/notifications/actions";
 import { cn } from "@/lib/utils";
 import type { UserNotificationItem } from "@/lib/notifications";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SmoothDropdown } from "@/components/app/smooth-dropdown";
 
 // Broadcast by the notifications list after a mark-read so any mounted bell re-pulls its
 // count. router.refresh() alone can't do this: it re-renders server components, but the bell
@@ -26,11 +26,12 @@ export function notifyNotificationsChanged(): void {
 
 // The two headers style their icon buttons differently (the mobile hero sits on a colored
 // gradient, the desktop header on a light surface), so the bell ships both looks rather than
-// forcing one. Defaults to `surface`; pass nothing at all and it still renders.
+// forcing one. Defaults to `surface`; pass nothing at all and it still renders. These style the
+// collapsed trigger of the smooth-dropdown morph.
 const VARIANTS = {
-  hero: "relative flex size-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20",
+  hero: "bg-white/10 text-white transition-colors hover:bg-white/20",
   surface:
-    "relative flex size-10 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700",
+    "bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700",
 } as const;
 
 export interface NotificationBellProps {
@@ -89,36 +90,27 @@ export function NotificationBell({ variant = "surface", className }: Notificatio
   }
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger
-        aria-label={count > 0 ? `Notifications (${count} unread)` : "Notifications"}
-        className={className ?? VARIANTS[variant]}
-      >
-        <Bell className="size-5" />
-        {count > 0 ? (
+    <SmoothDropdown
+      open={open}
+      onOpenChange={onOpenChange}
+      side="bottom"
+      align="end"
+      collapsedWidth={40}
+      collapsedHeight={40}
+      panelWidth={320}
+      containerClassName="size-10 shrink-0"
+      label={count > 0 ? `Notifications (${count} unread)` : "Notifications"}
+      triggerClassName={className ?? VARIANTS[variant]}
+      trigger={<Bell className="size-5" />}
+      overlay={
+        count > 0 ? (
           <span className="absolute -top-0.5 -right-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {count > 9 ? "9+" : count}
           </span>
-        ) : null}
-      </PopoverTrigger>
-
-      {/* Responsive: a fixed panel would overflow a phone, so it takes the viewport width minus
-          the page gutter and only caps at 22rem once there's room.
-
-          collisionPadding matches that gutter, and on mobile it is what actually places the
-          panel. align="end" anchors to the TRIGGER's right edge, which stopped being the screen's
-          right edge once the hamburger moved beside the bell — a 100vw-2rem panel anchored there
-          doesn't fit, so Radix shifts it back into view, and with the default collisionPadding of
-          0 that meant flush against one edge with the whole 2rem gap dumped on the other. At 16px
-          the shift leaves an even 1rem either side, so the width and the padding agree instead of
-          fighting. Desktop is unaffected: max-w-[22rem] fits with room to spare, so nothing
-          collides and align="end" still tucks it under the bell. */}
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        collisionPadding={16}
-        className="w-[calc(100vw-2rem)] max-w-[22rem] p-0"
-      >
+        ) : null
+      }
+    >
+      <div>
         <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-3 dark:border-slate-800">
           <p className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</p>
           {count > 0 ? (
@@ -194,7 +186,7 @@ export function NotificationBell({ variant = "surface", className }: Notificatio
             View all notifications
           </Link>
         </div>
-      </PopoverContent>
-    </Popover>
+      </div>
+    </SmoothDropdown>
   );
 }
