@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SitePluginScripts } from "@/components/site-plugin-scripts";
 import { Toaster } from "@/components/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -37,6 +38,10 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
         <Toaster />
+        {/* Admin-configured Analytics/Chat tags (Settings → Plugins). Renders nothing unless
+            enabled. A plain settings read, so static pages stay static and pick it up on their
+            revalidation cycle. */}
+        <SitePluginScripts />
       </body>
     </html>
   );
