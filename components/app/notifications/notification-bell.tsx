@@ -103,10 +103,20 @@ export function NotificationBell({ variant = "surface", className }: Notificatio
       </PopoverTrigger>
 
       {/* Responsive: a fixed panel would overflow a phone, so it takes the viewport width minus
-          the page gutter and only caps at 22rem once there's room. */}
+          the page gutter and only caps at 22rem once there's room.
+
+          collisionPadding matches that gutter, and on mobile it is what actually places the
+          panel. align="end" anchors to the TRIGGER's right edge, which stopped being the screen's
+          right edge once the hamburger moved beside the bell — a 100vw-2rem panel anchored there
+          doesn't fit, so Radix shifts it back into view, and with the default collisionPadding of
+          0 that meant flush against one edge with the whole 2rem gap dumped on the other. At 16px
+          the shift leaves an even 1rem either side, so the width and the padding agree instead of
+          fighting. Desktop is unaffected: max-w-[22rem] fits with room to spare, so nothing
+          collides and align="end" still tucks it under the bell. */}
       <PopoverContent
         align="end"
         sideOffset={8}
+        collisionPadding={16}
         className="w-[calc(100vw-2rem)] max-w-[22rem] p-0"
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-3 dark:border-slate-800">

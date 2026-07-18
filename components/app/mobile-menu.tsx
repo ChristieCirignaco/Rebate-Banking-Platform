@@ -32,10 +32,16 @@ function initials(name: string): string {
 
 type MenuUser = { name: string; email: string; image: string | null | undefined };
 
-// The mobile hamburger + slide-out drawer, built on Vaul (shadcn Drawer, direction="left") so it
-// drags-to-dismiss on touch. Styled to our dark gradient panel — not the raw shadcn look — and
-// mirrors the desktop sidebar (full nav + user card + sign-out) so mobile reaches everything the
-// bottom tab bar doesn't cover. Shown only within the mobile header; desktop uses the fixed sidebar.
+// The mobile hamburger + slide-out drawer, built on Vaul (shadcn Drawer) so it drags-to-dismiss
+// on touch. Styled to our dark gradient panel — not the raw shadcn look — and mirrors the desktop
+// sidebar (full nav + user card + sign-out) so mobile reaches everything the bottom tab bar
+// doesn't cover. Shown only within the mobile header; desktop uses the fixed sidebar.
+//
+// direction="right" follows the trigger: the hamburger sits at the right of the hero header
+// (see dashboard-header), and a panel that flew in from the opposite edge to the button you
+// pressed reads as a glitch. It also keeps the drag-to-dismiss gesture pointing the same way as
+// the thumb that opened it. If the trigger ever moves back to the left, this and the panel's
+// rounded edge have to move with it.
 // Mirrors the desktop sidebar: the server sends enabled flag KEYS (plain strings) and the
 // filtering happens here, because a NavItem's `icon` is a React component and can't cross the
 // server→client boundary.
@@ -61,14 +67,14 @@ export function MobileMenu({
   }
 
   return (
-    <Drawer direction="left" open={open} onOpenChange={setOpen}>
+    <Drawer direction="right" open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <button type="button" aria-label="Open menu" className={triggerClassName}>
           <Menu className="size-5" />
         </button>
       </DrawerTrigger>
       <DrawerContent
-        className="overflow-hidden rounded-r-xl text-white shadow-xl"
+        className="overflow-hidden rounded-l-xl text-white shadow-xl"
         style={{ width: "18rem", background: DRAWER_GRADIENT, border: "none" }}
       >
         <DrawerDescription className="sr-only">Main navigation</DrawerDescription>
