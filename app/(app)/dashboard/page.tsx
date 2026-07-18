@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
-import { getEnabledFlags } from "@/lib/settings/feature-flags";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
 import {
@@ -40,41 +39,55 @@ export default async function DashboardPage() {
   const defaultWallet = wallets.find((w) => w.isDefault) ?? wallets[0] ?? null;
   const currency = defaultWallet?.currency ?? "USD";
 
-  const [recentTxns, pendingDeposit, deltaRows, productGroups, withdrawGroups, transferGroups] =
-    await Promise.all([
-      prisma.walletTransaction.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: PREVIEW_COUNT,
-      }),
-      prisma.deposit.findFirst({
-        where: { userId, status: "pending" },
-        orderBy: { createdAt: "desc" },
-      }),
-      defaultWallet
-        ? prisma.walletTransaction.findMany({
-            where: { walletId: defaultWallet.id, createdAt: { gte: thirtyDaysAgo } },
-            select: { direction: true, amountMinor: true, createdAt: true },
-          })
-        : Promise.resolve([]),
-      prisma.product.groupBy({ by: ["status"], where: { userId }, _count: { _all: true } }),
-      prisma.withdraw.groupBy({
-        by: ["status"],
-        where: { userId, currency },
-        _count: { _all: true },
-        _sum: { amountMinor: true },
-      }),
-      prisma.walletTransaction.groupBy({
-        by: ["direction"],
-        where: { userId, source: "transfer", currency },
-        _count: { _all: true },
-        _sum: { amountMinor: true },
-      }),
-    ]);
+  const [
+    recentTxns,
+    pendingDeposit,
+    deltaRows,
+    productGroups,
+    withdrawGroups,
+    transferGroups,
+  ] = await Promise.all([
+    prisma.walletTransaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: PREVIEW_COUNT,
+    }),
+    prisma.deposit.findFirst({
+      where: { userId, status: "pending" },
+      orderBy: { createdAt: "desc" },
+    }),
+    defaultWallet
+      ? prisma.walletTransaction.findMany({
+          where: {
+            walletId: defaultWallet.id,
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: { direction: true, amountMinor: true, createdAt: true },
+        })
+      : Promise.resolve([]),
+    prisma.product.groupBy({
+      by: ["status"],
+      where: { userId },
+      _count: { _all: true },
+    }),
+    prisma.withdraw.groupBy({
+      by: ["status"],
+      where: { userId, currency },
+      _count: { _all: true },
+      _sum: { amountMinor: true },
+    }),
+    prisma.walletTransaction.groupBy({
+      by: ["direction"],
+      where: { userId, source: "transfer", currency },
+      _count: { _all: true },
+      _sum: { amountMinor: true },
+    }),
+  ]);
 
   const productCount = (status: string) =>
     productGroups.find((g) => g.status === status)?._count._all ?? 0;
-  const withdrawByStatus = (status: string) => withdrawGroups.find((g) => g.status === status);
+  const withdrawByStatus = (status: string) =>
+    withdrawGroups.find((g) => g.status === status);
   const transferIn = transferGroups.find((g) => g.direction === "credit");
   const transferOut = transferGroups.find((g) => g.direction === "debit");
 
@@ -87,7 +100,12 @@ export default async function DashboardPage() {
       ? formatCurrency(toMajor(defaultWallet.balanceMinor), currency)
       : formatCurrency(0, "USD"),
     delta: defaultWallet
-      ? computeBalanceDelta(deltaRows, defaultWallet.balanceMinor, currency, now)
+      ? computeBalanceDelta(
+          deltaRows,
+          defaultWallet.balanceMinor,
+          currency,
+          now,
+        )
       : null,
     stats: {
       products: {
@@ -105,7 +123,10 @@ export default async function DashboardPage() {
       },
       transfers: {
         amountLabel: formatCurrency(
-          toMajor((transferIn?._sum.amountMinor ?? 0n) + (transferOut?._sum.amountMinor ?? 0n)),
+          toMajor(
+            (transferIn?._sum.amountMinor ?? 0n) +
+              (transferOut?._sum.amountMinor ?? 0n),
+          ),
           currency,
         ),
         count: (transferIn?._count._all ?? 0) + (transferOut?._count._all ?? 0),
@@ -122,17 +143,17 @@ export default async function DashboardPage() {
             year: "numeric",
             timeZone: "UTC",
           }),
-          amountLabel: formatCurrency(toMajor(pendingDeposit.amountMinor), pendingDeposit.currency),
+          amountLabel: formatCurrency(
+            toMajor(pendingDeposit.amountMinor),
+            pendingDeposit.currency,
+          ),
         }
       : null,
   };
 
-  // Shared with the shell's nav — React-cached, so this is the layout's query, not a new one.
-  const enabled = [...(await getEnabledFlags())];
-
   return (
     <>
-      <MobileHome view={view} enabled={enabled} />
+      <MobileHome view={view} />
       <DesktopHome view={view} />
     </>
   );

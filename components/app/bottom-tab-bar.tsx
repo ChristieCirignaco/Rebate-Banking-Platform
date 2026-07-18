@@ -7,7 +7,6 @@ import {
   ArrowDownToLine,
   ArrowDownUp,
   House,
-  LifeBuoy,
   Package,
   PackagePlus,
   Plus,
@@ -23,17 +22,25 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { BottomNavMenu } from "@/components/app/bottom-nav-menu";
+
+type MenuUser = {
+  name: string;
+  email: string;
+  image: string | null | undefined;
+};
 
 type Tab = { href: string; label: string; icon: LucideIcon; flag?: string };
 
 // Home has no flag — every feature guard redirects to /dashboard, so it can't be switchable.
 // A tab whose feature is off is dropped; the bar keeps its shape because the remaining tabs
-// flex, and the FAB stays centred.
+// flex, and the FAB stays centred. Support left the bar: its slot is now the full-nav Menu
+// (BottomNavMenu), which reaches Support and everything else — this is where the old header
+// hamburger moved to.
 const TABS: Tab[] = [
   { href: "/dashboard", label: "Home", icon: House },
   { href: "/products", label: "Products", icon: Package, flag: "products" },
   { href: "/send", label: "Send", icon: Send, flag: "send_money" },
-  { href: "/support", label: "Support", icon: LifeBuoy, flag: "support" },
 ];
 
 // Detail screens (their own back header, no tab bar) — the bar hides on these.
@@ -51,7 +58,9 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex flex-1 flex-col items-center gap-1 py-1 text-[10px] font-medium transition-colors",
-        active ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500",
+        active
+          ? "text-blue-600 dark:text-blue-400"
+          : "text-slate-400 dark:text-slate-500",
       )}
     >
       <Icon className="size-5" strokeWidth={active ? 2.4 : 2} />
@@ -60,24 +69,48 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
   );
 }
 
-const QUICK_ACTIONS: { label: string; icon: LucideIcon; href: string; flag?: string }[] = [
-  { label: "Deposit", icon: ArrowDownToLine, href: "/deposit", flag: "deposits" },
+const QUICK_ACTIONS: {
+  label: string;
+  icon: LucideIcon;
+  href: string;
+  flag?: string;
+}[] = [
+  {
+    label: "Deposit",
+    icon: ArrowDownToLine,
+    href: "/deposit",
+    flag: "deposits",
+  },
   { label: "Transfer", icon: ArrowDownUp, href: "/send", flag: "send_money" },
-  { label: "Add product", icon: PackagePlus, href: "/products/new", flag: "product_submission" },
+  {
+    label: "Add product",
+    icon: PackagePlus,
+    href: "/products/new",
+    flag: "product_submission",
+  },
 ];
 
-// The persistent bottom navigation: Home · Products · ⊕ · Send · Support. Fixed and centered so
+// The persistent bottom navigation: Home · Products · ⊕ · Send · Menu. Fixed and centered so
 // it overlays the phone-width column on desktop and spans the screen on mobile. The center FAB
-// opens a quick-action sheet; every destination is a real page.
-export function BottomTabBar({ enabled = [] }: { enabled?: string[] }) {
+// opens a quick-action sheet; the last slot opens the full-nav menu.
+export function BottomTabBar({
+  enabled = [],
+  user,
+}: {
+  enabled?: string[];
+  user: MenuUser;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  if (HIDE_ON.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
+  if (HIDE_ON.some((p) => pathname === p || pathname.startsWith(`${p}/`)))
+    return null;
 
   const on = new Set(enabled);
   const tabs = TABS.filter((tab) => !tab.flag || on.has(tab.flag));
-  const actions = QUICK_ACTIONS.filter((action) => !action.flag || on.has(action.flag));
+  const actions = QUICK_ACTIONS.filter(
+    (action) => !action.flag || on.has(action.flag),
+  );
   // Split evenly around the centre FAB, whatever survived the flags.
   const half = Math.ceil(tabs.length / 2);
   const left = tabs.slice(0, half);
@@ -85,11 +118,13 @@ export function BottomTabBar({ enabled = [] }: { enabled?: string[] }) {
 
   return (
     <>
-      <nav
-        className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[600px] items-end justify-around rounded-t-2xl border-t border-slate-200/70 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur lg:hidden dark:border-slate-800/80 dark:bg-slate-950/95"
-      >
+      <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex w-full max-w-[600px] items-end justify-around rounded-t-2xl border-t border-slate-200/70 bg-white/95 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-4px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur lg:hidden dark:border-slate-800/80 dark:bg-slate-950/95">
         {left.map((tab) => (
-          <TabLink key={tab.href} tab={tab} active={isActive(pathname, tab.href)} />
+          <TabLink
+            key={tab.href}
+            tab={tab}
+            active={isActive(pathname, tab.href)}
+          />
         ))}
 
         <div className="flex w-14 shrink-0 justify-center">
@@ -97,15 +132,21 @@ export function BottomTabBar({ enabled = [] }: { enabled?: string[] }) {
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Quick actions"
-            className="-mt-8 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-600/40 ring-4 ring-white transition-transform active:scale-95 dark:ring-slate-950"
+            className="-mt-8 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg ring-4 shadow-blue-600/40 ring-white transition-transform active:scale-95 dark:ring-slate-950"
           >
             <Plus className="size-6" strokeWidth={2.5} />
           </button>
         </div>
 
         {right.map((tab) => (
-          <TabLink key={tab.href} tab={tab} active={isActive(pathname, tab.href)} />
+          <TabLink
+            key={tab.href}
+            tab={tab}
+            active={isActive(pathname, tab.href)}
+          />
         ))}
+
+        <BottomNavMenu user={user} enabled={enabled} />
       </nav>
 
       <Drawer open={open} onOpenChange={setOpen}>

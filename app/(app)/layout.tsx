@@ -60,7 +60,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <BottomTabBar enabled={enabled} />
+        <BottomTabBar enabled={enabled} user={user} />
       </div>
     </>
   );
