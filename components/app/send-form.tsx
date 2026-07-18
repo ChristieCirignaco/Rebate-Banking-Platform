@@ -84,7 +84,14 @@ export function SendForm({
   return (
     <>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <div className={cn("grid gap-2", available.length === 3 ? "grid-cols-3" : available.length === 2 ? "grid-cols-2" : "grid-cols-1")}>
+        {/* Columns follow the number of ENABLED transfer types: disabling one in admin reflows
+            3 → 2 → 1 with no empty column, and a single remaining type spans the full width.
+            An inline template rather than grid-cols-* classes, since the count is dynamic — this
+            can't silently break if the class for a given count isn't generated. */}
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${Math.max(available.length, 1)}, minmax(0, 1fr))` }}
+        >
           {available.map((t) => {
             const Icon = t.icon;
             const active = type === t.key;
