@@ -63,6 +63,15 @@ function setJivoHidden(hidden: boolean): void {
 }
 
 // Open the chat window for the active provider.
+//
+// Opening ONLY opens the panel — it must never re-show the floating launcher we hid, or the
+// bubble pops back on every click (which it did: each of these used to call the vendor's
+// "show launcher" before opening). Each provider's open method works from the hidden state on
+// its own — that's exactly what a custom trigger button is for.
+//
+// The exception is JivoChat: it has no launcher API, so we hide it with CSS on `jdiv`, which
+// also hides the chat window. There, opening MUST drop the CSS first, so Jivo alone re-shows its
+// launcher when opened — the best its API allows.
 export function openChat(provider: ChatProvider): void {
   withRetry(() => {
     const g = win();
@@ -71,12 +80,12 @@ export function openChat(provider: ChatProvider): void {
       switch (provider) {
         case "tawk": {
           const api = g.Tawk_API as any;
-          if (api?.maximize) return api.showWidget?.(), api.maximize(), true;
+          if (api?.maximize) return api.maximize(), true;
           return false;
         }
         case "tidio": {
           const api = g.tidioChatApi as any;
-          if (api?.open) return api.show?.(), api.open(), true;
+          if (api?.open) return api.open(), true;
           return false;
         }
         case "jivo": {
@@ -86,7 +95,7 @@ export function openChat(provider: ChatProvider): void {
         }
         case "smartsupp": {
           const fn = g.smartsupp as any;
-          if (typeof fn === "function") return fn("chat:show"), fn("chat:open"), true;
+          if (typeof fn === "function") return fn("chat:open"), true;
           return false;
         }
         case "livechat": {
@@ -96,7 +105,7 @@ export function openChat(provider: ChatProvider): void {
         }
         case "chatwoot": {
           const api = g.$chatwoot as any;
-          if (api?.toggle) return api.toggleBubbleVisibility?.("show"), api.toggle("open"), true;
+          if (api?.toggle) return api.toggle("open"), true;
           return false;
         }
         default:
