@@ -129,6 +129,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     country: dbUser.country ?? "",
     address: dbUser.address ?? "",
     avatarUrl: dbUser.image ?? undefined,
+    accountStatus: (dbUser.status as UserDetail["accountStatus"]) ?? "active",
     lastLogin: dbUser.lastLoginAt?.toISOString(),
     browser: latestSession ? Object.values(parseUserAgent(latestSession.userAgent)).join(" on ") : "Unknown",
     withdrawalStatus: (dbUser.withdrawalStatus as UserDetail["withdrawalStatus"]) ?? "allowed",

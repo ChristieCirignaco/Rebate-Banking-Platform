@@ -120,6 +120,28 @@ export async function adminSetUserAvatar(
   return { ok: true };
 }
 
+// Reactivate a suspended account (e.g. one rejected from the pending queue, which sets status ->
+// suspended): status -> active. Only a suspended target is eligible; pending/active accounts are
+// left to their own flows. This is the "reactivate later" path the reject dialog promises.
+export async function reactivateUser(userId: string): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { status: true },
+  });
+  if (!target) return { ok: false, error: "User not found." };
+  if (target.status !== "suspended") {
+    return { ok: false, error: "Only a suspended account can be reactivated." };
+  }
+
+  await prisma.user.update({ where: { id: userId }, data: { status: "active" } });
+  revalidate(userId);
+  return { ok: true };
+}
+
 export async function toggleControl(
   userId: string,
   key: ControlKey,

@@ -24,6 +24,7 @@ export interface UserDetail {
   country: string;
   address: string;
   avatarUrl?: string;
+  accountStatus: "active" | "suspended" | "pending"; // sign-in status (rejected registrations are suspended)
   lastLogin?: string; // ISO
   browser: string; // e.g. "Chrome on macOS"
   withdrawalStatus: WithdrawalStatus;

@@ -71,7 +71,9 @@ export function BroadcastComposer({ audienceSize }: { audienceSize: number }) {
         type,
         title: title.trim() || undefined,
         message: message.trim(),
-        scheduleAt: scheduleInstant,
+        // Scheduling only applies to in-app (push) notices — nothing dispatches scheduled EMAIL,
+        // so an email always sends now (carrying a schedule for it would silently never deliver).
+        scheduleAt: type === "push" ? scheduleInstant : undefined,
       });
 
       if (!result.ok) {
@@ -172,23 +174,26 @@ export function BroadcastComposer({ audienceSize }: { audienceSize: number }) {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="broadcast-schedule">
-              Schedule At{" "}
-              <span className="text-muted-foreground">(optional)</span>
-            </Label>
-            <Input
-              id="broadcast-schedule"
-              type="datetime-local"
-              value={scheduleAt}
-              min={minSchedule || undefined}
-              onChange={(event) => setScheduleAt(event.target.value)}
-              className="w-full sm:w-64"
-            />
-            <p className="text-muted-foreground text-xs">
-              Leave empty to send immediately.
-            </p>
-          </div>
+          {type === "push" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="broadcast-schedule">
+                Schedule At{" "}
+                <span className="text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="broadcast-schedule"
+                type="datetime-local"
+                value={scheduleAt}
+                min={minSchedule || undefined}
+                onChange={(event) => setScheduleAt(event.target.value)}
+                className="w-full sm:w-64"
+              />
+              <p className="text-muted-foreground text-xs">
+                Leave empty to send immediately; scheduled notices appear in each user&apos;s bell
+                at that time.
+              </p>
+            </div>
+          ) : null}
 
           <div>
             <Button type="submit" disabled={!canSend || isPending}>
