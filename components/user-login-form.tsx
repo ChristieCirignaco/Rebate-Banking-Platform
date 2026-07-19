@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock, Eye, EyeOff, Loader2, MailCheck } from "lucide-react";
@@ -11,6 +11,11 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { AuthShell } from "@/components/auth/auth-shell";
+import {
+  RecaptchaField,
+  type RecaptchaConfig,
+  type RecaptchaHandle,
+} from "@/components/auth/recaptcha-field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,10 +87,17 @@ const FIELD_CLASS =
 // User sign-in. Hard-gated to non-admin accounts: an admin who authenticates here is
 // signed straight back out and pointed at /admin/login, so an admin session can never be
 // established through the user login.
-export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
+export function UserLoginForm({
+  logoUrl,
+  recaptcha,
+}: {
+  logoUrl?: string | null;
+  recaptcha: RecaptchaConfig;
+}) {
   const searchParams = useSearchParams();
   const redirectTo = safeRedirect(searchParams.get("redirect"));
 
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -109,10 +121,23 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
     if (isLoading || !validate()) return;
     setIsLoading(true);
 
+    // Mint a captcha token if reCAPTCHA is on. getToken returns "" when it's off — the auth
+    // before-hook only treats "" as a failure while reCAPTCHA is enabled, so the disabled case
+    // needs no special handling. For a v2 checkbox, "" means the user didn't tick the box; catch
+    // that here for a clear message rather than a round-trip to the generic server error.
+    const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+    if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+      toast.error("Please confirm you're not a robot.");
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await authClient.signIn.email({
       email: email.trim(),
       password,
       rememberMe: remember,
+      // The token rides as a header — that's what lib/auth's before-hook reads off the request.
+      fetchOptions: { headers: { "x-captcha-response": recaptchaToken } },
     });
     if (error) {
       setIsLoading(false);
@@ -121,6 +146,9 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
           ? "Too many attempts. Please wait a few minutes and try again."
           : "Invalid credentials.",
       );
+      // A v2 token is single-use and was consumed by the server's verify call, so the box must
+      // be re-solved before another attempt — reset it rather than leave a spent checkmark.
+      recaptchaRef.current?.reset();
       return;
     }
 
@@ -142,6 +170,9 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
     }
 
     setIsLoading(false);
+    // Every path from here stays on this page (admin / pending / suspended), and the token was
+    // already spent by the sign-in we just made — clear it so a retry can mint a fresh one.
+    recaptchaRef.current?.reset();
     if (outcome.kind === "admin") {
       toast.error("Administrators sign in at the admin login.");
       window.location.href = "/admin/login";
@@ -271,6 +302,8 @@ export function UserLoginForm({ logoUrl }: { logoUrl?: string | null }) {
             Remember me
           </Label>
         </div>
+
+        <RecaptchaField ref={recaptchaRef} config={recaptcha} action="login" />
 
         <button
           type="submit"

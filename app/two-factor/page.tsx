@@ -9,7 +9,19 @@ export const metadata: Metadata = { title: "Two-factor authentication" };
 // carried by a signed "two_factor" cookie the browser sends automatically — so this page
 // intentionally does not gate on a session.
 export default async function TwoFactorPage() {
-  const branding = await getSettings("branding");
+  const [branding, plugins] = await Promise.all([
+    getSettings("branding"),
+    getSettings("plugins"),
+  ]);
 
-  return <TwoFactorChallengeForm logoUrl={branding.logoLight} />;
+  // Only the three PUBLIC reCAPTCHA fields cross to the client — never recaptchaSecretKey. The
+  // site key is public by design (it's what mints tokens in the browser); the secret verifies
+  // them server-side and stays in lib/recaptcha.
+  const recaptcha = {
+    enabled: plugins.recaptchaEnabled,
+    siteKey: plugins.recaptchaSiteKey,
+    version: plugins.recaptchaVersion,
+  };
+
+  return <TwoFactorChallengeForm logoUrl={branding.logoLight} recaptcha={recaptcha} />;
 }

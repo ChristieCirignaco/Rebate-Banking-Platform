@@ -10,6 +10,11 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { AUTH_FIELD_CLASS, AuthShell, AuthSubmitButton } from "@/components/auth/auth-shell";
+import {
+  RecaptchaField,
+  type RecaptchaConfig,
+  type RecaptchaHandle,
+} from "@/components/auth/recaptcha-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -29,11 +34,15 @@ function maskEmail(email: string) {
 export function VerifyOtpForm({
   logoUrl,
   email,
+  recaptcha,
 }: {
   logoUrl?: string | null;
   email: string;
+  /** The PUBLIC reCAPTCHA config (Settings → Plugins). The secret never crosses to the client. */
+  recaptcha: RecaptchaConfig;
 }) {
   const router = useRouter();
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,8 +80,21 @@ export function VerifyOtpForm({
       return;
     }
     setIsLoading(true);
+
+    // Mint a captcha token if reCAPTCHA is on. getToken returns "" when it's off — the action
+    // treats "" as a hard fail only while reCAPTCHA is enabled, so the disabled case needs no
+    // special handling. For a v2 checkbox, "" means the user didn't tick the box; catch that here
+    // for a clear message rather than a round-trip to the generic server error.
+    const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+    if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+      toast.error("Please confirm you're not a robot.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const r = await verifyLoginOtpAction(code);
+      // A server action, not a Better Auth endpoint — the token is an argument, not a header.
+      const r = await verifyLoginOtpAction(code, recaptchaToken);
       if (r.ok) {
         toast.success("Verified");
         // Hard navigation: the OTP gate is a security boundary, and a full load guarantees
@@ -87,13 +109,23 @@ export function VerifyOtpForm({
       toast.error("Something went wrong. Please try again.");
     }
     setIsLoading(false);
+    // Every path that lands here stays on this page, and the token was already spent by the
+    // action's verify call — clear it so a retry can mint a fresh one.
+    recaptchaRef.current?.reset();
   }
 
   function onResend() {
     if (cooldown > 0 || isResending) return;
     startResend(async () => {
+      // The resend action is guarded too, so it needs its own fresh token — a v2 token is
+      // single-use and the verify attempt may already have spent the last one.
+      const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+      if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+        toast.error("Please confirm you're not a robot.");
+        return;
+      }
       try {
-        const r = await resendLoginOtpAction();
+        const r = await resendLoginOtpAction(recaptchaToken);
         if (r.ok) {
           toast.success("A new code is on its way.");
           startCooldown();
@@ -103,6 +135,8 @@ export function VerifyOtpForm({
       } catch {
         toast.error("Couldn't send a new code. Please try again.");
       }
+      // The page doesn't navigate on either outcome — clear the spent v2 token.
+      recaptchaRef.current?.reset();
     });
   }
 
@@ -163,6 +197,8 @@ export function VerifyOtpForm({
             </p>
           ) : null}
         </div>
+
+        <RecaptchaField ref={recaptchaRef} config={recaptcha} action="verify-otp" />
 
         <AuthSubmitButton loading={isLoading} loadingLabel="Verifying…">
           Verify

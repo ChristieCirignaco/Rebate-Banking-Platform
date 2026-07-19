@@ -22,7 +22,25 @@ export default async function VerifyOtpPage() {
   // refresh or double render won't spam a second email while a live code is outstanding.
   await ensureLoginOtpCode(session.session.id, session.user.id, session.user.email);
 
-  const branding = await getSettings("branding");
+  const [branding, plugins] = await Promise.all([
+    getSettings("branding"),
+    getSettings("plugins"),
+  ]);
 
-  return <VerifyOtpForm logoUrl={branding.logoLight} email={session.user.email} />;
+  // Only the three PUBLIC reCAPTCHA fields cross to the client — never recaptchaSecretKey. The
+  // site key is public by design (it's what mints tokens in the browser); the secret verifies
+  // them server-side and stays in lib/recaptcha.
+  const recaptcha = {
+    enabled: plugins.recaptchaEnabled,
+    siteKey: plugins.recaptchaSiteKey,
+    version: plugins.recaptchaVersion,
+  };
+
+  return (
+    <VerifyOtpForm
+      logoUrl={branding.logoLight}
+      email={session.user.email}
+      recaptcha={recaptcha}
+    />
+  );
 }

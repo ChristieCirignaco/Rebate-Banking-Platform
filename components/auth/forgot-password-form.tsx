@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { MailCheck } from "lucide-react";
 
@@ -12,6 +12,11 @@ import {
   AUTH_FIELD_CLASS,
   AuthSubmitButton,
 } from "@/components/auth/auth-shell";
+import {
+  RecaptchaField,
+  type RecaptchaConfig,
+  type RecaptchaHandle,
+} from "@/components/auth/recaptcha-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -21,7 +26,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // request is always treated as a success (the "sent" confirmation is shown even when the
 // server returns an error) — the one exception is a 429, which we surface so users know to
 // wait rather than retry.
-export function ForgotPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
+export function ForgotPasswordForm({
+  logoUrl,
+  recaptcha,
+}: {
+  logoUrl?: string | null;
+  recaptcha: RecaptchaConfig;
+}) {
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,9 +57,22 @@ export function ForgotPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
     if (isLoading || !validate()) return;
     setIsLoading(true);
 
+    // Mint a captcha token if reCAPTCHA is on. getToken returns "" when it's off — the auth
+    // before-hook only treats "" as a failure while reCAPTCHA is enabled, so the disabled case
+    // needs no special handling. For a v2 checkbox, "" means the user didn't tick the box; catch
+    // that here so we don't silently swallow it in the enumeration-safe "sent" state below.
+    const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+    if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+      setError("Please confirm you're not a robot.");
+      setIsLoading(false);
+      return;
+    }
+
     const { error } = await authClient.requestPasswordReset({
       email: email.trim(),
       redirectTo: "/reset-password",
+      // The token rides as a header — that's what lib/auth's before-hook reads off the request.
+      fetchOptions: { headers: { "x-captcha-response": recaptchaToken } },
     });
 
     // Enumeration safety: any outcome moves to the sent state. A rate-limit is the only
@@ -55,6 +80,9 @@ export function ForgotPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
     if (error?.status === 429) {
       toast.error("Too many attempts. Please wait a few minutes.");
     }
+    // A v2 token is single-use and was consumed by the server's verify call. Reset while the
+    // widget is still mounted so "Try another email" comes back to a solvable box.
+    if (error) recaptchaRef.current?.reset();
 
     setIsLoading(false);
     setSent(true);
@@ -137,6 +165,12 @@ export function ForgotPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
                 </p>
               ) : null}
             </div>
+
+            <RecaptchaField
+              ref={recaptchaRef}
+              config={recaptcha}
+              action="forgot-password"
+            />
 
             <AuthSubmitButton loading={isLoading} loadingLabel="Sending…">
               Send reset link

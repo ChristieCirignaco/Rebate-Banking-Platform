@@ -10,7 +10,19 @@ export default async function ForgotPasswordPage() {
   // A signed-in user doesn't need to reset their password from the public flow.
   await redirectIfAuthenticated();
 
-  const branding = await getSettings("branding");
+  const [branding, plugins] = await Promise.all([
+    getSettings("branding"),
+    getSettings("plugins"),
+  ]);
 
-  return <ForgotPasswordForm logoUrl={branding.logoLight} />;
+  // Only the three PUBLIC reCAPTCHA fields cross to the client — never recaptchaSecretKey. The
+  // site key is public by design (it's what mints tokens in the browser); the secret verifies
+  // them server-side and stays in lib/recaptcha.
+  const recaptcha = {
+    enabled: plugins.recaptchaEnabled,
+    siteKey: plugins.recaptchaSiteKey,
+    version: plugins.recaptchaVersion,
+  };
+
+  return <ForgotPasswordForm logoUrl={branding.logoLight} recaptcha={recaptcha} />;
 }

@@ -7,8 +7,11 @@ import { admin as adminPlugin, twoFactor } from "better-auth/plugins";
 
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
+import { APIError, createAuthMiddleware } from "better-auth/api";
+
 import { sendEmail } from "@/lib/email";
 import { renderEmail } from "@/lib/email/template";
+import { verifyRecaptcha } from "@/lib/recaptcha";
 import { MAX_WALLETS } from "@/lib/wallets";
 import { ac, roles } from "@/lib/permissions";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -192,4 +195,45 @@ export const auth = betterAuth({
     twoFactor({ issuer: "Rebate Bank", skipVerificationOnEnable: false }),
     nextCookies(), // keep last so server actions can set cookies
   ],
+
+  // Captcha enforcement for the auth endpoints the forms hit directly.
+  //
+  // Why a hook and not better-auth's own `captcha` plugin: that plugin takes a STATIC
+  // `secretKey` at construction, but ours lives in admin Settings → Plugins (encrypted at rest,
+  // editable at runtime). A plugin would have to read the database at module init and would go
+  // stale the moment an admin rotated the key. A before-hook runs per request, so it reads the
+  // current settings every time and reuses lib/recaptcha's verifier — the same one /register
+  // already uses, including its fail-open rules for "not configured" and "Google unreachable".
+  //
+  // Endpoints are deliberately NOT better-auth's defaults. `/sign-up/email` is excluded because
+  // registration goes through our own server action, which already verifies the token and then
+  // calls auth.api.signUpEmail server-side — that internal call carries no captcha header, so
+  // guarding it here would break registration outright.
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      // Every endpoint an unauthenticated (or half-authenticated) visitor can hammer. The
+      // second-factor ones matter most: a 6-digit TOTP or an emailed OTP is brute-forceable in
+      // a way a password isn't, and they sit BEHIND a correct password — so whoever is knocking
+      // already has one valid credential. The value is the v3 action name.
+      const GUARDED: Record<string, string> = {
+        "/sign-in/email": "login",
+        "/request-password-reset": "forgot-password",
+        "/reset-password": "reset-password",
+        "/two-factor/verify-totp": "two-factor",
+        "/two-factor/verify-backup-code": "two-factor",
+        "/two-factor/verify-otp": "two-factor",
+        // Resending a verification email is an email-bomb vector aimed at someone else's inbox.
+        "/send-verification-email": "verify-email",
+      };
+      const action = GUARDED[ctx.path];
+      if (!action) return;
+
+      // Same header the official plugin uses, so the client contract is the conventional one.
+      const token = ctx.headers?.get("x-captcha-response") ?? undefined;
+      const result = await verifyRecaptcha(token, action);
+      if (!result.ok) {
+        throw new APIError("BAD_REQUEST", { message: result.error });
+      }
+    }),
+  },
 });

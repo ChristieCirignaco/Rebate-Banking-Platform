@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Eye, EyeOff } from "lucide-react";
@@ -14,18 +14,31 @@ import {
   AuthShell,
   AuthSubmitButton,
 } from "@/components/auth/auth-shell";
+import {
+  RecaptchaField,
+  type RecaptchaConfig,
+  type RecaptchaHandle,
+} from "@/components/auth/recaptcha-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 // Set a new password from the emailed link. Better Auth's API validates the token then
 // redirects here with ?token=<valid> (success) or ?error=INVALID_TOKEN (bad/expired), so
 // we read both from the URL and branch to an "invalid link" state when the token is missing.
-export function ResetPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
+export function ResetPasswordForm({
+  logoUrl,
+  recaptcha,
+}: {
+  logoUrl?: string | null;
+  /** The PUBLIC reCAPTCHA config (Settings → Plugins). The secret never crosses to the client. */
+  recaptcha: RecaptchaConfig;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get("token");
   const err = params.get("error");
 
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -79,10 +92,29 @@ export function ResetPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
     if (isLoading || !validate()) return;
     setIsLoading(true);
 
-    const { error } = await authClient.resetPassword({ newPassword, token: token! });
+    // Mint a captcha token if reCAPTCHA is on. getToken returns "" when it's off — the auth
+    // before-hook only treats "" as a failure while reCAPTCHA is enabled, so the disabled case
+    // needs no special handling. For a v2 checkbox, "" means the user didn't tick the box; catch
+    // that here for a clear message rather than a round-trip to the generic server error.
+    const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+    if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+      toast.error("Please confirm you're not a robot.");
+      setIsLoading(false);
+      return;
+    }
+
+    const { error } = await authClient.resetPassword({
+      newPassword,
+      token: token!,
+      // The token rides as a header — that's what lib/auth's before-hook reads off the request.
+      fetchOptions: { headers: { "x-captcha-response": recaptchaToken } },
+    });
     if (error) {
       setIsLoading(false);
       toast.error(error.message ?? "Could not reset password. The link may have expired.");
+      // A v2 token is single-use and was consumed by the server's verify call, so the box must
+      // be re-solved before another attempt — reset it rather than leave a spent checkmark.
+      recaptchaRef.current?.reset();
       return;
     }
 
@@ -161,6 +193,8 @@ export function ResetPasswordForm({ logoUrl }: { logoUrl?: string | null }) {
             </p>
           ) : null}
         </div>
+
+        <RecaptchaField ref={recaptchaRef} config={recaptcha} action="reset-password" />
 
         <AuthSubmitButton loading={isLoading} loadingLabel="Updating…">
           Reset password

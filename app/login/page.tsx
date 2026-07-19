@@ -12,12 +12,24 @@ export default async function LoginPage() {
   // dashboard. A pending/suspended session stays here to see its inline notice.
   await redirectIfAuthenticated();
 
-  const branding = await getSettings("branding");
+  const [branding, plugins] = await Promise.all([
+    getSettings("branding"),
+    getSettings("plugins"),
+  ]);
+
+  // Only the three PUBLIC reCAPTCHA fields cross to the client — never recaptchaSecretKey. The
+  // site key is public by design (it's what mints tokens in the browser); the secret verifies
+  // them server-side and stays in lib/recaptcha.
+  const recaptcha = {
+    enabled: plugins.recaptchaEnabled,
+    siteKey: plugins.recaptchaSiteKey,
+    version: plugins.recaptchaVersion,
+  };
 
   // UserLoginForm reads ?redirect=, so it needs a Suspense boundary.
   return (
     <Suspense>
-      <UserLoginForm logoUrl={branding.logoLight} />
+      <UserLoginForm logoUrl={branding.logoLight} recaptcha={recaptcha} />
     </Suspense>
   );
 }

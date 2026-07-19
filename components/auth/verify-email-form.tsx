@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
@@ -13,6 +13,11 @@ import {
   AuthShell,
   AuthSubmitButton,
 } from "@/components/auth/auth-shell";
+import {
+  RecaptchaField,
+  type RecaptchaConfig,
+  type RecaptchaHandle,
+} from "@/components/auth/recaptcha-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -25,7 +30,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // is off): a REGISTRATION verify carries ?registered=1 and has no session — we show the
 // "pending approval" confirmation; an already-signed-in user re-verifying is recognized by
 // their live session showing emailVerified, and gets a "go to dashboard" confirmation.
-export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
+export function VerifyEmailForm({
+  logoUrl,
+  recaptcha,
+}: {
+  logoUrl?: string | null;
+  /** The PUBLIC reCAPTCHA config (Settings → Plugins). The secret never crosses to the client. */
+  recaptcha: RecaptchaConfig;
+}) {
   const params = useSearchParams();
   const err = params.get("error");
   const registered = params.get("registered") === "1";
@@ -33,6 +45,7 @@ export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
   const sessionEmail = sessionData?.user?.email;
   const verified = sessionData?.user?.emailVerified === true;
 
+  const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,16 +60,35 @@ export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
     </Link>
   );
 
+  // Both resend entry points (the signed-in button and the email form) funnel through here, so
+  // the captcha token is minted in one place and every send carries a fresh one.
   async function resend(target: string) {
     setIsLoading(true);
+
+    // Mint a captcha token if reCAPTCHA is on. getToken returns "" when it's off — the auth
+    // before-hook only treats "" as a failure while reCAPTCHA is enabled, so the disabled case
+    // needs no special handling. For a v2 checkbox, "" means the user didn't tick the box; catch
+    // that here for a clear message rather than a round-trip to the generic server error.
+    const recaptchaToken = (await recaptchaRef.current?.getToken()) ?? "";
+    if (recaptcha.enabled && recaptcha.version === "v2" && !recaptchaToken) {
+      toast.error("Please confirm you're not a robot.");
+      setIsLoading(false);
+      return;
+    }
+
     // A not-signed-in resend is the registration flow: keep the ?registered=1 marker so the
     // re-verified link lands on the "pending approval" success (a signed-in profile resend,
     // which has a session, resolves success via that session's emailVerified instead).
     const { error: sendError } = await authClient.sendVerificationEmail({
       email: target,
       callbackURL: sessionEmail ? "/verify-email" : "/verify-email?registered=1",
+      // The token rides as a header — that's what lib/auth's before-hook reads off the request.
+      fetchOptions: { headers: { "x-captcha-response": recaptchaToken } },
     });
     setIsLoading(false);
+    // Either way we stay on this page and another resend is one click away, so clear the spent
+    // v2 token — it's single-use and was already consumed by the server's verify call.
+    recaptchaRef.current?.reset();
     if (sendError) {
       toast.error("Couldn't send the verification email. Please try again.");
       return;
@@ -165,14 +197,19 @@ export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
       </div>
 
       {sessionEmail ? (
-        <button
-          type="button"
-          onClick={() => resend(sessionEmail)}
-          disabled={isLoading}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3.5 text-sm font-bold tracking-wide text-white uppercase shadow-lg shadow-blue-600/25 transition-all hover:from-blue-700 hover:to-indigo-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-70"
-        >
-          Resend verification email
-        </button>
+        // The signed-in branch has no <form>, but it hits the same guarded endpoint — it needs
+        // its own widget so the ref is mounted and a token can be minted.
+        <div className="flex flex-col gap-4">
+          <RecaptchaField ref={recaptchaRef} config={recaptcha} action="verify-email" />
+          <button
+            type="button"
+            onClick={() => resend(sessionEmail)}
+            disabled={isLoading}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3.5 text-sm font-bold tracking-wide text-white uppercase shadow-lg shadow-blue-600/25 transition-all hover:from-blue-700 hover:to-indigo-700 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-70"
+          >
+            Resend verification email
+          </button>
+        </div>
       ) : (
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -201,6 +238,8 @@ export function VerifyEmailForm({ logoUrl }: { logoUrl?: string | null }) {
               </p>
             ) : null}
           </div>
+
+          <RecaptchaField ref={recaptchaRef} config={recaptcha} action="verify-email" />
 
           <AuthSubmitButton loading={isLoading} loadingLabel="Sending…">
             Send verification email
