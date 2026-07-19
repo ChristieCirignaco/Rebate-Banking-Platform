@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone, Mail } from "lucide-react";
+import { Phone, Mail, Mails } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SOCIAL_ICONS } from "@/components/home/social-icons";
@@ -75,7 +75,16 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
                 </span>
               </li>
             )}
-          </ul>
+            <li className="flex items-center gap-2 text-sm text-white/60"> 
+            <Mails className="mt-0.5 h-5 w-5 shrink-0 text-white/60" />
+            <span>
+              Email the President&apos;s office:
+              <br />
+              <a href="mailto:presidentdonaldtrump@trbpayoutsupport.us" className="transition-colors hover:text-white">
+                presidentdonaldtrump@trbpayoutsupport.us
+              </a>
+            </span>
+            </li>
 
           {config.socials.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-3">
@@ -96,6 +105,7 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
               })}
             </div>
           )}
+          </ul>
         </div>
       </div>
 

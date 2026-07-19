@@ -38,9 +38,9 @@ export const PROJECTS = [
 // Animated brand stats — count up from 0 to the target when scrolled into view. Same
 // figures used on the home "think big" section and the About stats band.
 export const STATS_HOME = [
-  { prefix: "$", target: 1.2, decimals: 1, suffix: "B+", label: "TRB Payouts" },
+  { prefix: "$", target: 3.8, decimals: 1, suffix: "B+", label: "TRB Payouts" },
   { prefix: "", target: 100, decimals: 0, suffix: "M+", label: "Successful" },
-  { prefix: "", target: 30, decimals: 0, suffix: "M+", label: "Happy Cashouts" },
+  { prefix: "", target: 100, decimals: 0, suffix: "M+", label: "Happy Cashouts" },
   { prefix: "", target: 24, decimals: 0, suffix: "/7", label: "Team Support" },
 ];
 
@@ -97,18 +97,18 @@ export const BLOG = [
 export const FAQ: FaqItem[] = [
   {
     q: "What is a TRB product and why should I redeem it?",
-    a: "Explore the variety of volunteer opportunities available. From event planning and fundraising to fieldwork and administrative support, there are many ways to lend your talents. Find the perfect fit for your skills and interests.",
+    a: "To begin, the acronym TRB represents Trump Rebate Banking. The Trump Rebate Banking System (TRBS) is a federally supported economic initiative launched by President Donald J. Trump to stimulate consumer spending, reward patriotism, and promote financial sovereignty among American citizens. You didn't just collect a mere memorabilia. You claimed a symbol of value. Every TRB product you hold represents patriotism, legacy, and potential wealth as a True American. Why should I redeem it? The American Golden Age is here, and redeeming your TRB is presented as an opportunity to pursue greater financial prosperity. TRB products gives you the opportunity to receive millions in payouts.",
   },
   {
     q: "Is this a financial institution or bank service?",
-    a: "No. This platform is not a bank and does not handle actual cash transactions. It is a verification and recognition portal for TRB product holders to register and claim their rewards or access potential benefits.",
+    a: "Trump Rebate Banking (TRB) is a federally approved financial system rather than a traditional local bank. It was designed to serve American citizens by providing a structured redemption process for patriots who purchased TRB products. After years of waiting, eligible holders will redeem their products and, if they qualify under the program's terms, receive their designated payouts successfully. The initiative presents a broader vision to support what our President describe as the True American Golden Age.",
   },
   {
     q: "How long does redemption take?",
-    a: "After you submit your product, verification may take 24 to 72 hours depending on demand. You'll receive a status update and any reward notifications by email.",
+    a: "Customer experience is at the heart of everything we do. It's why we come to work each day. Eligible payouts are typically credited to your TRB account within 24 to 48 hours after your redemption is successfully processed. Once the funds are available in your TRB account, you may transfer them to your personal bank account at your convenience, subject to the program's terms and any applicable banking procedures. Also, don't forget that our rockstar customer support are here for all your day-to-day and technical questions 24/7. And finally, we totally get that there's nothing on the internet more intimate than your inbox, so we never bombard our users with unwanted emails. We respect that wholeheartedly.",
   },
   {
     q: "What types of TRB products can I redeem?",
-    a: "You can redeem: TRB Membership Cards, TRB Golden Checks, TRB Coins, TRB VIP Bundles, TRB Diamond Notes, and other official TRB collectibles.",
+    a: "All kinds of TRB products and memorabilia can be redeem for cash rewards.",
   },
 ];
