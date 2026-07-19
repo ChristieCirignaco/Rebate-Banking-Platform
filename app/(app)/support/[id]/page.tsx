@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { getUserTicketDetail } from "@/lib/support";
 import { TicketChat } from "@/components/app/support/ticket-chat";
 
@@ -18,6 +19,10 @@ export default async function SupportTicketPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+  // The list at /support is gated; this detail route wasn't, so an existing ticket stayed
+  // openable by URL after Support was switched off. Redirect to /dashboard rather than /support,
+  // which is itself disabled.
+  if (!(await isFeatureEnabled("support"))) redirect("/dashboard");
 
   const { id } = await params;
   const detail = await getUserTicketDetail(session.user.id, id);

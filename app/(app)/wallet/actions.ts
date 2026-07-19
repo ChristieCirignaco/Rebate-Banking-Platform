@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireActiveUser } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import {
   addWalletFor,
   removeWalletFor,
@@ -16,8 +17,19 @@ import {
 // user-detail page can't drift from these.
 
 // The primary is created at signup; a user may add up to two more.
+// Every mutation here re-checks `wallets`. /wallet already redirects when the flag is off, but
+// that only stops the page render — these are server actions, callable directly, so the route
+// guard is presentation and this is the authority.
+async function walletsOff(): Promise<WalletMutationResult | null> {
+  return (await isFeatureEnabled("wallets"))
+    ? null
+    : { ok: false, error: "Wallets are currently unavailable." };
+}
+
 export async function addWallet(currencyCode: string): Promise<WalletMutationResult> {
   const { session } = await requireActiveUser();
+  const off = await walletsOff();
+  if (off) return off;
   const result = await addWalletFor(session.user.id, currencyCode);
   if (result.ok) revalidatePath("/wallet");
   return result;
@@ -29,6 +41,8 @@ export async function addWallet(currencyCode: string): Promise<WalletMutationRes
 // there being no user-facing surface to call it from.
 export async function removeWallet(walletId: string): Promise<WalletMutationResult> {
   const { session } = await requireActiveUser();
+  const off = await walletsOff();
+  if (off) return off;
   const result = await removeWalletFor(session.user.id, walletId);
   if (result.ok) revalidatePath("/wallet");
   return result;
@@ -38,6 +52,8 @@ export async function removeWallet(walletId: string): Promise<WalletMutationResu
 // the two must not be changed independently.
 export async function setDefaultWallet(walletId: string): Promise<WalletMutationResult> {
   const { session } = await requireActiveUser();
+  const off = await walletsOff();
+  if (off) return off;
   const result = await setDefaultWalletFor(session.user.id, walletId);
   if (result.ok) {
     // The primary currency reaches further than this page: the dashboard shows the primary

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { X } from "lucide-react";
 
 import { getSession } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { formatCurrency } from "@/lib/format";
 import {
   TRANSFER_AUTH_COOKIE,
@@ -28,6 +29,10 @@ export default async function VerifyStepPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+  // /send is gated but this continuation step wasn't, so an in-flight authorization stayed
+  // reachable after transfers were switched off. Hiding the entry point isn't enough — the URL
+  // is typeable, and the cookie survives the flag change.
+  if (!(await isFeatureEnabled("send_money"))) redirect("/dashboard");
 
   const { step } = await params;
   if (!STEPS.includes(step as TransferStep)) redirect("/send");
