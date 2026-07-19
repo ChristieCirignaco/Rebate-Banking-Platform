@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
 
-import { setTransactionPin } from "@/app/account/security/actions";
+import { setTransactionPin } from "@/app/(app)/account/security/actions";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { SettingsCard } from "@/components/account/settings-card";

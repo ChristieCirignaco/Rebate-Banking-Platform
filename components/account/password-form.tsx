@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { Loader2, Lock } from "lucide-react";
 
-import { changePassword } from "@/app/account/security/actions";
+import { changePassword } from "@/app/(app)/account/security/actions";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { SettingsCard } from "@/components/account/settings-card";

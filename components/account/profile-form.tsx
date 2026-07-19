@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useRef, useState } from "react";
 import { CheckCircle2, TriangleAlert } from "lucide-react";
 
-import { updateProfile } from "@/app/account/profile/actions";
+import { updateProfile } from "@/app/(app)/account/profile/actions";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/countries";
 import { toast } from "@/lib/toast";
