@@ -39,7 +39,7 @@ export function TransactionViewDialog({ transaction }: { transaction: Transactio
           View
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] max-h-[90vh] sm:max-w-lg">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] max-h-[90dvh] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Transaction Details</DialogTitle>
           <DialogDescription>Full ledger entry for this transaction.</DialogDescription>

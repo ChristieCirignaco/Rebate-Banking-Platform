@@ -88,7 +88,7 @@ export function CreateCodeDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh] sm:max-w-lg">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create Activation Code</DialogTitle>
           <DialogDescription>

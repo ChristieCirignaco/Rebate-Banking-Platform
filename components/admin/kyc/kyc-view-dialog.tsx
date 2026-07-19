@@ -30,7 +30,7 @@ export function KycViewDialog({ submission }: { submission: KycSubmissionView })
           View
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh] sm:max-w-2xl">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             {submission.templateTitle} Submitted Information

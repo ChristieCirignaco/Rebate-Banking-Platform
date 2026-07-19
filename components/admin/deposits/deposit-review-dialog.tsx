@@ -75,7 +75,7 @@ export function DepositReviewDialog({ request }: { request: DepositRequest }) {
           Review Request
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh]">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>Deposit Details</DialogTitle>
           <DialogDescription>

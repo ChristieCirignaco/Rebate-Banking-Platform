@@ -73,7 +73,7 @@ export function LanguageDropdown({ triggerClassName }: { triggerClassName?: stri
     >
       <div translate="no" className="notranslate">
         <p className="px-2 py-1.5 text-xs font-semibold text-slate-400">Translate this page</p>
-        <div className="max-h-[50vh] overflow-y-auto">
+        <div className="max-h-[50dvh] overflow-y-auto">
           {languages.map((l) => {
           const active = l.language === lang;
           return (

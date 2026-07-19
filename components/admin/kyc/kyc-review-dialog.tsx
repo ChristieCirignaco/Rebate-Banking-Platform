@@ -66,7 +66,7 @@ export function KycReviewDialog({
           Review Request
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh] sm:max-w-2xl">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{submission.templateTitle} Submitted Information</DialogTitle>
           <DialogDescription>

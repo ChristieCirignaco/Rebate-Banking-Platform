@@ -217,7 +217,7 @@ export function ManageGatewayDialog({ gateway }: { gateway: PaymentGatewayView }
         <TooltipContent>Manage Gateway Credentials and Others</TooltipContent>
       </Tooltip>
 
-      <DialogContent className="max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto]">
+      <DialogContent className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto]">
         <DialogHeader>
           <DialogTitle>Update Payment Gateway</DialogTitle>
           <DialogDescription>

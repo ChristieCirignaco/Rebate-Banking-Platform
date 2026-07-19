@@ -73,7 +73,7 @@ export function RequestReviewDialog({ request }: { request: MoneyRequestReview }
           Review
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh]">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>Money Request</DialogTitle>
           <DialogDescription>

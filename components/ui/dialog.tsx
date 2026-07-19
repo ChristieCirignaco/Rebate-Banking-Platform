@@ -61,7 +61,16 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl p-4 text-sm ring-1 duration-100 outline-none sm:max-w-sm",
+          // max-h + overflow are load-bearing on phones, not cosmetic. The content is centred with
+          // -translate-y-1/2, so anything taller than the screen pushes its own top ABOVE the
+          // viewport, where it can't be reached — the dialog reads as frozen. Capping the height
+          // and making the box scroll is what keeps a long dialog usable.
+          //
+          // dvh, not vh: iOS Safari resolves vh against the toolbar-HIDDEN viewport, so 100vh
+          // (and even 90vh) is taller than what you can actually see while the toolbar is up.
+          // dvh tracks the visible area as the toolbar collapses. overscroll-contain stops the
+          // page behind the dialog from rubber-banding once the inner scroll hits its end.
+          "bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto overscroll-contain rounded-xl p-4 text-sm ring-1 duration-100 outline-none sm:max-w-sm",
           className,
         )}
         {...props}

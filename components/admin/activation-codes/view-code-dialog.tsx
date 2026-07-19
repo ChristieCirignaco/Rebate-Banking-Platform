@@ -48,7 +48,7 @@ export function ViewCodeDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh] sm:max-w-2xl">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Activation Code Details</DialogTitle>
           <DialogDescription>Usage and creator information for this code.</DialogDescription>

@@ -118,7 +118,7 @@ export function BottomNavMenu({ user, enabled = [] }: { user: MenuUser; enabled?
             animate={{ opacity: open ? 1 : 0 }}
             transition={{ duration: 0.2, delay: open ? 0.08 : 0 }}
             style={{ pointerEvents: open ? "auto" : "none", width: OPEN_W }}
-            className="max-h-[60vh] overflow-y-auto p-2"
+            className="max-h-[60dvh] overflow-y-auto p-2"
           >
             <ul className="flex flex-col gap-0.5">
               {nav.map((item, index) => {

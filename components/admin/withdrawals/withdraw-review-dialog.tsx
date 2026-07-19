@@ -76,7 +76,7 @@ export function WithdrawReviewDialog({ request }: { request: WithdrawRequest }) 
           Review Request
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh]">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh]">
         <DialogHeader>
           <DialogTitle>Withdrawal Details</DialogTitle>
           <DialogDescription>

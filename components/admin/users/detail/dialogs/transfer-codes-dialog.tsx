@@ -133,7 +133,7 @@ export function TransferCodesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-1">
+        <div className="flex max-h-[60dvh] flex-col gap-4 overflow-y-auto pr-1">
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
             <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
               Important

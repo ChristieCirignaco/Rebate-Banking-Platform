@@ -63,14 +63,14 @@ export function TermsCheckbox({
       {error ? <p className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] gap-4 sm:max-w-lg">
+        <DialogContent className="max-h-[85dvh] gap-4 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Terms and Conditions</DialogTitle>
             <DialogDescription>
               Please read these terms. Selecting &ldquo;I Agree&rdquo; accepts them.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[55vh] overflow-y-auto rounded-lg border bg-muted/30 p-4 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className="max-h-[55dvh] overflow-y-auto rounded-lg border bg-muted/30 p-4 text-sm leading-relaxed whitespace-pre-wrap">
             {termsContent}
           </div>
           <DialogFooter>

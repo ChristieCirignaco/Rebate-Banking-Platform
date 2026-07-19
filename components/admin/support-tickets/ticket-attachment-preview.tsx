@@ -38,7 +38,7 @@ export function TicketAttachmentPreview({ attachment }: { attachment: TicketAtta
             <img
               src={attachment.url}
               alt={attachment.name}
-              className="max-h-[80vh] w-full rounded-md object-contain"
+              className="max-h-[80dvh] w-full rounded-md object-contain"
             />
             <div className="flex justify-end">
               <Button asChild variant="outline" size="sm">

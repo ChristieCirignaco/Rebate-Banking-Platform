@@ -68,7 +68,7 @@ export function KycFilePreview({ field }: { field: KycFieldValueView }) {
             <img
               src={field.url}
               alt={label}
-              className="max-h-[80vh] w-full rounded-md object-contain"
+              className="max-h-[80dvh] w-full rounded-md object-contain"
             />
           </DialogContent>
         </Dialog>

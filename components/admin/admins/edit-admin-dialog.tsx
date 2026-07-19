@@ -111,7 +111,7 @@ export function EditAdminDialog({ admin }: { admin: AdminAccount }) {
           Edit
         </Button>
       </DialogTrigger>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90vh] sm:max-w-lg">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] max-h-[90dvh] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit {admin.name}</DialogTitle>
           <DialogDescription>
