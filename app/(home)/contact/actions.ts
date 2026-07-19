@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { sendEmail } from "@/lib/email";
+import { renderEmail } from "@/lib/email/template";
 import { getSettings } from "@/lib/settings/store";
 
 export type ContactInput = {
@@ -54,11 +55,20 @@ export async function submitContactMessage(
   }
 
   try {
-    await sendEmail({
-      to,
-      subject: `[Contact] ${subject}`,
-      text: `From: ${fullName} <${email}>\n\n${message}`,
+    // audience:"admin" — this goes to the operator inbox, and the template prefixes the subject
+    // with the brand so it's filterable. The sender's own words stay in the body (escaped by
+    // renderEmail); their name and address go in the rows, where they're scannable and can't be
+    // mistaken for our copy.
+    const mail = await renderEmail({
+      audience: "admin",
+      heading: `Contact form: ${subject}`,
+      paragraphs: [message],
+      rows: [
+        { label: "From", value: fullName },
+        { label: "Email", value: email },
+      ],
     });
+    await sendEmail({ to, subject: mail.subject, text: mail.text, html: mail.html });
     return { ok: true };
   } catch {
     return { ok: false, error: "Something went wrong. Please try again." };

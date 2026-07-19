@@ -3,6 +3,7 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
+import { renderEmail } from "@/lib/email/template";
 
 // Mirrors lib/auth-guards ADMIN_ROLES; kept local to avoid a circular import (auth-guards
 // imports this module). Any non-admin role — including a null/legacy role — is a regular user.
@@ -70,11 +71,18 @@ async function issueCode(
     create: { sessionId, userId, codeHash, expiresAt, lastSentAt: now, sends: 1 },
   });
 
-  void sendEmail({
-    to: email,
-    subject: "Your sign-in verification code",
-    text: `Your Rebate Bank sign-in code is ${code}. It expires in 10 minutes. If you didn't just sign in, secure your account.`,
-  });
+  // No CTA: the code is entered on the tab the user already has open, and a "sign in" button
+  // here would just invite them to start a second, competing session.
+  void (async () => {
+    const mail = await renderEmail({
+      audience: "user",
+      heading: "Your sign-in code",
+      paragraphs: ["Enter this code to finish signing in. It expires in 10 minutes."],
+      code,
+      note: "If you didn't try to sign in, someone may have your password — change it and contact support.",
+    });
+    await sendEmail({ to: email, subject: mail.subject, text: mail.text, html: mail.html });
+  })();
   return { ok: true };
 }
 

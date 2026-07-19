@@ -8,6 +8,7 @@ import { admin as adminPlugin, twoFactor } from "better-auth/plugins";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
+import { renderEmail } from "@/lib/email/template";
 import { MAX_WALLETS } from "@/lib/wallets";
 import { ac, roles } from "@/lib/permissions";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -112,11 +113,25 @@ export const auth = betterAuth({
     autoSignIn: false,
     // Enables /forgot-password + /reset-password. Fire-and-forget like the verify email.
     sendResetPassword: async ({ user, url }) => {
-      void sendEmail({
-        to: user.email,
-        subject: "Reset your password",
-        text: `Reset your Rebate Bank password: ${url}\n\nIf you didn't request this, you can ignore this email.`,
-      });
+      // Rendered through the shared template like every other mail: it also picks up the
+      // admin-configured brand name, which the old hardcoded "Rebate Bank" string ignored.
+      void (async () => {
+        const mail = await renderEmail({
+          audience: "user",
+          heading: "Reset your password",
+          paragraphs: [
+            "We received a request to reset your password. Use the button below to choose a new one.",
+          ],
+          cta: { label: "Reset password", url },
+          note: "If you didn't request this, you can safely ignore this email — your password won't change.",
+        });
+        await sendEmail({
+          to: user.email,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
+        });
+      })();
     },
   },
 
@@ -140,11 +155,24 @@ export const auth = betterAuth({
     autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
       // Fire-and-forget: never await (timing + serverless timeout risk).
-      void sendEmail({
-        to: user.email,
-        subject: "Verify your email address",
-        text: `Verify your email: ${url}`,
-      });
+      void (async () => {
+        const mail = await renderEmail({
+          audience: "user",
+          heading: "Verify your email address",
+          paragraphs: [
+            "Confirm this address to finish setting up your account.",
+            "Your account is reviewed and approved by our team after verification, so you'll hear from us again once it's ready.",
+          ],
+          cta: { label: "Verify email", url },
+          note: "If you didn't create an account, you can ignore this email.",
+        });
+        await sendEmail({
+          to: user.email,
+          subject: mail.subject,
+          text: mail.text,
+          html: mail.html,
+        });
+      })();
     },
   },
 

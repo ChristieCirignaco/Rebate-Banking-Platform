@@ -20,6 +20,11 @@ export type EmailContent = {
   paragraphs: string[];
   // Optional detail table — the transaction facts (amount, reference, method).
   rows?: EmailRow[];
+  // A one-time code (sign-in, transfer authorization). Rendered as its own large, letter-spaced
+  // block rather than inline in a sentence: it's the one thing the reader needs, it has to
+  // survive being read off a phone, and it must be selectable — so it stays live text, never an
+  // image. Codes are the reason `note` usually carries the "didn't request this?" line.
+  code?: string;
   cta?: { label: string; url: string };
   // Small print under the body, e.g. "You're receiving this because…".
   note?: string;
@@ -90,6 +95,7 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
 
   // ---- plain text twin ----
   const textParts = [content.heading, "", ...content.paragraphs];
+  if (content.code) textParts.push("", content.code);
   if (content.rows?.length) {
     textParts.push("", ...content.rows.map((r) => `${r.label}: ${r.value}`));
   }
@@ -100,7 +106,12 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
   const text = textParts.join("\n");
 
   // ---- html ----
-  const logo = brand.logo && /^https?:\/\//i.test(brand.logo) ? brand.logo : null;
+  // The uploaded logo is stored as a media PATH ("/api/media/..."), not an absolute URL, so
+  // testing for https:// here dropped it and every mail fell back to the brand-name text.
+  // Resolve it against siteUrl like any other link — an inbox can't fetch a relative src.
+  // absolute() still returns null when siteUrl isn't configured, so a broken <img> is never
+  // rendered; the text wordmark remains the fallback.
+  const logo = brand.logo ? absolute(brand, brand.logo) : null;
   const header = logo
     ? `<img src="${esc(logo)}" alt="${esc(brand.name)}" height="28" style="height:28px;display:block;border:0" />`
     : `<span style="font-size:17px;font-weight:700;color:${accent};letter-spacing:-0.2px">${esc(brand.name)}</span>`;
@@ -111,6 +122,16 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
         `<p style="margin:0 0 14px;font-size:15px;line-height:23px;color:#334155">${esc(p)}</p>`,
     )
     .join("");
+
+  // Monospace + wide tracking so 0/O and 1/l can't be misread, and a light panel so it reads as
+  // a value to copy rather than body text.
+  const code = content.code
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 20px;border-collapse:separate">
+        <tr><td align="center" style="padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
+          <span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:28px;font-weight:700;letter-spacing:6px;color:#0f172a">${esc(content.code)}</span>
+        </td></tr>
+      </table>`
+    : "";
 
   const rows = content.rows?.length
     ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 20px;border-collapse:separate;border-spacing:0;background:#f8fafc;border-radius:10px">
@@ -157,6 +178,7 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
         <tr><td style="padding:16px 24px 24px">
           <h1 style="margin:0 0 12px;font-size:19px;line-height:26px;font-weight:700;color:#0f172a;letter-spacing:-0.3px">${esc(content.heading)}</h1>
           ${paragraphs}
+          ${code}
           ${rows}
           ${cta}
           ${note}
