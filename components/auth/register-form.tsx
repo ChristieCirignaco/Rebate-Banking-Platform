@@ -50,6 +50,7 @@ type FieldErrors = Partial<
     | "address"
     | "password"
     | "confirm"
+    | "activationCode"
     | "terms",
     string
   >
@@ -64,11 +65,15 @@ export function RegisterForm({
   termsContent,
   refCode,
   recaptcha,
+  activationCodeRequired,
 }: {
   logoUrl?: string | null;
   termsContent: string;
   refCode?: string;
   recaptcha: RecaptchaConfig;
+  /** Mirrors the "Activation code required" feature flag. Only shows/validates the field —
+   *  the server re-reads the flag itself, so hiding it client-side is never the real gate. */
+  activationCodeRequired: boolean;
 }) {
   const recaptchaRef = useRef<RecaptchaHandle>(null);
   const [firstName, setFirstName] = useState("");
@@ -81,6 +86,7 @@ export function RegisterForm({
   const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [activationCode, setActivationCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -114,6 +120,8 @@ export function RegisterForm({
     if (password.length < 8) next.password = "Password must be at least 8 characters.";
     else if (password.length > 128) next.password = "Password must be at most 128 characters.";
     if (confirm !== password) next.confirm = "Passwords do not match.";
+    if (activationCodeRequired && !activationCode.trim())
+      next.activationCode = "An activation code is required to register.";
     if (!acceptedTerms) next.terms = "Please accept the Terms and Conditions.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -154,6 +162,7 @@ export function RegisterForm({
         timezone,
         ...(refCode ? { ref: refCode } : {}),
         ...(recaptchaToken ? { recaptchaToken } : {}),
+        ...(activationCode.trim() ? { activationCode: activationCode.trim() } : {}),
         acceptedTerms: true,
       });
       if (result.ok) {
@@ -163,6 +172,11 @@ export function RegisterForm({
         return; // keep the spinner while the page unloads
       }
       toast.error(result.error);
+      // A rejected activation code is a field problem, not a general failure — pin the message
+      // next to the input so the user knows which box to fix.
+      if (result.field === "activationCode") {
+        setErrors((prev) => ({ ...prev, activationCode: result.error }));
+      }
       // A v2 token is single-use and was consumed by the server's verify call, so the box must
       // be re-solved before another attempt — reset it rather than leave a spent checkmark.
       recaptchaRef.current?.reset();
@@ -283,7 +297,13 @@ export function RegisterForm({
                   <span className="text-sm">{phoneCountry.dialCode}</span>
                 </span>
               </SelectTrigger>
-              <SelectContent className="max-h-72">
+              {/* `position="popper"` is load-bearing here, not cosmetic. The default
+                  "item-aligned" mode measures the trigger and scrolls the selected item to line
+                  up with it — and this trigger is a bare custom child (no <SelectValue>) inside
+                  an `overflow-hidden` flex wrapper, so that measurement never settles and
+                  opening the ~200-item list hangs the page. Popper anchors to the trigger with
+                  plain floating-ui placement instead and opens instantly. */}
+              <SelectContent position="popper" align="start" className="max-h-72 w-72">
                 {COUNTRIES.map((c) => (
                   <SelectItem key={c.code} value={c.code}>
                     <span className="mr-2">{c.flag}</span>
@@ -397,6 +417,33 @@ export function RegisterForm({
             />
           </Field>
         </div>
+
+        {activationCodeRequired ? (
+          <Field
+            label="Activation Code"
+            htmlFor="activationCode"
+            error={errors.activationCode}
+          >
+            <Input
+              id="activationCode"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="Enter your activation code"
+              value={activationCode}
+              onChange={(e) => {
+                setActivationCode(e.target.value);
+                clearError("activationCode");
+              }}
+              disabled={isLoading}
+              aria-invalid={!!errors.activationCode}
+              className={cn(AUTH_FIELD_CLASS, "tracking-wider")}
+            />
+            <p className="text-muted-foreground text-xs">
+              Ask your referrer or our support team if you don&apos;t have one.
+            </p>
+          </Field>
+        ) : null}
 
         <TermsCheckbox
           checked={acceptedTerms}

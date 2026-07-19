@@ -30,13 +30,15 @@ export default async function RegisterPage({
   // Already signed in? Don't show the signup form (admins -> /admin, active users -> /dashboard).
   await redirectIfAuthenticated();
 
-  const [{ ref }, registrationOpen, branding, legal, plugins] = await Promise.all([
-    searchParams,
-    isFeatureEnabled("registration"),
-    getSettings("branding"),
-    getSettings("legal"),
-    getSettings("plugins"),
-  ]);
+  const [{ ref }, registrationOpen, activationCodeRequired, branding, legal, plugins] =
+    await Promise.all([
+      searchParams,
+      isFeatureEnabled("registration"),
+      isFeatureEnabled("registration_activation_code"),
+      getSettings("branding"),
+      getSettings("legal"),
+      getSettings("plugins"),
+    ]);
 
   // Only the three PUBLIC reCAPTCHA fields cross to the client — never recaptchaSecretKey. The
   // site key is public by design (it's what mints tokens in the browser); the secret verifies
@@ -78,6 +80,7 @@ export default async function RegisterPage({
       termsContent={termsContent}
       refCode={typeof ref === "string" ? ref.trim().slice(0, 32) : undefined}
       recaptcha={recaptcha}
+      activationCodeRequired={activationCodeRequired}
     />
   );
 }

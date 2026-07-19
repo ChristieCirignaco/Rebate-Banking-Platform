@@ -16,6 +16,7 @@ export const FEATURE_FLAGS = [
   { key: "deposits", label: "Deposits", description: "Allow users to fund their wallet.", side: "user", defaultEnabled: true },
   { key: "withdrawals", label: "Withdrawals", description: "Allow users to withdraw funds.", side: "user", defaultEnabled: true },
   { key: "registration", label: "Registration", description: "Allow new users to sign up.", side: "user", defaultEnabled: true },
+  { key: "registration_activation_code", label: "— Activation code required", description: "Require a valid activation code on the sign-up form. Codes are managed under Activation Codes.", side: "user", defaultEnabled: false },
   { key: "products", label: "Products", description: "Show the Products page and rebate history.", side: "user", defaultEnabled: true },
   { key: "product_submission", label: "Product / Rebate Submission", description: "Allow users to submit products for rebate review.", side: "user", defaultEnabled: true },
   { key: "kyc_submission", label: "KYC Submission", description: "Allow users to submit identity verification.", side: "user", defaultEnabled: true },

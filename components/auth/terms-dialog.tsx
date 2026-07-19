@@ -44,10 +44,13 @@ export function TermsCheckbox({
           aria-invalid={!!error}
           className="mt-0.5"
         />
+        {/* `inline` overrides the shared Label's `flex` — as a block-level flex box it claimed
+            the full row, pushing the sibling link onto its own line. Inline keeps the two as
+            one continuous sentence that wraps naturally instead of breaking after "the". */}
         <span className="text-sm leading-relaxed">
-          <Label htmlFor="terms" className="cursor-pointer font-normal">
-            I accept the{" "}
-          </Label>
+          <Label htmlFor="terms" className="inline cursor-pointer font-normal">
+            I accept the
+          </Label>{" "}
           <button
             type="button"
             onClick={() => setOpen(true)}

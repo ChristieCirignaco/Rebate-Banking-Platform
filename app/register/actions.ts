@@ -13,7 +13,10 @@ import { verifyRecaptcha } from "@/lib/recaptcha";
 import { REGISTRATION_COOKIE, signRegistrationToken } from "@/lib/registration-token";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
-export type RegisterResult = { ok: true } | { ok: false; error: string };
+export type RegisterResult =
+  | { ok: true; field?: undefined }
+  // `field` lets the form pin the message to a specific input instead of only toasting it.
+  | { ok: false; error: string; field?: "activationCode" };
 
 const RegisterSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required.").max(60),
@@ -36,6 +39,9 @@ const RegisterSchema = z.object({
   // reCAPTCHA token from the client widget. Optional in the schema because it's only present
   // when the admin has enabled reCAPTCHA — verifyRecaptcha decides whether its absence matters.
   recaptchaToken: z.string().max(4000).optional(),
+  // Only meaningful while the "registration_activation_code" flag is on; the action re-reads
+  // that flag server-side and decides whether an absent code is fatal.
+  activationCode: z.string().trim().max(64).optional(),
   acceptedTerms: z.literal(true, { message: "Please accept the Terms and Conditions." }),
 });
 
@@ -147,7 +153,36 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
   const captcha = await verifyRecaptcha(data.recaptchaToken, "register");
   if (!captcha.ok) return { ok: false, error: captcha.error };
 
-  const name = `${data.firstName} ${data.lastName}`.replace(/\s+/g, " ").trim();
+  // Activation-code gate. Off by default; when the admin turns it on, only an "active" code from
+  // the Activation Codes table gets through — a suspended or unknown code is rejected with the
+  // SAME message, so this can't be used to enumerate which codes exist. The canonical stored
+  // casing (not what the user typed) is written to the user, which is what makes the admin's
+  // per-code usage count line up. Sits after the captcha so bots can't probe it for free.
+  let matchedActivationCode: string | null = null;
+  if (await isFeatureEnabled("registration_activation_code")) {
+    const entered = data.activationCode ?? "";
+    if (!entered) {
+      return {
+        ok: false,
+        error: "An activation code is required to register.",
+        field: "activationCode",
+      };
+    }
+    const found = await prisma.activationCode.findFirst({
+      where: { code: { equals: entered, mode: "insensitive" }, status: "active" },
+      select: { code: true },
+    });
+    if (!found) {
+      return {
+        ok: false,
+        error: "That activation code is not valid. Please check it and try again.",
+        field: "activationCode",
+      };
+    }
+    matchedActivationCode = found.code;
+  }
+
+  const name =`${data.firstName} ${data.lastName}`.replace(/\s+/g, " ").trim();
 
   let userId: string;
   try {
@@ -198,6 +233,7 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
         gender: data.gender,
         address: data.address,
         ...(data.timezone ? { timezone: data.timezone } : {}),
+        ...(matchedActivationCode ? { activationCode: matchedActivationCode } : {}),
         ...(referrerId && referrerId !== userId ? { referredById: referrerId } : {}),
       },
     });
@@ -208,6 +244,9 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
         where: { id: userId },
         data: {
           status: "pending",
+          // Keep the code on the retry path too — the admin's usage count is derived from this
+          // column, so dropping it here would silently under-report the code that was consumed.
+          ...(matchedActivationCode ? { activationCode: matchedActivationCode } : {}),
           ...(referrerId && referrerId !== userId ? { referredById: referrerId } : {}),
         },
       })
