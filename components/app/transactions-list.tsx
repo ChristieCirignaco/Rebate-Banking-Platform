@@ -3,13 +3,14 @@ import { TransactionRow } from "@/components/app/transaction-row";
 
 // Renders day-grouped ledger rows: a small sticky-feeling date label per group, then the
 // rows with hairline dividers. Pure presentational — the caller decides which rows to pass
-// (Home passes a short preview; History passes the filtered full list).
+// (Home passes a short preview; History passes the filtered full list) and supplies the
+// row-click handler. Rendered via TransactionsWithDetail, which owns that handler.
 export function TransactionsList({
   groups,
   onSelect,
 }: {
   groups: TransactionGroup[];
-  onSelect?: (id: string) => void;
+  onSelect: (id: string) => void;
 }) {
   return (
     <div className="flex flex-col">

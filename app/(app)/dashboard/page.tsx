@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/auth-guards";
+import { getEnabledFlags } from "@/lib/settings/feature-flags";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { toMajor } from "@/lib/money/money";
@@ -135,6 +136,8 @@ export default async function DashboardPage() {
       },
     },
     groups: groupByLabel(recentTxns.map((txn) => presentTransaction(txn, now))),
+    // getEnabledFlags is React-cached, so this shares the layout's single round-trip.
+    enabled: [...(await getEnabledFlags())],
     upcoming: pendingDeposit
       ? {
           dateLabel: pendingDeposit.createdAt.toLocaleDateString("en-US", {

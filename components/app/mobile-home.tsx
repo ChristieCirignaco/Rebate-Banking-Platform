@@ -5,7 +5,7 @@ import { BalanceHero } from "@/components/app/balance-hero";
 import { DashboardHeader } from "@/components/app/dashboard-header";
 import { QuickActions } from "@/components/app/quick-actions";
 import { StatWidgets } from "@/components/app/stat-widgets";
-import { TransactionsList } from "@/components/app/transactions-list";
+import { TransactionsWithDetail } from "@/components/app/transactions-with-detail";
 import { UpcomingPayment } from "@/components/app/upcoming-payment";
 
 const HERO_GRADIENT =
@@ -23,12 +23,13 @@ export function MobileHome({ view }: { view: DashboardView }) {
         <DashboardHeader
           greeting={view.greeting}
           name={view.name}
+          email={view.email}
           image={view.image}
         />
         <div className="mt-6">
           <BalanceHero balanceLabel={view.balanceLabel} delta={view.delta} />
         </div>
-        <QuickActions />
+        <QuickActions enabled={view.enabled} />
       </section>
 
       <section className="-mt-6 flex-1 rounded-t-[28px] bg-white px-5 pt-5 pb-28 dark:bg-slate-950">
@@ -58,7 +59,7 @@ export function MobileHome({ view }: { view: DashboardView }) {
           </div>
 
           {view.groups.length > 0 ? (
-            <TransactionsList groups={view.groups} />
+            <TransactionsWithDetail groups={view.groups} />
           ) : (
             <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">
               No transactions yet.

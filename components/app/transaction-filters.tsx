@@ -1,17 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
-import { loadTransactionDetail } from "@/app/(app)/transactions/actions";
 import { cn } from "@/lib/utils";
 import {
   groupByLabel,
   type TransactionView,
   type TxnFilter,
 } from "@/lib/dashboard/transactions";
-import type { TransactionDetail } from "@/lib/transaction-detail";
-import { TransactionDetailModal } from "@/components/app/transaction-detail-modal";
-import { TransactionsList } from "@/components/app/transactions-list";
+import { TransactionsWithDetail } from "@/components/app/transactions-with-detail";
 
 const CHIPS: { key: TxnFilter; label: string }[] = [
   { key: "all", label: "All" },
@@ -29,25 +26,11 @@ const CHIPS: { key: TxnFilter; label: string }[] = [
 // is a pure label walk — no date math on the client, no hydration drift.
 export function TransactionFilters({ transactions }: { transactions: TransactionView[] }) {
   const [active, setActive] = useState<TxnFilter>("all");
-  const [open, setOpen] = useState(false);
-  const [detail, setDetail] = useState<TransactionDetail | null>(null);
 
   const filtered =
     active === "all" ? transactions : transactions.filter((t) => t.filters.includes(active));
   const groups = groupByLabel(filtered);
   const activeLabel = CHIPS.find((c) => c.key === active)?.label ?? "";
-
-  // Row click → open the modal immediately (with a loading state) and fetch the full detail via
-  // the server action. A per-request guard prevents a slow response from replacing a newer one.
-  const latest = useRef(0);
-  function onSelect(id: string) {
-    const seq = ++latest.current;
-    setDetail(null);
-    setOpen(true);
-    void loadTransactionDetail(id).then((d) => {
-      if (seq === latest.current) setDetail(d);
-    });
-  }
 
   return (
     <div>
@@ -71,7 +54,7 @@ export function TransactionFilters({ transactions }: { transactions: Transaction
       </div>
 
       {filtered.length > 0 ? (
-        <TransactionsList groups={groups} onSelect={onSelect} />
+        <TransactionsWithDetail groups={groups} />
       ) : (
         <p className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">
           {active === "all"
@@ -79,8 +62,6 @@ export function TransactionFilters({ transactions }: { transactions: Transaction
             : `No ${activeLabel.toLowerCase()} transactions.`}
         </p>
       )}
-
-      <TransactionDetailModal open={open} onOpenChange={setOpen} detail={detail} />
     </div>
   );
 }

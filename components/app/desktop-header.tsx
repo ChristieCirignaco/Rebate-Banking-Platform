@@ -1,29 +1,21 @@
 import { Landmark } from "lucide-react";
 
 import { greetingForDate } from "@/lib/dashboard/transactions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarMenu } from "@/components/app/avatar-menu";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
 import { LanguageDropdown } from "@/components/app/translate/language-dropdown";
 import { TransactionSearch } from "@/components/app/search/transaction-search";
-
-function initials(name: string): string {
-  const letters = name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
-  return letters || "U";
-}
 
 // Desktop-only full-width header (shown at lg+) that spans the very top over BOTH the sidebar
 // and the content. Left segment (aligned to the sidebar width) holds the brand; the rest holds
 // the greeting + search / notifications / profile. Sits on the page background; never scrolls.
 export function DesktopHeader({
   name,
+  email,
   image,
 }: {
   name: string;
+  email: string;
   image: string | null | undefined;
 }) {
   return (
@@ -57,15 +49,14 @@ export function DesktopHeader({
           <TransactionSearch variant="header" />
           <LanguageDropdown triggerClassName="bg-white text-slate-600 shadow-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" />
           <NotificationBell variant="surface" />
-          <Avatar
-            size="default"
-            className="ring-2 ring-slate-200 dark:ring-slate-700"
-          >
-            {image ? <AvatarImage src={image} alt={name} /> : null}
-            <AvatarFallback className="bg-blue-600 text-xs font-semibold text-white">
-              {initials(name)}
-            </AvatarFallback>
-          </Avatar>
+          <AvatarMenu
+            name={name}
+            email={email}
+            image={image}
+            align="right"
+            size={32}
+            triggerRingClassName="ring-2 ring-slate-200 dark:ring-slate-700"
+          />
         </div>
       </div>
     </header>

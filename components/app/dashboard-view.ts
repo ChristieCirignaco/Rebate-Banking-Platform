@@ -14,4 +14,7 @@ export type DashboardView = {
   stats: StatWidgetsData;
   groups: TransactionGroup[];
   upcoming: { dateLabel: string; amountLabel: string } | null;
+  // Enabled feature-flag keys, for the hero's quick actions and the features hub. Only the keys
+  // cross to the client — the nav table itself can't, since its icons are React components.
+  enabled: string[];
 };

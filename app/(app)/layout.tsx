@@ -59,7 +59,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         ) : null}
 
         {/* Full-width header across the top — over both sidebar and content */}
-        <DesktopHeader name={user.name} image={user.image} />
+        <DesktopHeader name={user.name} email={user.email} image={user.image} />
 
         {/* Body: detached sidebar + main container, below the header */}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3 lg:p-3 lg:pt-0">

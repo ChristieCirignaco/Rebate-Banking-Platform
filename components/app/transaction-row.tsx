@@ -33,15 +33,16 @@ export const TXN_ICONS: Record<TxnIconKey, LucideIcon> = {
 };
 
 // One ledger row: circular source icon (green tint for credit, slate for debit), name +
-// subtitle, and a right-aligned signed amount + relative time. When `onSelect` is passed (the
-// History list) the row is a button that opens the details modal; without it (the server Home
-// preview) it stays a plain, non-interactive div.
+// subtitle, and a right-aligned signed amount + relative time. Always a button that opens the
+// details modal — Home and History render the same interactive row. (Home used to omit
+// `onSelect` and degrade to an inert div, which is the bug this replaced: the rows looked
+// tappable and did nothing.)
 export function TransactionRow({
   txn,
   onSelect,
 }: {
   txn: TransactionView;
-  onSelect?: (id: string) => void;
+  onSelect: (id: string) => void;
 }) {
   const Icon = TXN_ICONS[txn.iconKey];
   const content = (
@@ -85,16 +86,13 @@ export function TransactionRow({
     </>
   );
 
-  if (onSelect) {
-    return (
-      <button
-        type="button"
-        onClick={() => onSelect(txn.id)}
-        className="-mx-2 flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
-      >
-        {content}
-      </button>
-    );
-  }
-  return <div className="flex items-center gap-3 py-3">{content}</div>;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(txn.id)}
+      className="-mx-2 flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+    >
+      {content}
+    </button>
+  );
 }

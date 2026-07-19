@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { DashboardView } from "@/components/app/dashboard-view";
 import { BalanceCard } from "@/components/app/balance-card";
 import { StatWidgets } from "@/components/app/stat-widgets";
-import { TransactionsList } from "@/components/app/transactions-list";
+import { TransactionsWithDetail } from "@/components/app/transactions-with-detail";
 import { UpcomingPayment } from "@/components/app/upcoming-payment";
 
 // The desktop Home composition (shown at lg+): a two-column top row — balance card (+ upcoming)
@@ -15,7 +15,11 @@ export function DesktopHome({ view }: { view: DashboardView }) {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="flex flex-col gap-5">
-            <BalanceCard balanceLabel={view.balanceLabel} delta={view.delta} />
+            <BalanceCard
+              balanceLabel={view.balanceLabel}
+              delta={view.delta}
+              enabled={view.enabled}
+            />
             {view.upcoming ? (
               <UpcomingPayment
                 dateLabel={view.upcoming.dateLabel}
@@ -40,7 +44,7 @@ export function DesktopHome({ view }: { view: DashboardView }) {
           </div>
 
           {view.groups.length > 0 ? (
-            <TransactionsList groups={view.groups} />
+            <TransactionsWithDetail groups={view.groups} />
           ) : (
             <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">
               No transactions yet.

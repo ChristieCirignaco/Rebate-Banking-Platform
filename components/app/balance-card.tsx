@@ -9,9 +9,11 @@ const CARD_GRADIENT = "linear-gradient(150deg,#2748a0 0%,#1a2f66 50%,#0f1a38 100
 export function BalanceCard({
   balanceLabel,
   delta,
+  enabled,
 }: {
   balanceLabel: string;
   delta: BalanceDelta | null;
+  enabled: string[];
 }) {
   return (
     <div
@@ -21,7 +23,7 @@ export function BalanceCard({
       <span aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-48 rounded-full bg-white/5" />
       <div className="relative">
         <BalanceHero balanceLabel={balanceLabel} delta={delta} />
-        <QuickActions />
+        <QuickActions enabled={enabled} />
       </div>
     </div>
   );
