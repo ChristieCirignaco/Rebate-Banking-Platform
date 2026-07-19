@@ -49,6 +49,8 @@ next-env.d.ts
 
 # claude code local runtime
 .claude/
+# playwright mcp session output — per-run console logs and page snapshots
+/.playwright-mcp/
 # throwaway merge/build test worktrees
 /.mergetest*
 
