@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AdminThemeProvider } from "@/components/admin/admin-theme-provider";
 import { ScreenLock } from "@/components/admin/settings/screen-lock";
+import { ADMIN_AUTH_ARTWORK } from "@/lib/admin/auth-artwork";
 import { SiteHeader } from "@/components/site-header";
 import { UserSignOutButton } from "@/components/user-sign-out-button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -32,6 +33,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: { default: brand, template: `%s · ${brand}` } };
 }
 
+// Hide the live-chat launcher on admin. The widget loads site-wide (SitePluginScripts in the
+// root layout) and persists across client navigation, so it can't just be skipped — this style,
+// present only while an admin page is mounted, keeps the floating bubble off the admin console.
+// Both branches below render it, including the standalone sign-in page. Same Smartsupp launcher
+// selector the (app) layout offsets; update both if the configured provider changes.
+function HideChatLauncher() {
+  return <style>{`div[data-testid="widgetButtonFrame"] { display: none !important; }`}</style>;
+}
+
 export default async function AdminLayout({
   children,
 }: {
@@ -41,7 +51,14 @@ export default async function AdminLayout({
   // no sidebar chrome. proxy.ts tags the path so we can branch here without a pathname hook.
   const pathname = (await headers()).get("x-pathname") ?? "";
   if (pathname === "/admin/login") {
-    return children;
+    // Still hide the chat launcher: the early return skips the shell below, and with it the
+    // style that does this, which is why the bubble was showing on the admin sign-in page.
+    return (
+      <>
+        <HideChatLauncher />
+        {children}
+      </>
+    );
   }
 
   const session = await getSession();
@@ -82,12 +99,7 @@ export default async function AdminLayout({
 
   return (
     <AdminThemeProvider>
-      {/* Hide the live-chat launcher on admin. The widget loads site-wide (SitePluginScripts in
-          the root layout) and persists across client navigation, so it can't just be skipped —
-          this style, present only while an admin page is mounted, keeps the floating bubble off
-          the admin console. Same Smartsupp launcher selector the (app) layout offsets; update
-          both if the configured provider changes. */}
-      <style>{`div[data-testid="widgetButtonFrame"] { display: none !important; }`}</style>
+      <HideChatLauncher />
       <SidebarProvider
         style={
           {
@@ -116,7 +128,9 @@ export default async function AdminLayout({
           idleMs={screenLockMs(security.screenLockIdleValue, security.screenLockIdleUnit)}
           adminName={session.user.name}
           adminEmail={session.user.email}
-          adminImage={session.user.image ?? null}
+          brandName={general.brandName || general.siteTitle || "Rebate Bank"}
+          logoUrl={branding.logoLight}
+          artworkUrl={ADMIN_AUTH_ARTWORK}
         />
       </SidebarProvider>
     </AdminThemeProvider>

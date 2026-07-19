@@ -13,21 +13,35 @@ export function DesktopHeader({
   name,
   email,
   image,
+  brandName,
+  logoUrl,
 }: {
   name: string;
   email: string;
   image: string | null | undefined;
+  /** General → brand name. Was hardcoded "Rebate Bank", so renaming the site in Settings left
+   *  the old name sitting in the app header. */
+  brandName: string;
+  /** Branding → logo. Shown instead of the mark + wordmark when one is configured. */
+  logoUrl?: string | null;
 }) {
   return (
     <header className="hidden h-20 shrink-0 items-center gap-3 px-3 lg:flex">
       {/* Brand — aligned over the sidebar */}
       <div className="flex w-56 shrink-0 items-center gap-2.5">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm">
-          <Landmark className="size-5" />
-        </span>
-        <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
-          Rebate Bank
-        </span>
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt={brandName} className="h-9 object-contain" />
+        ) : (
+          <>
+            <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm">
+              <Landmark className="size-5" />
+            </span>
+            <span className="truncate text-base font-bold tracking-tight text-slate-900 dark:text-white">
+              {brandName}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Greeting + controls — over the content */}

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { getEnabledFlags } from "@/lib/settings/feature-flags";
+import { getSettings } from "@/lib/settings/store";
 import { SOURCE_LANG, TRANSLATE_COOKIE } from "@/lib/translate/config";
 import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
@@ -27,6 +28,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // re-checks its own (React cache makes that the same round-trip). Only the keys cross into
   // the client components; the nav itself can't (its icons are React components).
   const enabled = [...(await getEnabledFlags())];
+  // The header's brand was hardcoded; both reads are React-cached, so this shares the
+  // round-trip with anything else in the request that asks for the same settings.
+  const [general, branding] = await Promise.all([
+    getSettings("general"),
+    getSettings("branding"),
+  ]);
+  const brandName = general.brandName || general.siteTitle || "Rebate Bank";
   const user = {
     name: session.user.name ?? "there",
     email: session.user.email ?? "",
@@ -59,7 +67,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         ) : null}
 
         {/* Full-width header across the top — over both sidebar and content */}
-        <DesktopHeader name={user.name} email={user.email} image={user.image} />
+        <DesktopHeader
+          name={user.name}
+          email={user.email}
+          image={user.image}
+          brandName={brandName}
+          logoUrl={branding.logoLight}
+        />
 
         {/* Body: detached sidebar + main container, below the header */}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row lg:gap-3 lg:p-3 lg:pt-0">
