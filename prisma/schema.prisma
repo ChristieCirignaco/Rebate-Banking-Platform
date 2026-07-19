@@ -634,6 +634,9 @@ model Voucher {
   expiresAt           DateTime? @map("expires_at")
   debitTransactionId  String?   @map("debit_transaction_id") // ledger leg debiting the creator
   creditTransactionId String?   @map("credit_transaction_id") // ledger leg crediting the redeemer
+  // Ledger leg returning the face value to the creator when a voucher expires unredeemed.
+  // Its presence is what makes the refund at-most-once, mirroring Withdraw.refundTransactionId.
+  refundTransactionId String?   @map("refund_transaction_id")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 

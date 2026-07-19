@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { renderEmail } from "@/lib/email/template";
+import { formatCurrency } from "@/lib/format";
+import { postLedgerEntry } from "@/lib/money/ledger";
+import { toMajor } from "@/lib/money/money";
 import { notifyUserOf } from "@/lib/notifications";
 
 // The scheduled work the app needs. Nothing here ran before: the app had no cron at all, so
@@ -93,43 +96,112 @@ export async function dispatchScheduledNotifications(now = new Date()): Promise<
 // Voucher expiry
 // ---------------------------------------------------------------------------
 
-// Flip pending vouchers past their expiry and tell the creator.
+// Expire pending vouchers past their date, return the money, and tell the creator.
 //
-// The UI already TREATS these as expired (effectiveVoucherStatus derives it from the date), so
-// this doesn't change what anyone sees — it makes the stored status agree with the displayed
-// one, and it means the creator finds out rather than discovering it themselves.
+// Generating a voucher debits the creator for face value + fee. Nobody redeemed this one, so
+// nothing was ever transferred — without a refund the platform simply keeps their money, which
+// is what happened before this job existed (the UI already showed such vouchers as expired via
+// effectiveVoucherStatus, so the loss was silent).
 //
-// IMPORTANT: this deliberately moves no money. Generating a voucher debits the creator, and the
-// codebase has no refund path for an unredeemed one — so an expiring voucher currently keeps
-// the creator's funds. Adding a refund here would be a money-behaviour change, which belongs in
-// its own reviewed change rather than being smuggled into the scheduler.
+// Only the FACE VALUE comes back. The fee is a charge for issuing the voucher, which did
+// happen, so it's treated like any other non-refundable service fee — change `amountMinor` to
+// `amountMinor + feeMinor` below if the fee should be returned too.
+//
+// Structure mirrors rejectWithdraw (app/admin/withdrawals/actions.ts), which is the reviewed
+// refund path in this codebase: claim the row and post the reversal in ONE transaction, so a
+// voucher can never end up expired-but-unrefunded, and refundTransactionId records the leg.
 export async function expireVouchers(now = new Date()): Promise<JobResult> {
   try {
     const stale = await prisma.voucher.findMany({
       where: { status: "pending", expiresAt: { not: null, lte: now } },
       take: BATCH,
-      select: { id: true, code: true, creatorId: true },
+      select: {
+        id: true,
+        code: true,
+        creatorId: true,
+        currency: true,
+        amountMinor: true,
+        refundTransactionId: true,
+      },
     });
     if (stale.length === 0) return { job: "voucher-expiry", ok: true, processed: 0 };
 
-    // Scope by status as well as id so a redeem landing between the read and the write wins —
-    // a redeemed voucher must never be flipped to expired underneath the redeemer.
-    const { count } = await prisma.voucher.updateMany({
-      where: { id: { in: stale.map((v) => v.id) }, status: "pending" },
-      data: { status: "expired" },
-    });
-
+    const expired: typeof stale = [];
     for (const voucher of stale) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          // Claim scoped by status: a redeem landing between the read and this write wins, and
+          // a redeemed voucher must never be flipped to expired underneath the redeemer.
+          const claim = await tx.voucher.updateMany({
+            where: { id: voucher.id, status: "pending" },
+            data: { status: "expired" },
+          });
+          if (claim.count === 0) throw new Error("ALREADY");
+
+          if (voucher.refundTransactionId) return; // already refunded on an earlier run
+
+          // upsert: the creator's wallet for this currency should exist (it was debited), but
+          // it can have been removed since, and a missing wallet must not strand the refund.
+          const wallet = await tx.wallet.upsert({
+            where: {
+              userId_currency: { userId: voucher.creatorId, currency: voucher.currency },
+            },
+            update: {},
+            create: {
+              userId: voucher.creatorId,
+              currency: voucher.currency,
+              isDefault: false,
+            },
+          });
+          const refund = await postLedgerEntry({
+            walletId: wallet.id,
+            userId: voucher.creatorId,
+            currency: voucher.currency,
+            direction: "credit",
+            amountMinor: voucher.amountMinor,
+            source: "voucher",
+            // Keyed on the voucher, so a retry after a partial failure re-posts nothing.
+            idempotencyKey: `voucher:${voucher.id}:refund`,
+            referenceType: "voucher",
+            referenceId: voucher.id,
+            description: `Voucher ${voucher.code} refund (expired)`,
+            client: tx,
+          });
+          if (!refund.ok) throw new Error("LEDGER");
+          await tx.voucher.update({
+            where: { id: voucher.id },
+            data: { refundTransactionId: refund.id },
+          });
+        });
+        expired.push(voucher);
+      } catch (cause) {
+        // One voucher failing (redeemed mid-flight, or a ledger problem) must not abandon the
+        // rest of the batch. A genuine failure is left pending and retried on the next run.
+        if (!(cause instanceof Error && cause.message === "ALREADY")) {
+          console.error("[cron] voucher expiry failed for", voucher.id, cause);
+        }
+      }
+    }
+
+    // Notify after the money is committed, so the mail can never promise a refund that a
+    // rolled-back transaction didn't actually make.
+    for (const voucher of expired) {
       await notifyUserOf(voucher.creatorId, {
         type: "email",
         title: "Voucher Expired",
-        message: `Your voucher ${voucher.code} has expired and can no longer be redeemed.`,
-        rows: [{ label: "Voucher", value: voucher.code }],
-        cta: { label: "View vouchers", url: "/voucher" },
+        message: `Your voucher ${voucher.code} expired unredeemed, so the amount has been returned to your wallet.`,
+        rows: [
+          { label: "Voucher", value: voucher.code },
+          {
+            label: "Refunded",
+            value: formatCurrency(toMajor(voucher.amountMinor), voucher.currency),
+          },
+        ],
+        cta: { label: "View wallet", url: "/wallet" },
       });
     }
 
-    return { job: "voucher-expiry", ok: true, processed: count };
+    return { job: "voucher-expiry", ok: true, processed: expired.length };
   } catch (error) {
     return {
       job: "voucher-expiry",
