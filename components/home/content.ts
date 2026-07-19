@@ -46,7 +46,10 @@ export const STATS_HOME = [
 
 export const STATS_ABOUT = STATS_HOME;
 
-export const TESTIMONIALS = [
+// `avatar` is optional — cards fall back to a branded initials circle when there's no photo.
+export type Testimonial = { name: string; avatar?: string; quote: string };
+
+export const TESTIMONIALS: Testimonial[] = [
   {
     name: "Maggie J.",
     avatar: "/marketing/testimonials/testi_2_1.png",
@@ -70,6 +73,26 @@ export const TESTIMONIALS = [
     avatar: "/marketing/testimonials/testi_2_4.png",
     quote:
       "I was skeptical, but the redemption process was smooth. The team was responsive and professional. Proud to be verified!",
+  },
+  {
+    name: "Robert K.",
+    quote:
+      "I kept my TRB coin framed for years thinking it was just decor. Redeeming it turned a keepsake into real value — and the process couldn't have been simpler.",
+  },
+  {
+    name: "Sandra P.",
+    quote:
+      "As a retiree I appreciated how patient and clear the verification team was. They walked me through every step and my payout arrived right on time.",
+  },
+  {
+    name: "James O.",
+    quote:
+      "I refer everyone I know now. Three of my friends have already cashed out their TRB products after seeing mine go through without a hitch.",
+  },
+  {
+    name: "Linda M.",
+    quote:
+      "What sold me was the transparency. I could track my submission the whole way, and the reward hit my account exactly as promised.",
   },
 ];
 

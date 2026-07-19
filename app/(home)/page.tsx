@@ -12,13 +12,13 @@ import {
   Headphones,
   Zap,
   Quote,
-  Star,
 } from "lucide-react";
 
 import { Reveal } from "@/components/home/reveal";
 import { CountUp } from "@/components/home/count-up";
 import { VideoPlayer } from "@/components/home/video-player";
 import { FaqAccordion } from "@/components/home/faq-accordion";
+import { TestimonialsCarousel } from "@/components/home/testimonials-carousel";
 import {
   CASHOUT_STEPS,
   FEATURES,
@@ -352,26 +352,7 @@ export default async function Home() {
           <Reveal>
             <h2 className="text-center text-3xl font-bold sm:text-4xl">Testimonials</h2>
           </Reveal>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {TESTIMONIALS.map((t, i) => (
-              <Reveal key={t.name} delay={i * 80} className="h-full">
-                <div className="flex h-full flex-col rounded-2xl bg-[var(--trb-blue)] p-6 text-white">
-                  <div className="flex items-center gap-3">
-                    <Image src={t.avatar} alt={t.name} width={48} height={48} className="h-12 w-12 rounded-full object-cover" />
-                    <div>
-                      <div className="font-semibold">{t.name}</div>
-                      <div className="flex gap-0.5 text-[var(--trb-gold)]">
-                        {Array.from({ length: 5 }).map((_, s) => (
-                          <Star key={s} className="h-3.5 w-3.5 fill-current" />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-sm leading-relaxed text-white/85">{t.quote}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
+          <TestimonialsCarousel items={TESTIMONIALS} />
         </div>
       </section>
 
