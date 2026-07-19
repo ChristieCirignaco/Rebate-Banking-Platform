@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, Playfair_Display, Great_Vibes } from "next/font/goog
 import "./marketing.css";
 import { SiteHeader } from "@/components/home/site-header";
 import { SiteFooter } from "@/components/home/site-footer";
+import { GTranslateWidget } from "@/components/gtranslate-widget";
 import { getMarketingConfig } from "@/lib/home/site-config";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -80,6 +81,9 @@ export default async function MarketingLayout({
       <SiteHeader logoUrl={config.logo} brandName={config.brandName} />
       <div className="flex-1">{children}</div>
       <SiteFooter config={config} />
+      {/* Covers every marketing page in one mount. The signed-in app and /admin deliberately
+          don't get this — see components/gtranslate-widget.tsx. */}
+      <GTranslateWidget />
     </div>
   );
 }

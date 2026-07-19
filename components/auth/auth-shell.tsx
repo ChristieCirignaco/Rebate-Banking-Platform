@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Landmark, Loader2 } from "lucide-react";
 
+import { GTranslateWidget } from "@/components/gtranslate-widget";
+
 // Reference-style auth input: taller, more rounded, subtle fill, blue focus. Shared across
 // every auth form so login / reset / verify / OTP fields look identical.
 export const AUTH_FIELD_CLASS =
@@ -89,6 +91,10 @@ export function AuthShell({
           </div>
         ) : null}
       </div>
+      {/* Mounted here rather than per-page: every auth screen (login, register, forgot/reset,
+          verify email/OTP, two-factor) renders through this shell, so one mount covers them
+          all and none can be missed when a new one is added. */}
+      <GTranslateWidget />
     </div>
   );
 }
