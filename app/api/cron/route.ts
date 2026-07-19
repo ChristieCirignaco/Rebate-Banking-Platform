@@ -7,6 +7,15 @@ import { runAllJobs } from "@/lib/cron/jobs";
 // `Authorization: Bearer $CRON_SECRET`; any other scheduler (systemd timer, GitHub Action,
 // cron-job.org) can call it the same way.
 //
+// SCHEDULE — vercel.json runs this once daily (0 3 * * *) because Vercel HOBBY plans reject
+// anything more frequent AT DEPLOY TIME; a */5 expression fails the build outright. That cap is
+// a real functional limit, not just a tuning knob: a notice scheduled for 2pm will not be
+// emailed until the 3am sweep. Two ways out, in order of preference:
+//   1. Vercel Pro — then vercel.json can go back to a few minutes.
+//   2. Point any external scheduler at this URL with the same Bearer header. The jobs are
+//      idempotent and secret-guarded, so calling it more often is safe and needs no code change.
+// vercel.json is strict JSON and can't carry this note, which is why it lives here.
+//
 // This route is PUBLIC by URL, so the secret is the only thing standing between the internet
 // and a job runner that sends email and deletes rows. Two deliberate choices follow from that:
 // it refuses to run when CRON_SECRET is unset rather than defaulting to open, and the compare
