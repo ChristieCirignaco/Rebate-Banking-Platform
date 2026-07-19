@@ -688,11 +688,19 @@ model Notification {
   title       String?
   message     String
   scheduledAt DateTime?
+  // When the email for this notice actually went out. Only meaningful for type="email".
+  // Written by the cron dispatcher so a scheduled notice is mailed AT MOST ONCE — without a
+  // marker, every run would re-send every due row. Immediate notices are stamped at write
+  // time for the same reason: it keeps "already mailed" a single, unambiguous test.
+  emailedAt   DateTime? @map("emailed_at")
   readAt      DateTime?
   createdAt   DateTime  @default(now())
 
   // Backs the admin feed query: where {userId, type in ALERT_TYPES} ordered by createdAt.
   @@index([userId, type, createdAt])
+  // Backs the cron sweep: due, unsent, email-type notices. Without it that query is a table
+  // scan on every run.
+  @@index([scheduledAt, emailedAt])
   @@map("notifications")
 }
 

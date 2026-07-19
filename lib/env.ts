@@ -22,6 +22,10 @@ const schema = z.object({
   // the General-settings From name/email is used, falling back to a resend.dev sender.
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM: z.string().optional(),
+  // Shared secret for /api/cron. Optional so local dev and existing deploys keep booting —
+  // but the route REFUSES to run without it, rather than defaulting to open. Vercel Cron sends
+  // it as `Authorization: Bearer <CRON_SECRET>`; any other scheduler can do the same.
+  CRON_SECRET: z.string().min(16).optional(),
 });
 
 export const env = schema.parse(process.env);

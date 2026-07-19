@@ -414,6 +414,10 @@ export async function notifyUser(userId: string, input: NotifyPayload): Promise<
       title: input.title ?? null,
       message: input.message,
       scheduledAt,
+      // Stamped here for anything mailed immediately below, so `emailedAt == null` means
+      // "still owed an email" everywhere — including to the cron sweep, which is the only
+      // thing that will ever mail a scheduled row.
+      emailedAt: input.type === "email" && !scheduledAt ? new Date() : null,
     },
   });
   // Mail it only when it's an email notice that is due now. A scheduled one is stored and shown

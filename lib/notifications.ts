@@ -90,7 +90,15 @@ export async function notifyUserOf(
     // durable record and mail is a delivery channel on top of it.
     const type = args.type ?? "push";
     await prisma.notification.create({
-      data: { userId, type, title: args.title, message: args.message },
+      data: {
+        userId,
+        type,
+        title: args.title,
+        message: args.message,
+        // These are always immediate (no scheduledAt), so an email notice is mailed below and
+        // stamped now — keeping `emailedAt == null` a reliable "still owed an email" test.
+        emailedAt: type === "email" ? new Date() : null,
+      },
     });
     if (type === "email")
       await deliverEmailNotices([userId], args.title, args.message, {
