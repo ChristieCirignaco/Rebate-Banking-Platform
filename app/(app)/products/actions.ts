@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
@@ -108,6 +108,18 @@ export async function submitProducts(products: ProductInput[]): Promise<SubmitRe
     // ignored — the admin queue still shows the products.
   }
 
+  // The rebate is only credited on approval, so a submission otherwise sits silent — confirm the
+  // count so the user can tell a partial submit from a complete one. Best-effort (notifyUserOf
+  // swallows its own errors), so it can never fail the committed rows.
+  await notifyUserOf(session.user.id, {
+    type: "email",
+    title: "Products Submitted",
+    message: `We've received ${rows.length} product${rows.length === 1 ? "" : "s"} for rebate review. We'll let you know once they've been reviewed.`,
+    greeting: session.user.name ? `Dear ${session.user.name},` : undefined,
+    rows: [{ label: "Products submitted", value: String(rows.length) }],
+    cta: { label: "View products", url: "/products" },
+  });
+
   return { ok: true, count: rows.length };
 }
 
@@ -163,6 +175,13 @@ export async function updateProduct(
 // row they can no longer remove. Same owner+status scoping, for the same race.
 export async function deleteProduct(id: string): Promise<ProductMutateResult> {
   const { session } = await requireActiveUser();
+
+  // Matches submitProducts and updateProduct: the whole product mutation surface freezes when
+  // submissions are off, rather than leaving delete as the one write that still lands. Viewing
+  // is unaffected — that's the separate `products` flag.
+  if (!(await isFeatureEnabled("product_submission"))) {
+    return { ok: false, error: "Product submissions are currently disabled." };
+  }
 
   const claim = await prisma.product.deleteMany({
     where: { id, userId: session.user.id, status: "pending" },

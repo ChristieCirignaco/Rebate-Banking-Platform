@@ -11,6 +11,7 @@ import { TRANSFER_TYPE_FLAGS, type TransferKind } from "@/components/app/app-nav
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
+import { renderEmail } from "@/lib/email/template";
 import { formatCurrency } from "@/lib/format";
 import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { postLedgerEntry } from "@/lib/money/ledger";
@@ -38,6 +39,10 @@ export type RecipientLookup = { found: boolean; name?: string };
 
 export async function lookupRecipient(identifier: string): Promise<RecipientLookup> {
   const { session } = await requireActiveUser();
+  // This resolves an email/username to a real account, so it answers "does this user exist?".
+  // With transfers off there's no reason to keep that oracle callable — it returns the neutral
+  // not-found shape rather than an error, since that's what every other miss returns.
+  if (!(await isFeatureEnabled("send_money"))) return { found: false };
   const id = identifier.trim().replace(/^@/, "");
   if (id.length < 3) return { found: false };
 
@@ -249,11 +254,23 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
     otpHash: hashOtp(otp),
     expiresAt: newExpiry(),
   });
-  void sendEmail({
-    to: sender.email,
-    subject: "Your transfer authorization code",
-    text: `Your transfer authorization code is ${otp}. It expires in 15 minutes. If you didn't start a transfer, ignore this email.`,
-  });
+  // The amount and destination are restated here on purpose: this code authorizes a specific
+  // transfer, and seeing the wrong figures in the mail is the user's last chance to stop it.
+  void (async () => {
+    const mail = await renderEmail({
+      audience: "user",
+      heading: "Authorize your transfer",
+      paragraphs: ["Enter this code to authorize the transfer below. It expires in 15 minutes."],
+      code: otp,
+      rows: [
+        { label: "Amount", value: formatCurrency(Number(payload.amount), payload.currency) },
+        { label: "To", value: payload.recipientLabel },
+        { label: "Type", value: TRANSFER_LABEL[payload.type] },
+      ],
+      note: "If you didn't start this transfer, do not share this code — contact support immediately.",
+    });
+    await sendEmail({ to: sender.email, subject: mail.subject, text: mail.text, html: mail.html });
+  })();
 
   return { ok: true, next: `/send/verify/${sequence[0]}` };
 }
@@ -268,6 +285,19 @@ const TRANSFER_LABEL: Record<TransferAuthPayload["type"], string> = {
 // pending Transfer, then clear the session. Mirrors the withdraw hold pattern.
 async function finalize(userId: string, state: TransferAuthState): Promise<StepResult> {
   const { payload, transferId } = state;
+
+  // The flags are re-checked here, not only in beginTransfer. The verify flow is multi-step and
+  // can span minutes, and its state lives in a cookie — so an operator switching transfers (or
+  // one transfer type) off would otherwise still let every in-flight authorization complete.
+  // finalize is the single point where the money actually moves, so it is the one that has to
+  // hold. Same reasoning as the per-type check in beginTransfer: presentation can't be trusted.
+  if (!(await isFeatureEnabled("send_money"))) {
+    return { ok: false, error: "Transfers are currently disabled." };
+  }
+  const kindFlag = TRANSFER_TYPE_FLAGS[payload.type as TransferKind];
+  if (!kindFlag || !(await isFeatureEnabled(kindFlag))) {
+    return { ok: false, error: "That transfer type is currently unavailable." };
+  }
   const amountMinor = toMinor(Number(payload.amount));
   const txnId = txnCode("TRF");
   const codesVerified = state.sequence.some((s) => s !== "otp") &&
@@ -356,6 +386,12 @@ export async function verifyTransferStep(step: TransferStep, code: string): Prom
   const { session } = await requireActiveUser();
   const userId = session.user.id;
 
+  // Fail at the first step rather than only at finalize, so a user isn't walked through the
+  // whole code sequence for a transfer that can no longer complete.
+  if (!(await isFeatureEnabled("send_money"))) {
+    return { ok: false, error: "Transfers are currently disabled." };
+  }
+
   const state = await readAuthState();
   if (!state) return { ok: false, error: "Your transfer session expired. Please start again." };
 
@@ -391,16 +427,31 @@ export async function verifyTransferStep(step: TransferStep, code: string): Prom
 // Regenerate + re-email the OTP (from the OTP step).
 export async function resendTransferOtp(): Promise<{ ok: boolean; error?: string }> {
   const { session } = await requireActiveUser();
+  if (!(await isFeatureEnabled("send_money"))) {
+    return { ok: false, error: "Transfers are currently disabled." };
+  }
   const state = await readAuthState();
   if (!state) return { ok: false, error: "Your transfer session expired." };
   if (nextStep(state) !== "otp") return { ok: false, error: "Not at the code step yet." };
 
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   await setAuthCookie({ ...state, otpHash: hashOtp(otp), expiresAt: newExpiry() });
-  void sendEmail({
-    to: session.user.email,
-    subject: "Your transfer authorization code",
-    text: `Your new transfer authorization code is ${otp}. It expires in 15 minutes.`,
-  });
+  void (async () => {
+    const mail = await renderEmail({
+      audience: "user",
+      heading: "Your new transfer code",
+      paragraphs: [
+        "Here's a replacement code for the transfer you're authorizing. It expires in 15 minutes, and any earlier code no longer works.",
+      ],
+      code: otp,
+      note: "If you didn't request this, do not share the code — contact support immediately.",
+    });
+    await sendEmail({
+      to: session.user.email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  })();
   return { ok: true };
 }

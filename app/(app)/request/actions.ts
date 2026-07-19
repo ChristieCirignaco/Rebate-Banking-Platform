@@ -7,7 +7,7 @@ import { controlAllows } from "@/lib/controls";
 import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
@@ -74,6 +74,20 @@ export async function createMoneyRequest(input: RequestInput): Promise<RequestRe
   } catch {
     // ignored — the admin queue still shows the request.
   }
+
+  // Nothing is credited until an admin approves, so the request leaves no trace the user can feel
+  // — give them the reference to quote if they need to chase it. Best-effort (notifyUserOf
+  // swallows its own errors), so it can never fail the committed request.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Money Request Sent",
+    message: `Your money request ${txnId} for ${formatCurrency(amount.data, wallet.currency)} is pending approval.`,
+    rows: [
+      { label: "Amount", value: formatCurrency(amount.data, wallet.currency) },
+      { label: "Reference", value: txnId },
+    ],
+    cta: { label: "View requests", url: "/request" },
+  });
 
   return { ok: true, message: "Request submitted — pending admin approval." };
 }

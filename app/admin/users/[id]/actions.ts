@@ -12,6 +12,7 @@ import { isValidPin } from "@/lib/transaction-pin";
 import { toMajor } from "@/lib/money/money";
 import { deliverEmailNotices, notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
 import { addWalletFor, removeWalletFor } from "@/lib/wallets";
+import { CONTROL_META } from "@/lib/admin/user-detail";
 import { CONTROL_KEYS } from "@/components/admin/users/detail/types";
 import type {
   ControlKey,
@@ -98,6 +99,19 @@ export async function updateUserInfo(
       birthday,
     },
   });
+
+  // Notified because the user did NOT make this change — the self-service equivalent in
+  // account/profile deliberately stays silent, since mailing someone about an edit they just
+  // made themselves is noise. Email is not editable from either path, so there's no address
+  // change to warn about; this is "someone else touched your details, check them".
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Profile Details Updated",
+    message:
+      "Your profile details were updated by our team. Please review them and contact support if anything looks wrong.",
+    cta: { label: "Review profile", url: "/account/profile" },
+  });
+
   revalidate(userId);
   return { ok: true };
 }
@@ -138,6 +152,16 @@ export async function reactivateUser(userId: string): Promise<ActionResult> {
   }
 
   await prisma.user.update({ where: { id: userId }, data: { status: "active" } });
+
+  // A suspended user was locked out with no way to see this change from inside the app, so the
+  // mail is the only channel that reaches them.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Account Reactivated",
+    message: "Your account has been reactivated. You can sign in and use your account again.",
+    cta: { label: "Sign in", url: "/login" },
+  });
+
   revalidate(userId);
   return { ok: true };
 }
@@ -163,6 +187,28 @@ export async function toggleControl(
       : {};
   controls[key] = value;
   await prisma.user.update({ where: { id: userId }, data: { controls } });
+
+  // Only the two directions the user would otherwise discover as an unexplained failure get a
+  // mail: a capability switched OFF (the feature stops working) and a requirement switched ON
+  // (something new is demanded before they can transact). Restoring a capability or dropping a
+  // requirement needs no notice — nothing breaks, and mailing every toggle would train people to
+  // ignore these. `account_status` is the one that locks sign-in, so it gets its own wording.
+  const meta = CONTROL_META.find((m) => m.key === key);
+  const blocks = meta ? (meta.kind === "capability" ? !value : value) : false;
+  if (meta && blocks) {
+    await notifyUserOf(userId, {
+      type: "email",
+      title: key === "account_status" ? "Account Access Suspended" : "Account Restriction Applied",
+      message:
+        key === "account_status"
+          ? "Your account has been suspended and you won't be able to sign in. Please contact support if you think this is a mistake."
+          : meta.kind === "requirement"
+            ? `${meta.label} is now required on your account before you can transact.`
+            : `${meta.label} has been disabled on your account.`,
+      cta: { label: "Contact support", url: "/support" },
+    });
+  }
+
   revalidate(userId);
   return { ok: true };
 }
@@ -178,9 +224,12 @@ export async function manageFunds(
 
   if (!Number.isFinite(input.amount)) return { ok: false, error: "Amount is invalid." };
 
-  const wallet = await prisma.wallet.findUnique({
-    where: { userId_currency: { userId, currency: input.walletCurrency } },
-  });
+  const [wallet, target] = await Promise.all([
+    prisma.wallet.findUnique({
+      where: { userId_currency: { userId, currency: input.walletCurrency } },
+    }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
+  ]);
   if (!wallet) return { ok: false, error: "Wallet not found." };
 
   const amountMinor = BigInt(Math.round(input.amount * 100));
@@ -224,15 +273,31 @@ export async function manageFunds(
   // Best-effort notice, post-commit — and only here: the duplicate branch above returns ok
   // without having posted anything this time, so notifying there would re-announce an
   // adjustment the user was already told about.
+  const credited = input.op === "credit";
+  const amountLabel = formatCurrency(toMajor(amountMinor), wallet.currency);
+  const greetingName = target?.name?.trim() || "Customer";
+
+  // NOTE: neither `input.description` nor `input.adminNote` reaches the user. Both are the
+  // admin's own words typed while making the adjustment — internal context for the ledger entry
+  // and the admin timeline, not copy to forward to the account holder.
   await notifyUserOf(userId, {
     type: "email",
-    title: input.op === "credit" ? "Wallet credited" : "Wallet debited",
-    message: `An admin ${input.op === "credit" ? "credited" : "debited"} ${formatCurrency(
-      toMajor(amountMinor),
-      wallet.currency,
-    )} ${input.op === "credit" ? "to" : "from"} your ${wallet.currency} wallet.${
-      input.description ? ` Note: ${input.description}` : ""
-    }`,
+    title: credited ? "Account Credited" : "Account Debited",
+    // `message` is also the in-app bell row, so it has to stand alone — the greeting is
+    // email-only, where a bare "Dear X," above the sentence reads right and in the bell wouldn't.
+    greeting: `Dear ${greetingName},`,
+    message: credited
+      ? `Your TRB account has been credited successfully ${amountLabel}.`
+      : `Your TRB account has been debited successfully ${amountLabel}.`,
+    rows: [
+      { label: credited ? "Amount credited" : "Amount debited", value: amountLabel },
+      { label: "Wallet", value: wallet.currency },
+      {
+        label: "New balance",
+        value: formatCurrency(toMajor(result.balanceAfterMinor), wallet.currency),
+      },
+    ],
+    cta: { label: "View transactions", url: "/transactions" },
   });
   revalidate(userId);
   return { ok: true };
@@ -260,6 +325,20 @@ export async function saveTransferCodes(
   }
 
   await prisma.user.update({ where: { id: userId }, data: { transferCodes: sanitized } });
+
+  // The codes themselves are deliberately NOT in this mail. They're a second factor on transfers,
+  // and the transfer flow tells the user to obtain them from support — putting them in an inbox
+  // would undo both that design and the point of having them. This says only that they changed.
+  const groups = (["imf", "tax", "cot"] as const).filter((g) => sanitized[g].length > 0);
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Transfer Authorization Codes Updated",
+    message: groups.length
+      ? "Your transfer authorization codes have been updated. Contact support to obtain them when you next authorize a transfer."
+      : "Transfer authorization codes are no longer required on your account.",
+    cta: { label: "Contact support", url: "/support" },
+  });
+
   revalidate(userId);
   return { ok: true };
 }
@@ -510,6 +589,17 @@ export async function adminRevokeSessions(userId: string): Promise<ActionResult>
 
   const { count } = await prisma.session.deleteMany({ where: { userId } });
   if (count === 0) return { ok: false, error: "This user has no active sessions." };
+
+  // Being signed out everywhere with no explanation reads like a compromise, which is exactly
+  // the wrong scare — so say it was us, and give them somewhere to go if it wasn't expected.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Signed Out Of All Devices",
+    message:
+      "You've been signed out of all devices. You can sign in again with your usual password. If you didn't expect this, contact support.",
+    cta: { label: "Sign in", url: "/login" },
+  });
+
   revalidate(userId);
   return { ok: true };
 }

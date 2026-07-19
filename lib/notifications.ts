@@ -68,7 +68,20 @@ export async function notifyAdmins(args: {
 // rather than throwing into someone's transaction.
 export async function notifyUserOf(
   userId: string,
-  args: { type?: UserNoticeType; title: string; message: string },
+  args: {
+    type?: UserNoticeType;
+    title: string;
+    message: string;
+    // Detail table + link for the EMAIL only. The bell row stays title + message: the in-app
+    // notice sits next to the transaction it describes, whereas the email is read cold in an
+    // inbox and has to carry the facts (amount, wallet, resulting balance) on its own.
+    rows?: EmailRow[];
+    cta?: { label: string; url: string };
+    // Email-only salutation ("Dear Jane,") rendered as its own paragraph above `message`. Kept
+    // out of `message` because that string is also the in-app bell row, where a greeting reads
+    // as noise and would push the actual news out of the preview.
+    greeting?: string;
+  },
 ): Promise<boolean> {
   try {
     if (!userId) return false;
@@ -79,7 +92,12 @@ export async function notifyUserOf(
     await prisma.notification.create({
       data: { userId, type, title: args.title, message: args.message },
     });
-    if (type === "email") await deliverEmailNotices([userId], args.title, args.message);
+    if (type === "email")
+      await deliverEmailNotices([userId], args.title, args.message, {
+        rows: args.rows,
+        cta: args.cta,
+        greeting: args.greeting,
+      });
     return true;
   } catch {
     return false;
@@ -97,7 +115,12 @@ export async function deliverEmailNotices(
   userIds: string[],
   title: string | null,
   message: string,
-  extra?: { rows?: EmailRow[]; cta?: { label: string; url: string }; audience?: EmailAudience },
+  extra?: {
+    rows?: EmailRow[];
+    cta?: { label: string; url: string };
+    audience?: EmailAudience;
+    greeting?: string;
+  },
 ): Promise<void> {
   try {
     if (userIds.length === 0) return;
@@ -113,7 +136,7 @@ export async function deliverEmailNotices(
     const mail = await renderEmail({
       audience,
       heading: title?.trim() || "Notification",
-      paragraphs: [message],
+      paragraphs: extra?.greeting ? [extra.greeting, message] : [message],
       rows: extra?.rows,
       cta: extra?.cta ?? { label: "Open dashboard", url: audience === "admin" ? "/admin" : "/dashboard" },
       note:

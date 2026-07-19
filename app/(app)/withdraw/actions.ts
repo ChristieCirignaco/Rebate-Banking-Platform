@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { requireActiveUser } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { postLedgerEntry } from "@/lib/money/ledger";
 import { toMajor, toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
@@ -97,6 +97,21 @@ export async function createWithdrawalAccount(input: WithdrawAccountInput): Prom
       fieldValues,
     },
   });
+
+  // A new payout destination is the step an account takeover needs, so this notice is the
+  // security signal — it reaches the address on file even if the attacker is the one adding it.
+  // Only the label goes out: the account number / wallet address stays out of the mail.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Payout Account Added",
+    message: `A new payout account was added to your profile. If this wasn't you, contact support immediately.`,
+    rows: [
+      { label: "Account", value: label },
+      { label: "Method", value: method.name },
+    ],
+    cta: { label: "Review payout accounts", url: "/withdraw" },
+  });
+
   return { ok: true, accountId };
 }
 
@@ -106,10 +121,27 @@ export async function deleteWithdrawalAccount(id: string): Promise<SimpleResult>
   const { session } = await requireActiveUser();
   const off = await flagOff();
   if (off) return { ok: false, error: off };
+  // Read the label before deleting — after the row is gone there is nothing left to name it by,
+  // and a notice that can't say WHICH account was removed is close to useless.
+  const account = await prisma.withdrawalAccount.findFirst({
+    where: { id, userId: session.user.id },
+    select: { label: true },
+  });
   const removed = await prisma.withdrawalAccount.deleteMany({
     where: { id, userId: session.user.id },
   });
   if (removed.count === 0) return { ok: false, error: "Account not found." };
+
+  // Paired with the add notice: both directions of a payout-destination change are worth telling
+  // the account holder about, since removing one is how an attacker hides their tracks.
+  await notifyUserOf(session.user.id, {
+    type: "email",
+    title: "Payout Account Removed",
+    message: "A payout account was removed from your profile. If this wasn't you, contact support immediately.",
+    ...(account ? { rows: [{ label: "Account", value: account.label }] } : {}),
+    cta: { label: "Review payout accounts", url: "/withdraw" },
+  });
+
   return { ok: true };
 }
 
@@ -264,6 +296,21 @@ export async function createWithdraw(input: WithdrawInput, pin: string): Promise
   } catch {
     // ignored — the admin queue still shows the withdrawal.
   }
+
+  // The hold already debited the wallet, so the balance drops the moment this is requested. Tell
+  // the user why, and that the payout still needs review. Best-effort (notifyUserOf swallows its
+  // own errors), so it can never undo a committed withdrawal.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Withdrawal Request Received",
+    message: `Your withdrawal ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} to ${account.label} is pending review. The amount is on hold until it's processed.`,
+    rows: [
+      { label: "Amount", value: formatCurrency(amountMajor, wallet.currency) },
+      { label: "Destination", value: account.label },
+      { label: "Reference", value: txnId },
+    ],
+    cta: { label: "View transactions", url: "/transactions" },
+  });
 
   return {
     ok: true,

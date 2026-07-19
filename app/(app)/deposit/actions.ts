@@ -8,7 +8,7 @@ import { requirementBlock } from "@/lib/user-gates";
 import { prisma } from "@/lib/db";
 import { isDepositProofUrl } from "@/lib/deposit-proof";
 import { formatCurrency } from "@/lib/format";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { AmountSchema, txnCode } from "@/lib/money/txn";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
@@ -151,6 +151,20 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   } catch {
     // ignored — the admin queue still shows the deposit.
   }
+  // Nothing is credited until an admin approves, so without this the user hears nothing between
+  // submitting and the decision landing — and reads the untouched balance as a lost payment.
+  // Best-effort (notifyUserOf swallows its own errors), so it can never fail the committed request.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Deposit Request Received",
+    message: `Your deposit ${txnId} of ${formatCurrency(amountMajor, wallet.currency)} is pending review. We'll let you know once it's approved.`,
+    rows: [
+      { label: "Amount", value: formatCurrency(amountMajor, wallet.currency) },
+      { label: "Method", value: method.name },
+      { label: "Reference", value: txnId },
+    ],
+    cta: { label: "View transactions", url: "/transactions" },
+  });
   return {
     ok: true,
     next: "/transactions",

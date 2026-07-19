@@ -5,8 +5,9 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { requireActiveUser } from "@/lib/auth-guards";
+import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 import { prisma } from "@/lib/db";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { shortCode } from "@/lib/short-code";
 import { verifyAttachment } from "@/lib/tickets/attachment-token";
 import { isImageContentType } from "@/lib/tickets/files";
@@ -87,6 +88,13 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
   const { session } = await requireActiveUser();
   const userId = session.user.id;
 
+  // /support redirects when the flag is off, but that only stops the page — this action is
+  // callable directly, so the check has to be here too. Replies are gated the same way, so
+  // switching Support off closes both new tickets and further messages on existing ones.
+  if (!(await isFeatureEnabled("support"))) {
+    return { ok: false, error: "Support is currently unavailable." };
+  }
+
   const parsed = CreateSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check your details." };
@@ -149,6 +157,21 @@ export async function createTicket(input: CreateTicketInput): Promise<CreateTick
     // ignored — the admin queue still shows the ticket.
   }
 
+  // The ticket code is the only handle the user has on this conversation, and until support
+  // replies nothing else confirms it was filed — so put the code in their inbox now rather than
+  // relying on them staying on the page. Best-effort (notifyUserOf swallows its own errors).
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Ticket Received",
+    message: `Your support ticket ${code} has been received. Our team will reply to you here.`,
+    greeting: session.user.name ? `Dear ${session.user.name},` : undefined,
+    rows: [
+      { label: "Ticket", value: code },
+      { label: "Subject", value: data.subject },
+    ],
+    cta: { label: "View ticket", url: `/support/${ticketId}` },
+  });
+
   return { ok: true, ticketId };
 }
 
@@ -161,6 +184,10 @@ export async function sendTicketMessage(
 ): Promise<SendMessageResult> {
   const { session } = await requireActiveUser();
   const userId = session.user.id;
+
+  if (!(await isFeatureEnabled("support"))) {
+    return { ok: false, error: "Support is currently unavailable." };
+  }
 
   const parsed = MessageSchema.safeParse(body);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid message." };

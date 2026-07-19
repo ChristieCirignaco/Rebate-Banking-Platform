@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 
 import { prisma } from "@/lib/db";
+import { notifyAdmins } from "@/lib/notifications";
 import { toMinor } from "@/lib/money/money";
 import { REGISTRATION_COOKIE, verifyRegistrationToken } from "@/lib/registration-token";
 
@@ -115,6 +116,20 @@ export async function submitRegistrationProducts(
         imageUrl: row.imageUrl,
       })),
     });
+
+    // The in-app submitProducts raises this and this path didn't, so products uploaded during
+    // signup landed in the review queue with nothing announcing them. No user-side notice here:
+    // the account is still `pending`, so the approval mail is the next thing they should get.
+    // Best-effort — the rows are committed and registration must not fail on a notify error.
+    try {
+      await notifyAdmins({
+        type: "products_submitted",
+        title: "New product submission",
+        message: `A pending registrant submitted ${rows.length} product${rows.length === 1 ? "" : "s"} during sign-up.`,
+      });
+    } catch {
+      // ignored — the admin queue still shows the products.
+    }
   }
 
   await clearContinuation();

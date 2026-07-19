@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { getActiveKycTemplate } from "@/lib/kyc";
 import { verifyKycDocument } from "@/lib/kyc/attachment-token";
 import { contentTypeForKey, keyBasename } from "@/lib/kyc/files";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyUserOf } from "@/lib/notifications";
 import { isFeatureEnabled } from "@/lib/settings/feature-flags";
 
 export type SubmitKycInput = {
@@ -142,6 +142,19 @@ export async function submitKyc(input: SubmitKycInput): Promise<SubmitKycResult>
   } catch {
     // ignored — the admin queue still shows the submission.
   }
+
+  // Verification is a review with no visible progress: the user is now locked out of resubmitting
+  // (kycStatus is "pending") and would otherwise get no confirmation their documents arrived at
+  // all. Best-effort (notifyUserOf swallows its own errors), so it can never fail a committed
+  // submission.
+  await notifyUserOf(userId, {
+    type: "email",
+    title: "Documents Received",
+    message: `Your "${template.title}" documents are under review. We'll let you know as soon as a decision is made.`,
+    greeting: user.name ? `Dear ${user.name},` : undefined,
+    rows: [{ label: "Submission", value: template.title }],
+    cta: { label: "View verification status", url: "/kyc" },
+  });
 
   return { ok: true };
 }

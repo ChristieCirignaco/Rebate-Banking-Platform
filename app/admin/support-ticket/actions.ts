@@ -120,10 +120,21 @@ export async function replyToTicket(id: string, payload: ReplyPayload): Promise<
 
   // Best-effort — the reply already committed, so a notify failure must not fail the action.
   try {
-    await notifyUser(ticket.userId, {
-      type: "push",
+    // "email", not "push": this was the only bell-only notice in the app, which meant a support
+    // reply reached the user only if they happened to open it. The reply body itself is left out
+    // — support threads carry account details, and the ticket page is the place to read them.
+    // notifyUserOf, not the notifyUser wrapper: the wrapper is the admin dialog's Server Action
+    // (it re-checks the session and takes no detail rows). The admin session is already verified
+    // at the top of this action.
+    await notifyUserOf(ticket.userId, {
+      type: "email",
       title: `Reply to ticket #${ticket.ticketCode}`,
-      message: `An agent replied to your ticket "${ticket.subject}".`,
+      message: `An agent replied to your ticket "${ticket.subject}". Open the ticket to read the reply and respond.`,
+      rows: [
+        { label: "Ticket", value: `#${ticket.ticketCode}` },
+        { label: "Subject", value: ticket.subject },
+      ],
+      cta: { label: "View ticket", url: `/support/${ticket.id}` },
     });
   } catch {
     // best-effort
