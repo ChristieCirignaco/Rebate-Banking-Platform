@@ -23,6 +23,7 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
             alt={config.brandName}
             className={cn("h-10 w-auto", config.logoIsFallback && "brightness-0 invert")}
           />
+          <p className="mt-4 text-sm text-white-500">{config.description}</p>
           {config.footerText && (
             <p className="mt-5 text-sm leading-relaxed text-white/75">{config.footerText}</p>
           )}
@@ -32,26 +33,6 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
           >
             Join Now
           </Link>
-
-          {config.socials.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              {config.socials.map(({ key, label, href }) => {
-                const Icon = SOCIAL_ICONS[key];
-                return (
-                  <a
-                    key={key}
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={label}
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-                  >
-                    <Icon className="h-5 w-5" />
-                  </a>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         <div className="md:justify-self-center">
@@ -95,6 +76,26 @@ export function SiteFooter({ config }: { config: MarketingConfig }) {
               </li>
             )}
           </ul>
+
+          {config.socials.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              {config.socials.map(({ key, label, href }) => {
+                const Icon = SOCIAL_ICONS[key];
+                return (
+                  <a
+                    key={key}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
