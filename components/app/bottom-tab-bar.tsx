@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ArrowDownToLine,
   ArrowDownUp,
+  ArrowUpFromLine,
+  ChevronRight,
   House,
   Package,
   PackagePlus,
@@ -19,6 +20,7 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -69,24 +71,44 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
   );
 }
 
+// Quick actions listed as rows rather than a fixed 3-up grid: the labels carry a line of
+// context, the tap targets are full-width (easier one-thumbed), and — unlike `grid-cols-3` —
+// the layout stays correct when a feature flag drops one, instead of leaving a hole in the row.
+// Each gets its own accent so they're distinguishable at a glance rather than three identical
+// blue circles. Icons/hrefs/flags mirror app-nav so the same feature reads the same everywhere.
 const QUICK_ACTIONS: {
   label: string;
+  description: string;
   icon: LucideIcon;
   href: string;
   flag?: string;
+  accent: string;
 }[] = [
   {
-    label: "Deposit",
-    icon: ArrowDownToLine,
-    href: "/deposit",
-    flag: "deposits",
+    label: "Withdraw",
+    description: "Cash out to your bank or wallet",
+    icon: ArrowUpFromLine,
+    href: "/withdraw",
+    flag: "withdrawals",
+    accent:
+      "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
   },
-  { label: "Transfer", icon: ArrowDownUp, href: "/send", flag: "send_money" },
+  {
+    label: "Transfer",
+    description: "Send money to another account",
+    icon: ArrowDownUp,
+    href: "/send",
+    flag: "send_money",
+    accent: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
+  },
   {
     label: "Add product",
+    description: "Submit a purchase for rebate review",
     icon: PackagePlus,
     href: "/products/new",
     flag: "product_submission",
+    accent:
+      "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
   },
 ];
 
@@ -151,26 +173,43 @@ export function BottomTabBar({
 
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="sm:mx-auto sm:max-w-[480px]">
-          <DrawerHeader>
+          <DrawerHeader className="pb-2">
             <DrawerTitle>Quick actions</DrawerTitle>
+            {/* vaul warns when a drawer has no description, and it's the a11y announcement
+                for screen readers on open — not decoration. */}
+            <DrawerDescription>Jump straight to what you need.</DrawerDescription>
           </DrawerHeader>
-          <div className="grid grid-cols-3 gap-3 p-4 pt-0">
+
+          {/* min-h-0 + overflow-y-auto so this list is what shrinks and scrolls if the actions
+              ever outgrow the sheet's 80dvh cap (more actions, or a short phone in landscape) —
+              a flex child won't scroll without min-h-0. pb clears the home indicator on
+              gesture-nav phones; without the safe-area inset the last row sits under it. */}
+          <div className="flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain px-4 pt-1 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {actions.map((action) => {
               const Icon = action.icon;
-              const className =
-                "flex flex-col items-center gap-2 rounded-2xl border border-slate-200 p-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900";
-              const inner = (
-                <>
-                  <span className="flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                    <Icon className="size-5" />
-                  </span>
-                  {action.label}
-                </>
-              );
               return (
                 <DrawerClose asChild key={action.label}>
-                  <Link href={action.href} className={className}>
-                    {inner}
+                  <Link
+                    href={action.href}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3 transition-colors active:bg-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:active:bg-slate-800 dark:hover:bg-slate-900"
+                  >
+                    <span
+                      className={cn(
+                        "flex size-11 shrink-0 items-center justify-center rounded-full",
+                        action.accent,
+                      )}
+                    >
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-slate-900 dark:text-white">
+                        {action.label}
+                      </span>
+                      <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                        {action.description}
+                      </span>
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-slate-300 dark:text-slate-600" />
                   </Link>
                 </DrawerClose>
               );
