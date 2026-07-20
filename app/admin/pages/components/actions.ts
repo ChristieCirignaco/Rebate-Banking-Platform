@@ -34,6 +34,10 @@ async function revalidateComponentPages(componentId: string) {
         })
       ).map((s) => s.page.path);
   for (const path of new Set(paths)) revalidatePath(path);
+  // News detail pages sit in the (home) layout and so render the header/footer,
+  // but they have no CmsPage row. A dynamic segment needs the "page" type to
+  // match; without this they'd serve stale chrome until the layout's ISR window.
+  if (component?.isGlobal) revalidatePath("/news/[id]", "page");
 }
 
 export type CreateCmsComponentPayload = { name: string; schemaKey: string };
