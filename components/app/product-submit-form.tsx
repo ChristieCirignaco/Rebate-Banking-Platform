@@ -153,7 +153,7 @@ export function ProductSubmitForm({ currency }: { currency: string }) {
             </Label>
             <Input
               id={`name-${row.id}`}
-              placeholder="e.g. Wireless Headphones"
+              placeholder="e.g. Trump BTC Bar"
               value={row.name}
               onChange={(e) => update(row.id, { name: e.target.value })}
               disabled={submitting}

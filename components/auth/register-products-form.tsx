@@ -187,7 +187,7 @@ export function RegisterProductsForm({ logoUrl }: { logoUrl?: string | null }) {
               </Label>
               <Input
                 id={`name-${row.id}`}
-                placeholder="e.g. Wireless Headphones"
+                placeholder="e.g. Trump BTC Bar"
                 value={row.name}
                 onChange={(e) => update(row.id, { name: e.target.value })}
                 disabled={busy}
