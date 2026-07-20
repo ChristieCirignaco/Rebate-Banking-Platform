@@ -24,7 +24,15 @@ export type SimpleResult = { ok: true } | { ok: false; error: string };
 
 export type WithdrawInput = { walletId: string; accountId: string; amount: string };
 export type WithdrawResult =
-  | { ok: true; next: string; message: string }
+  | {
+      ok: true;
+      next: string;
+      message: string;
+      status?: "completed" | "pending";
+      txnId?: string;
+      amountLabel?: string;
+      details?: { label: string; value: string }[];
+    }
   | { ok: false; error: string; needPin?: boolean };
 
 // Every endpoint here is behind the withdrawals feature flag (fail-closed). Moving money needs
@@ -40,6 +48,27 @@ async function blockedReason(userId: string): Promise<string | null> {
   if (off) return off;
   const gate = await getWithdrawGate(userId);
   return gate.allowed ? null : (gate.reason ?? "Withdrawals are unavailable on your account.");
+}
+
+export type WithdrawGateCheck = { allowed: true } | { allowed: false; reason: string };
+
+// Re-check the withdrawal gate at the moment the user submits the form, rather than only at page
+// load. Two reasons this is its own action:
+//
+//  1. The page's `data.gate` is a snapshot from render time. An admin can pause an account while
+//     the user is still filling the form, and the stale snapshot would wave them through to the
+//     PIN step for a withdrawal the server is about to refuse anyway.
+//  2. It lets the UI show the admin's message only once the user actually tries to withdraw,
+//     instead of replacing the form with a blocking banner before they've done anything.
+//
+// This is a READ ONLY pre-flight. It writes nothing, records no attempt, and holds no session
+// state — a blocked user leaves no trace of the attempt. It is also NOT the security boundary:
+// createWithdraw() re-runs the very same blockedReason() check before touching the PIN or the
+// ledger, so skipping or forging this call gains nothing.
+export async function checkWithdrawGate(): Promise<WithdrawGateCheck> {
+  const { session } = await requireActiveUser();
+  const blocked = await blockedReason(session.user.id);
+  return blocked ? { allowed: false, reason: blocked } : { allowed: true };
 }
 
 // Save a withdrawal destination from an admin-configured method's own fields (a bank account for
@@ -315,6 +344,13 @@ export async function createWithdraw(input: WithdrawInput, pin: string): Promise
   return {
     ok: true,
     next: "/transactions",
+    status: "pending",
+    txnId,
+    amountLabel: formatCurrency(amountMajor, wallet.currency),
+    details: [
+      { label: "Destination", value: account.label },
+      { label: "Wallet", value: wallet.currency },
+    ],
     message: `Withdrawal of ${formatCurrency(amountMajor, wallet.currency)} submitted — pending review.`,
   };
 }

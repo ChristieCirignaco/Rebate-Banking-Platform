@@ -12,7 +12,9 @@ export const metadata: Metadata = { title: "Withdrawals" };
 
 // Withdraw to a saved account (bank or crypto, from an admin-configured method). Flag-gated:
 // when withdrawals are off, bounce to the dashboard. The per-user gate (withdraw control, the
-// admin's withdrawalStatus/message, KYC) is surfaced inline by the view.
+// admin's withdrawalStatus/message, KYC) is NOT resolved here: it is checked when the user
+// submits the form, so a paused account still fills it in normally and receives the admin's
+// message as a dialog at that point rather than a banner on arrival.
 export default async function WithdrawPage() {
   const session = await getSession();
   if (!session) redirect("/login");

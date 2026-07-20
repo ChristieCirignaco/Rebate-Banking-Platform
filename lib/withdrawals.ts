@@ -59,7 +59,10 @@ export type WithdrawData = {
   methods: WithdrawMethodView[];
   accounts: WithdrawAccountView[];
   hasPin: boolean;
-  gate: WithdrawGate;
+  // NOTE: the gate is deliberately NOT part of this payload. It is resolved server-side at submit
+  // time by checkWithdrawGate(). Shipping it here would put the admin's private withdrawal
+  // message into the page's RSC stream, readable in devtools before the user has tried anything —
+  // which is exactly the up-front disclosure this flow is meant to avoid.
   limits: { min: number; max: number; dailyLimit: number };
 };
 
@@ -145,7 +148,7 @@ export async function getWithdrawGate(userId: string): Promise<WithdrawGate> {
 }
 
 export async function getWithdrawData(userId: string): Promise<WithdrawData> {
-  const [wallets, user, accountRows, gate, limits] = await Promise.all([
+  const [wallets, user, accountRows, limits] = await Promise.all([
     loadUserWallets(userId),
     prisma.user.findUnique({ where: { id: userId }, select: { transactionPin: true } }),
     prisma.withdrawalAccount.findMany({
@@ -164,7 +167,6 @@ export async function getWithdrawData(userId: string): Promise<WithdrawData> {
       },
       orderBy: { createdAt: "desc" },
     }),
-    getWithdrawGate(userId),
     getSettings("limits"),
   ]);
 
@@ -228,7 +230,6 @@ export async function getWithdrawData(userId: string): Promise<WithdrawData> {
         summary: summarize(toFieldValues(a.fieldValues)),
       })),
     hasPin: Boolean(user?.transactionPin),
-    gate,
     limits: {
       min: limits.withdrawalMin,
       max: limits.withdrawalMax,

@@ -1,12 +1,13 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Banknote, Bitcoin, Loader2, Plus, ShieldAlert, Trash2, Wallet } from "lucide-react";
 
 import {
+  checkWithdrawGate,
   createWithdraw,
   createWithdrawalAccount,
   deleteWithdrawalAccount,
@@ -16,6 +17,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { WithdrawAccountView, WithdrawData, WithdrawMethodView } from "@/lib/withdrawals";
 import { PasscodeDialog } from "@/components/app/passcode-dialog";
+import { ResultDialog, type ResultPayload } from "@/components/app/result-dialog";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +37,9 @@ const SELECT =
 export function WithdrawView({ data }: { data: WithdrawData }) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
+  // Owned here rather than inside AddAccountDialog: that surface is itself a Dialog, and stacking
+  // one on another traps focus in the wrong layer. The child closes, the parent reports.
+  const [result, setResult] = useState<ResultPayload | null>(null);
 
   return (
     <div className="flex flex-col gap-5">
@@ -53,19 +58,17 @@ export function WithdrawView({ data }: { data: WithdrawData }) {
         </button>
       </div>
 
-      <AccountList accounts={data.accounts} onChanged={() => router.refresh()} />
+      <AccountList
+        accounts={data.accounts}
+        onChanged={() => router.refresh()}
+        onResult={setResult}
+      />
 
-      {!data.gate.allowed ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600" />
-          <div>
-            <p className="text-sm font-semibold text-amber-900">Withdrawals unavailable</p>
-            <p className="text-sm text-amber-800">{data.gate.reason}</p>
-          </div>
-        </div>
-      ) : (
-        <WithdrawForm data={data} />
-      )}
+      {/* The withdrawal-control gate is deliberately NOT shown here. A user who is paused still
+          fills the form normally; the control is checked when they submit, and the admin's
+          message is delivered as a dialog at that point. Showing it up front told people they
+          were blocked before they had asked for anything. */}
+      <WithdrawForm data={data} />
 
       <AddAccountDialog
         open={addOpen}
@@ -74,7 +77,21 @@ export function WithdrawView({ data }: { data: WithdrawData }) {
         onSaved={() => {
           setAddOpen(false);
           router.refresh();
+          setResult({
+            status: "completed",
+            title: "Withdrawal account saved",
+            message: "You can now select this account when requesting a withdrawal.",
+          });
         }}
+      />
+
+      <ResultDialog
+        open={Boolean(result)}
+        onOpenChange={(open) => {
+          if (!open) setResult(null);
+        }}
+        result={result}
+        primaryLabel={result?.status === "error" ? "Try again" : "Done"}
       />
     </div>
   );
@@ -83,9 +100,11 @@ export function WithdrawView({ data }: { data: WithdrawData }) {
 function AccountList({
   accounts,
   onChanged,
+  onResult,
 }: {
   accounts: WithdrawAccountView[];
   onChanged: () => void;
+  onResult: (result: ResultPayload) => void;
 }) {
   const [removing, setRemoving] = useState<string | null>(null);
 
@@ -96,9 +115,23 @@ function AccountList({
       if (res.ok) {
         toast.success("Account removed");
         onChanged();
-      } else toast.error(res.error);
+        onResult({
+          status: "completed",
+          title: "Account removed",
+          message: "That payout account is no longer on your profile.",
+        });
+      } else {
+        toast.error(res.error);
+        onResult({ status: "error", title: "Couldn't remove the account", message: res.error });
+      }
     } catch {
       toast.error("Something went wrong. Please try again.");
+      onResult({
+        status: "error",
+        title: "Couldn't remove the account",
+        message:
+          "We couldn't reach the server. The account is unchanged — check your connection and try again.",
+      });
     }
     setRemoving(null);
   }
@@ -162,6 +195,9 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
 
   const [amount, setAmount] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  const [, startCheck] = useTransition();
 
   const amountNum = Number(amount);
   const validAmount = Number.isFinite(amountNum) && amountNum > 0;
@@ -182,13 +218,36 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (checking) return;
     if (!wallet) return toast.error("Select a wallet.");
     if (!account) return toast.error("Add a withdrawal account for this currency first.");
     if (!validAmount) return toast.error("Enter a valid amount.");
     if (overBalance) return toast.error("Insufficient wallet balance.");
     if (fee >= amountNum) return toast.error("This amount doesn't cover the withdrawal fee.");
     if (!data.hasPin) return toast.error("Set up your transaction PIN in Security first.");
-    setPinOpen(true);
+
+    // The withdrawal control is checked HERE — after the form is filled and the user has
+    // committed to withdrawing, not before. A blocked account gets the admin's message and
+    // stops: the PIN dialog never opens, createWithdraw is never called, and nothing is
+    // written or held in session, so the attempt leaves no trace.
+    setChecking(true);
+    startCheck(async () => {
+      let gate: Awaited<ReturnType<typeof checkWithdrawGate>>;
+      try {
+        gate = await checkWithdrawGate();
+      } catch {
+        setChecking(false);
+        toast.error("We couldn't verify your withdrawal status. Please try again.");
+        return;
+      }
+      setChecking(false);
+      if (!gate.allowed) {
+        toast.error("Withdrawal unavailable on your account.");
+        setBlockedReason(gate.reason);
+        return;
+      }
+      setPinOpen(true);
+    });
   }
 
   if (data.wallets.length === 0) {
@@ -325,10 +384,11 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
 
         <button
           type="submit"
-          disabled={!account || !validAmount || overBalance}
+          disabled={!account || !validAmount || overBalance || checking}
           className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
         >
-          Withdraw now
+          {checking ? <Loader2 className="size-4 animate-spin" /> : null}
+          {checking ? "Checking…" : "Withdraw now"}
         </button>
 
         {!data.hasPin ? (
@@ -340,6 +400,34 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
           </p>
         ) : null}
       </form>
+
+      {/* The admin's withdrawal-control message, shown only once the user has actually tried to
+          withdraw. Purely informational — no retry, because nothing was attempted or stored. */}
+      <Dialog
+        open={Boolean(blockedReason)}
+        onOpenChange={(open) => {
+          if (!open) setBlockedReason(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-50 ring-8 ring-amber-100 dark:bg-amber-500/10 dark:ring-amber-500/20">
+              <ShieldAlert className="size-7 text-amber-600 dark:text-amber-400" strokeWidth={2.5} />
+            </div>
+            <DialogTitle className="text-center text-lg">Withdrawal unavailable</DialogTitle>
+            <DialogDescription className="text-center">
+              {blockedReason}
+            </DialogDescription>
+          </DialogHeader>
+          <button
+            type="button"
+            onClick={() => setBlockedReason(null)}
+            className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800"
+          >
+            Close
+          </button>
+        </DialogContent>
+      </Dialog>
 
       <PasscodeDialog
         open={pinOpen}
@@ -408,7 +496,9 @@ function AddAccountDialog({
       }
       setError(res.error);
     } catch {
-      setError("Something went wrong. Please try again.");
+      // Stays inline rather than becoming a result dialog — this form is already a modal, and
+      // replacing it would discard every field the user just filled in.
+      setError("We couldn't reach the server. Your details are still here — please try again.");
     }
     setSaving(false);
   }
