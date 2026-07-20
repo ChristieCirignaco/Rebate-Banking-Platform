@@ -6,6 +6,7 @@ import { Loader2, Lock } from "lucide-react";
 
 import { changePassword } from "@/app/(app)/account/security/actions";
 import { toast } from "@/lib/toast";
+import { ResultDialog, type ResultPayload } from "@/components/app/result-dialog";
 import { Button } from "@/components/ui/button";
 import { SettingsCard } from "@/components/account/settings-card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<ResultPayload | null>(null);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -35,14 +37,26 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       });
       if (res.ok) {
         toast.success("Password updated. Any other devices were signed out.");
+        setResult({
+          status: "completed",
+          title: "Password updated",
+          message: "Your password has been changed and any other signed-in devices were signed out.",
+        });
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
         toast.error(res.error);
+        setResult({ status: "error", title: "Couldn't update your password", message: res.error });
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
+      setResult({
+        status: "error",
+        title: "Couldn't update your password",
+        message:
+          "We couldn't reach the server. Your password is unchanged — check your connection and try again.",
+      });
     }
     // Always reset, including after an error — otherwise a failed attempt leaves the form
     // permanently disabled with no way back but a reload.
@@ -112,6 +126,15 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
           PIN still apply.
         </p>
       )}
+
+      <ResultDialog
+        open={Boolean(result)}
+        onOpenChange={(open) => {
+          if (!open) setResult(null);
+        }}
+        result={result}
+        primaryLabel={result?.status === "error" ? "Try again" : "Done"}
+      />
     </SettingsCard>
   );
 }

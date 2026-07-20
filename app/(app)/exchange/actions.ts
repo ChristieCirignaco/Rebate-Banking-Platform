@@ -16,7 +16,15 @@ import { verifyTransactionPin } from "@/lib/transaction-pin";
 
 export type ExchangeInput = { fromWalletId: string; toWalletId: string; amount: string };
 export type ExchangeResult =
-  | { ok: true; next: string; message: string }
+  | {
+      ok: true;
+      next: string;
+      message: string;
+      status?: "completed" | "pending";
+      txnId?: string;
+      amountLabel?: string;
+      details?: { label: string; value: string }[];
+    }
   | { ok: false; error: string; needPin?: boolean };
 
 // Exchange between two of the user's own wallets. Instant + passcode-gated: verify the PIN, then
@@ -161,6 +169,15 @@ export async function createExchange(input: ExchangeInput, pin: string): Promise
   return {
     ok: true,
     next: "/exchange",
+    // The only inline-settling money flow: both wallets have already moved by this point, so this
+    // is a genuine "completed" rather than a queued request.
+    status: "completed",
+    txnId,
+    amountLabel: formatCurrency(toMajor(toAmountMinor), toWallet.currency),
+    details: [
+      { label: "From", value: formatCurrency(toMajor(fromAmountMinor), fromWallet.currency) },
+      { label: "To", value: formatCurrency(toMajor(toAmountMinor), toWallet.currency) },
+    ],
     message: `Exchanged ${formatCurrency(toMajor(fromAmountMinor), fromWallet.currency)} to ${formatCurrency(toMajor(toAmountMinor), toWallet.currency)}.`,
   };
 }

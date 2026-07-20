@@ -21,7 +21,15 @@ export type DepositInput = {
   fields?: Record<string, string>; // manual custom-field values, keyed by field id
 };
 export type DepositResult =
-  | { ok: true; next: string; message: string }
+  | {
+      ok: true;
+      next: string;
+      message: string;
+      status?: "completed" | "pending";
+      txnId?: string;
+      amountLabel?: string;
+      details?: { label: string; value: string }[];
+    }
   | { ok: false; error: string; needPin?: boolean };
 
 
@@ -168,6 +176,15 @@ export async function createDeposit(input: DepositInput, pin: string): Promise<D
   return {
     ok: true,
     next: "/transactions",
+    // "pending", not "completed": the row commits as pending and credits nothing until an admin
+    // approves, so the dialog must not tell the user the money has landed.
+    status: "pending",
+    txnId,
+    amountLabel: formatCurrency(amountMajor, wallet.currency),
+    details: [
+      { label: "Method", value: method.name },
+      { label: "Wallet", value: wallet.currency },
+    ],
     message: "Deposit request submitted — pending admin approval.",
   };
 }

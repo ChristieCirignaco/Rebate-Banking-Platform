@@ -6,6 +6,7 @@ import { KeyRound, Loader2 } from "lucide-react";
 
 import { setTransactionPin } from "@/app/(app)/account/security/actions";
 import { toast } from "@/lib/toast";
+import { ResultDialog, type ResultPayload } from "@/components/app/result-dialog";
 import { Button } from "@/components/ui/button";
 import { SettingsCard } from "@/components/account/settings-card";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ export function TransactionPinForm({ hasPin }: { hasPin: boolean }) {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<ResultPayload | null>(null);
   const [enabled, setEnabled] = useState(hasPin);
 
   async function onSubmit(event: FormEvent) {
@@ -43,15 +45,27 @@ export function TransactionPinForm({ hasPin }: { hasPin: boolean }) {
         toast.success(
           enabled ? "Transaction PIN updated." : "Transaction PIN set.",
         );
+        setResult({
+          status: "completed",
+          title: enabled ? "Transaction PIN updated" : "Transaction PIN set",
+          message: "You'll use this PIN to authorize deposits, withdrawals, transfers and exchanges.",
+        });
         setEnabled(true);
         setCurrentPin("");
         setNewPin("");
         setConfirmPin("");
       } else {
         toast.error(res.error);
+        setResult({ status: "error", title: "Couldn't save your PIN", message: res.error });
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
+      setResult({
+        status: "error",
+        title: "Couldn't save your PIN",
+        message:
+          "We couldn't reach the server. Your PIN is unchanged — check your connection and try again.",
+      });
     }
     setSaving(false);
   }
@@ -104,6 +118,15 @@ export function TransactionPinForm({ hasPin }: { hasPin: boolean }) {
           {enabled ? "Update PIN" : "Set PIN"}
         </Button>
       </form>
+
+      <ResultDialog
+        open={Boolean(result)}
+        onOpenChange={(open) => {
+          if (!open) setResult(null);
+        }}
+        result={result}
+        primaryLabel={result?.status === "error" ? "Try again" : "Done"}
+      />
     </SettingsCard>
   );
 }

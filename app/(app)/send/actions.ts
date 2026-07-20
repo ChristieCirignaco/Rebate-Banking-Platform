@@ -81,7 +81,18 @@ export type SendInput = {
 export type BeginResult =
   | { ok: true; next: string }
   | { ok: false; error: string; needPin?: boolean };
-export type StepResult = { ok: true; next: string; done?: boolean } | { ok: false; error: string };
+export type StepResult =
+  | {
+      ok: true;
+      next: string;
+      done?: boolean;
+      message?: string;
+      status?: "completed" | "pending";
+      txnId?: string;
+      amountLabel?: string;
+      details?: { label: string; value: string }[];
+    }
+  | { ok: false; error: string };
 
 const AmountSchema = z.coerce
   .number({ message: "Enter a valid amount." })
@@ -377,7 +388,21 @@ async function finalize(userId: string, state: TransferAuthState): Promise<StepR
   }
 
   await clearAuthCookie();
-  return { ok: true, next: "/transactions", done: true };
+  return {
+    ok: true,
+    next: "/transactions",
+    done: true,
+    // Held, not sent: the transfer commits as pending and an admin approval is what credits the
+    // recipient, so this reports "pending" rather than claiming the money has arrived.
+    status: "pending",
+    txnId,
+    amountLabel,
+    details: [
+      { label: "Recipient", value: payload.recipientLabel },
+      { label: "Type", value: TRANSFER_LABEL[payload.type] },
+    ],
+    message: `Transfer of ${amountLabel} to ${payload.recipientLabel} submitted — pending review.`,
+  };
 }
 
 // Verify one step of the authorization flow. Enforces order server-side (the step must be the

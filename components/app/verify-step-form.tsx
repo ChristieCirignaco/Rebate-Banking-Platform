@@ -8,6 +8,7 @@ import { resendTransferOtp, verifyTransferStep } from "@/app/(app)/send/actions"
 import type { TransferStep } from "@/lib/transfer-auth";
 import { toast } from "@/lib/toast";
 import { Input } from "@/components/ui/input";
+import { ResultDialog, type ResultPayload } from "@/components/app/result-dialog";
 
 const META: Record<TransferStep, { title: string; hint: string }> = {
   imf: { title: "IMF authorization code", hint: "Enter your IMF code to continue." },
@@ -30,6 +31,8 @@ export function VerifyStepForm({
   recipientLabel: string;
 }) {
   const [code, setCode] = useState("");
+  const [result, setResult] = useState<ResultPayload | null>(null);
+  const [next, setNext] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [resending, startResend] = useTransition();
   const meta = META[step];
@@ -39,13 +42,41 @@ export function VerifyStepForm({
     event.preventDefault();
     if (pending || !code.trim()) return;
     startTransition(async () => {
-      const res = await verifyTransferStep(step, code.trim());
+      let res: Awaited<ReturnType<typeof verifyTransferStep>>;
+      try {
+        res = await verifyTransferStep(step, code.trim());
+      } catch {
+        // A thrown action left this form spinning with no explanation. The transfer is mid-flow
+        // and money may be on hold, so the user has to be told to check rather than blindly retry.
+        setResult({
+          status: "error",
+          message:
+            "We couldn't reach the server to verify this step. Check your connection, then review your transactions before trying again.",
+        });
+        return;
+      }
+
       if (res.ok) {
-        if (res.done) toast.success("Transfer submitted for review.");
-        window.location.href = res.next;
+        // Intermediate steps just advance to the next code; only the final one has an outcome
+        // worth stopping on.
+        if (!res.done) {
+          window.location.href = res.next;
+          return;
+        }
+        const message = res.message ?? "Transfer submitted for review.";
+        toast.success(message);
+        setNext(res.next);
+        setResult({
+          status: res.status ?? "pending",
+          message,
+          txnId: res.txnId,
+          amountLabel: res.amountLabel,
+          details: res.details,
+        });
         return;
       }
       toast.error(res.error);
+      setResult({ status: "error", message: res.error });
       setCode("");
     });
   }
@@ -108,6 +139,23 @@ export function VerifyStepForm({
           {resending ? "Sending…" : "Resend code"}
         </button>
       ) : null}
+
+      <ResultDialog
+        open={Boolean(result)}
+        // Dismissing a submitted transfer goes onward; dismissing a failure returns to the code
+        // form so the step can be retried.
+        onOpenChange={(open) => {
+          if (open) return;
+          if (next) window.location.href = next;
+          else setResult(null);
+        }}
+        result={result}
+        onPrimary={() => {
+          if (next) window.location.href = next;
+          else setResult(null);
+        }}
+        primaryLabel={next ? "View transactions" : "Try again"}
+      />
     </div>
   );
 }

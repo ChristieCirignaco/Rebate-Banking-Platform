@@ -8,6 +8,7 @@ import { updateProfile } from "@/app/(app)/account/profile/actions";
 import { authClient } from "@/lib/auth-client";
 import { COUNTRIES } from "@/lib/countries";
 import { toast } from "@/lib/toast";
+import { ResultDialog, type ResultPayload } from "@/components/app/result-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
   const [birthday, setBirthday] = useState(initial.birthday);
   const [image, setImage] = useState(initial.image);
   const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<ResultPayload | null>(null);
   const [uploading, setUploading] = useState(false);
   const [resending, setResending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -95,10 +97,27 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
         birthday,
         image,
       });
-      if (result.ok) toast.success("Profile updated");
-      else toast.error(result.error);
+      if (result.ok) {
+        toast.success("Profile updated");
+        setResult({
+          status: "completed",
+          title: "Profile updated",
+          message: "Your changes have been saved to your account.",
+        });
+      } else {
+        toast.error(result.error);
+        setResult({ status: "error", title: "Couldn't save your profile", message: result.error });
+      }
     } catch {
+      // A thrown action (network drop, action failure) previously showed only a generic toast that
+      // scrolled away — on a form the user just filled in, the failure has to stay on screen.
       toast.error("Something went wrong. Please try again.");
+      setResult({
+        status: "error",
+        title: "Couldn't save your profile",
+        message:
+          "We couldn't reach the server to save your changes. Your edits are still on this page — check your connection and try again.",
+      });
     }
     setSaving(false);
   }
@@ -391,6 +410,15 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
           </Button>
         </div>
       </form>
+
+      <ResultDialog
+        open={Boolean(result)}
+        onOpenChange={(open) => {
+          if (!open) setResult(null);
+        }}
+        result={result}
+        primaryLabel={result?.status === "error" ? "Try again" : "Done"}
+      />
     </SettingsCard>
   );
 }
