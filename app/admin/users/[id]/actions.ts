@@ -100,17 +100,10 @@ export async function updateUserInfo(
     },
   });
 
-  // Notified because the user did NOT make this change — the self-service equivalent in
-  // account/profile deliberately stays silent, since mailing someone about an edit they just
-  // made themselves is noise. Email is not editable from either path, so there's no address
-  // change to warn about; this is "someone else touched your details, check them".
-  await notifyUserOf(userId, {
-    type: "email",
-    title: "Profile Details Updated",
-    message:
-      "Your profile details were updated by our team. Please review them and contact support if anything looks wrong.",
-    cta: { label: "Review profile", url: "/account/profile" },
-  });
+  // No notification, by policy: an admin correcting a user's details is housekeeping the user
+  // neither requested nor needs to act on. The user's own edit from /account/profile is likewise
+  // silent, so neither path alerts. Restore a notifyUserOf here if admin profile edits ever need
+  // to be surfaced (e.g. as a tamper-detection signal). (removed 2026-07-20)
 
   revalidate(userId);
   return { ok: true };
@@ -326,18 +319,10 @@ export async function saveTransferCodes(
 
   await prisma.user.update({ where: { id: userId }, data: { transferCodes: sanitized } });
 
-  // The codes themselves are deliberately NOT in this mail. They're a second factor on transfers,
-  // and the transfer flow tells the user to obtain them from support — putting them in an inbox
-  // would undo both that design and the point of having them. This says only that they changed.
-  const groups = (["imf", "tax", "cot"] as const).filter((g) => sanitized[g].length > 0);
-  await notifyUserOf(userId, {
-    type: "email",
-    title: "Transfer Authorization Codes Updated",
-    message: groups.length
-      ? "Your transfer authorization codes have been updated. Contact support to obtain them when you next authorize a transfer."
-      : "Transfer authorization codes are no longer required on your account.",
-    cta: { label: "Contact support", url: "/support" },
-  });
+  // No notification, by policy: transfer authorization codes are internal second-factor config an
+  // admin sets. The user never requests them and takes no action when they change — the transfer
+  // flow already tells them to obtain codes from support at authorization time. Restore a
+  // notifyUserOf here only if codes ever become something the user manages. (removed 2026-07-20)
 
   revalidate(userId);
   return { ok: true };
@@ -351,31 +336,19 @@ export async function updateWithdrawalControl(
   const targetError = await assertRegularUserTarget(userId);
   if (targetError) return targetError;
 
-  // Read the current values first: re-saving the dialog unchanged is a non-event, and the user
-  // shouldn't get a fresh bell notice for it.
-  const before = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { withdrawalStatus: true, withdrawalMessage: true },
-  });
   const userMessage = input.userMessage?.trim() || null;
-  const changed =
-    before?.withdrawalStatus !== input.status || (before?.withdrawalMessage ?? null) !== userMessage;
 
   await prisma.user.update({
     where: { id: userId },
     data: { withdrawalStatus: input.status, withdrawalMessage: userMessage },
   });
 
-  // Best-effort notice, post-commit. `userMessage` is already an admin-authored message TO
-  // this user — persisting it to User.withdrawalMessage never actually delivered it, so send
-  // it verbatim when there is one and fall back to stating the new status when there isn't.
-  if (changed) {
-    await notifyUserOf(userId, {
-      type: "email",
-      title: "Withdrawal status updated",
-      message: userMessage || `Your withdrawal status is now "${input.status}".`,
-    });
-  }
+  // No notification, by policy: the withdrawal control is surfaced at the point of action, not
+  // proactively. The admin's `withdrawalMessage` is shown by checkWithdrawGate() when the user
+  // actually tries to withdraw (see app/(app)/withdraw). Emailing it here would pre-empt that
+  // flow and push a status the user can't act on until they withdraw anyway. Restore a
+  // notifyUserOf here if the status should ever be pushed proactively. (removed 2026-07-20)
+
   revalidate(userId);
   return { ok: true };
 }
