@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 
-import type { Testimonial } from "./content";
+// `avatar` is optional — cards fall back to a branded initials circle when there's no photo.
+export type Testimonial = { name: string; avatar?: string; quote: string };
 
 function initials(name: string): string {
   return name

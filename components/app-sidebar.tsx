@@ -14,11 +14,13 @@ import {
   Coins,
   CreditCard,
   FileCheck,
+  Files,
   Gift,
   HandCoins,
   KeyRound,
   Landmark,
   LayoutDashboard,
+  LayoutTemplate,
   LifeBuoy,
   Megaphone,
   Package,
@@ -128,6 +130,13 @@ const NAV: NavGroup[] = [
         icon: Megaphone,
       },
       { title: "All Notifications", href: "/admin/notifications", icon: Bell },
+    ],
+  },
+  {
+    label: "Pages",
+    items: [
+      { title: "Page Manager", href: "/admin/pages", icon: Files },
+      { title: "Page Components", href: "/admin/pages/components", icon: LayoutTemplate },
     ],
   },
   {

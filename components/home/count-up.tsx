@@ -22,6 +22,8 @@ export function CountUp({
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [n, setN] = useState(0);
+  // toFixed throws outside 0..100 — clamp so a bad CMS value can't crash the page.
+  const digits = Math.min(100, Math.max(0, Math.trunc(decimals) || 0));
 
   useEffect(() => {
     const el = ref.current;
@@ -33,7 +35,7 @@ export function CountUp({
           if (!entry.isIntersecting) continue;
           obs.unobserve(entry.target);
           const start = performance.now();
-          const factor = 10 ** decimals;
+          const factor = 10 ** digits;
           const tick = (now: number) => {
             const p = Math.min(1, (now - start) / durationMs);
             // easeOutCubic
@@ -51,12 +53,12 @@ export function CountUp({
       obs.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [target, durationMs, decimals]);
+  }, [target, durationMs, digits]);
 
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {n.toFixed(decimals)}
+      {n.toFixed(digits)}
       {suffix}
     </span>
   );

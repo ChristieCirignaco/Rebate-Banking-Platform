@@ -6,22 +6,23 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
-const NAV = [
-  { label: "Home", href: "/" },
-  { label: "Service", href: "/service" },
-  { label: "Product", href: "/product" },
-  { label: "About Us", href: "/about" },
-  { label: "Contact Us", href: "/contact" },
-];
+import { cmsText, type CmsComponentData } from "@/lib/cms/types";
 
 export function SiteHeader({
   logoUrl,
   brandName,
+  nav,
 }: {
   logoUrl: string;
   brandName: string;
+  nav: CmsComponentData | null;
 }) {
+  const NAV = (nav?.collections.links ?? []).map((l) => ({
+    label: cmsText(l.data, "label"),
+    href: cmsText(l.data, "href", "/"),
+  }));
+  const signInLabel = cmsText(nav?.content ?? {}, "signInLabel", "Sign in");
+  const joinLabel = cmsText(nav?.content ?? {}, "joinLabel", "Join Now");
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -90,13 +91,13 @@ export function SiteHeader({
           {/* desktop CTAs */}
           <div className="hidden items-center gap-4 lg:flex">
             <Link href="/login" className="text-sm font-medium text-white/85 transition-colors hover:text-white">
-              Sign in
+              {signInLabel}
             </Link>
             <Link
               href="/register"
               className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[var(--trb-dark)] transition-colors hover:bg-[#e2e8f0]"
             >
-              Join Now
+              {joinLabel}
             </Link>
           </div>
 
@@ -133,14 +134,14 @@ export function SiteHeader({
                 onClick={() => setOpen(false)}
                 className="flex-1 rounded-full border border-white/20 px-5 py-2.5 text-center text-sm font-medium text-white"
               >
-                Sign in
+                {signInLabel}
               </Link>
               <Link
                 href="/register"
                 onClick={() => setOpen(false)}
                 className="flex-1 rounded-full bg-white px-5 py-2.5 text-center text-sm font-semibold text-[var(--trb-dark)]"
               >
-                Join Now
+                {joinLabel}
               </Link>
             </div>
           </nav>

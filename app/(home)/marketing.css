@@ -114,3 +114,50 @@
   .fade-up, .fade-left, .fade-right { opacity: 1 !important; transform: none !important; transition: none !important; }
   .sparkle { animation: none; opacity: 0.4; }
 }
+
+/* ============ CMS rich-text (dynamic components, e.g. Privacy Policy) ============ */
+/* Mirrors the styling the hardcoded policy page used, since sanitized admin HTML
+   can't carry utility classes. */
+.cms-prose {
+  font-size: 15px;
+  line-height: 1.85;
+  color: rgb(71 85 105); /* slate-600 */
+}
+.cms-prose h2 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  color: var(--trb-blue);
+}
+.cms-prose h2:not(:first-child) {
+  margin-top: 2.5rem;
+}
+.cms-prose h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--trb-dark);
+  margin-top: 2rem;
+}
+.cms-prose p {
+  margin-top: 1rem;
+}
+.cms-prose ul,
+.cms-prose ol {
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+.cms-prose ol {
+  list-style: decimal;
+}
+.cms-prose li + li {
+  margin-top: 0.5rem;
+}
+.cms-prose strong {
+  color: var(--trb-dark);
+  font-weight: 700;
+}
+.cms-prose a {
+  color: var(--trb-blue);
+  text-decoration: underline;
+}

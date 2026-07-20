@@ -33,30 +33,30 @@ model User {
   banExpires    DateTime?
 
   // App profile
-  username        String?   @unique
-  phone           String?
-  country         String?
-  timezone        String?
-  locale          String?
-  currency        String    @default("USD")
-  gender          String    @default("unspecified") // male | female | other | unspecified
-  birthday        DateTime?
-  address         String?
+  username          String?   @unique
+  phone             String?
+  country           String?
+  timezone          String?
+  locale            String?
+  currency          String    @default("USD")
+  gender            String    @default("unspecified") // male | female | other | unspecified
+  birthday          DateTime?
+  address           String?
   // App admin state
-  status            String   @default("active") // active | suspended | pending
-  kycStatus         String   @default("not_submitted") // approved | pending | not_submitted | rejected
+  status            String    @default("active") // active | suspended | pending
+  kycStatus         String    @default("not_submitted") // approved | pending | not_submitted | rejected
   kycDocumentType   String? // e.g. Passport | National ID | Driver's License (free-form label)
   lastLoginAt       DateTime?
   activationCode    String?
   twoFactorEnabled  Boolean?  @default(false) // Better Auth twoFactor plugin (TOTP)
-  transactionPin    String? @map("transaction_pin") // argon2id-hashed transfer PIN (never returned to client)
-  withdrawalStatus  String   @default("allowed") // allowed | pending | hold | suspended | restricted
+  transactionPin    String?   @map("transaction_pin") // argon2id-hashed transfer PIN (never returned to client)
+  withdrawalStatus  String    @default("allowed") // allowed | pending | hold | suspended | restricted
   withdrawalMessage String?
   controls          Json? // per-user capability toggles (design spec §9.3 / user controls)
   transferCodes     Json? // { imf: string[], tax: string[], cot: string[] }
 
   // Referrals (self relation)
-  referralCode String?  @unique @map("referral_code") // the user's own share code (lazy-generated)
+  referralCode String? @unique @map("referral_code") // the user's own share code (lazy-generated)
   referredById String?
   referredBy   User?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals    User[]  @relation("Referrals")
@@ -64,28 +64,28 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions      Session[]
-  accounts      Account[]
-  wallets       Wallet[]
-  transactions  WalletTransaction[]
-  notifications  Notification[]
-  products       Product[]
-  deposits       Deposit[]
-  withdrawals    Withdraw[]
-  sentTransfers     Transfer[] @relation("SentTransfers")
-  receivedTransfers Transfer[] @relation("ReceivedTransfers")
-  moneyRequests     MoneyRequest[]
-  exchanges         Exchange[]
-  vouchersCreated   Voucher[] @relation("VouchersCreated")
-  vouchersRedeemed  Voucher[] @relation("VouchersRedeemed")
-  referralEarnings  ReferralEarning[] @relation("ReferralEarner") // earnings this user earned as referrer
-  referralEarningFrom ReferralEarning? @relation("ReferredEarner") // the earning THEY triggered (as referred)
-  withdrawalAccounts WithdrawalAccount[]
-  kycSubmissions KycSubmission[]
-  tickets        Ticket[]
-  createdActivationCodes ActivationCode[] @relation("ActivationCodeCreatedBy")
-  twoFactor      TwoFactor?
-  loginOtps      LoginOtp[]
+  sessions               Session[]
+  accounts               Account[]
+  wallets                Wallet[]
+  transactions           WalletTransaction[]
+  notifications          Notification[]
+  products               Product[]
+  deposits               Deposit[]
+  withdrawals            Withdraw[]
+  sentTransfers          Transfer[]          @relation("SentTransfers")
+  receivedTransfers      Transfer[]          @relation("ReceivedTransfers")
+  moneyRequests          MoneyRequest[]
+  exchanges              Exchange[]
+  vouchersCreated        Voucher[]           @relation("VouchersCreated")
+  vouchersRedeemed       Voucher[]           @relation("VouchersRedeemed")
+  referralEarnings       ReferralEarning[]   @relation("ReferralEarner") // earnings this user earned as referrer
+  referralEarningFrom    ReferralEarning?    @relation("ReferredEarner") // the earning THEY triggered (as referred)
+  withdrawalAccounts     WithdrawalAccount[]
+  kycSubmissions         KycSubmission[]
+  tickets                Ticket[]
+  createdActivationCodes ActivationCode[]    @relation("ActivationCodeCreatedBy")
+  twoFactor              TwoFactor?
+  loginOtps              LoginOtp[]
 
   @@index([status])
   @@index([kycStatus])
@@ -242,20 +242,20 @@ model WalletTransaction {
 // ---------------------------------------------------------------------------
 
 model Currency {
-  id         String         @id @default(uuid())
-  code       String         @unique
-  name       String
-  symbol     String
-  type       String         @default("fiat") // fiat | crypto
-  flagUrl    String?        @map("flag_url")
-  rate       Decimal        @default(1) @map("rate") @db.Decimal(38, 18)
-  autoWallet Boolean        @default(false) @map("auto_wallet")
-  isDefault  Boolean        @default(false) @map("is_default")
-  isActive   Boolean        @default(true) @map("is_active")
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @updatedAt @map("updated_at")
-  roles      CurrencyRole[]
-  depositMethods DepositMethod[]
+  id              String           @id @default(uuid())
+  code            String           @unique
+  name            String
+  symbol          String
+  type            String           @default("fiat") // fiat | crypto
+  flagUrl         String?          @map("flag_url")
+  rate            Decimal          @default(1) @map("rate") @db.Decimal(38, 18)
+  autoWallet      Boolean          @default(false) @map("auto_wallet")
+  isDefault       Boolean          @default(false) @map("is_default")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  roles           CurrencyRole[]
+  depositMethods  DepositMethod[]
   withdrawMethods WithdrawMethod[]
 
   @@index([type])
@@ -286,16 +286,16 @@ model CurrencyRole {
 // ---------------------------------------------------------------------------
 
 model PaymentGateway {
-  id                  String   @id @default(uuid())
-  slug                String   @unique
+  id                  String           @id @default(uuid())
+  slug                String           @unique
   name                String
   logo                String?
-  supportedCurrencies String[] @map("supported_currencies")
-  withdrawAvailable   Boolean  @default(false) @map("withdraw_available")
-  isActive            Boolean  @default(false) @map("is_active")
-  credentials         String?  @map("credentials") // AES-256-GCM encrypted JSON of the gateway's fields
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  supportedCurrencies String[]         @map("supported_currencies")
+  withdrawAvailable   Boolean          @default(false) @map("withdraw_available")
+  isActive            Boolean          @default(false) @map("is_active")
+  credentials         String?          @map("credentials") // AES-256-GCM encrypted JSON of the gateway's fields
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
   depositMethods      DepositMethod[]
   withdrawMethods     WithdrawMethod[]
 
@@ -714,21 +714,21 @@ model Notification {
 // ---------------------------------------------------------------------------
 
 model Product {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  priceMinor BigInt    @map("price_minor")
-  currency   String    @default("USD")
-  quantity   Int       @default(1)
-  imageUrl   String?   @map("image_url")
-  status     String    @default("pending") // pending | approved | rejected
-  adminNote  String?   @map("admin_note")
-  reviewedAt DateTime? @map("reviewed_at")
-  reviewedBy String?   @map("reviewed_by") // reviewing admin's user id
-  reviewedByName String? @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  priceMinor     BigInt    @map("price_minor")
+  currency       String    @default("USD")
+  quantity       Int       @default(1)
+  imageUrl       String?   @map("image_url")
+  status         String    @default("pending") // pending | approved | rejected
+  adminNote      String?   @map("admin_note")
+  reviewedAt     DateTime? @map("reviewed_at")
+  reviewedBy     String?   @map("reviewed_by") // reviewing admin's user id
+  reviewedByName String?   @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([status])
@@ -737,16 +737,16 @@ model Product {
 }
 
 model ActivationCode {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  type      String   @default("admin_created") // admin_created | user_entered
-  status    String   @default("active") // active | suspended
-  notes     String?
-  createdBy String? // admin's user id; null once the admin is deleted, or for a system/user-entered code
-  createdByAdmin User? @relation("ActivationCodeCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  createdByName  String? @map("created_by_name") // snapshot; survives the admin being renamed/deleted
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String   @id @default(uuid())
+  code           String   @unique
+  type           String   @default("admin_created") // admin_created | user_entered
+  status         String   @default("active") // active | suspended
+  notes          String?
+  createdBy      String? // admin's user id; null once the admin is deleted, or for a system/user-entered code
+  createdByAdmin User?    @relation("ActivationCodeCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  createdByName  String?  @map("created_by_name") // snapshot; survives the admin being renamed/deleted
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@index([type])
@@ -816,22 +816,22 @@ model KycTemplateField {
 }
 
 model KycSubmission {
-  id            String       @id @default(uuid())
-  userId        String       @map("user_id")
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateId    String?      @map("template_id")
-  template      KycTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  templateTitle String?      @map("template_title") // snapshot; survives template rename/delete
-  status        String       @default("pending") // pending | approved | rejected
-  fieldValues   Json?        @map("field_values") // [{ label, type, value, name?, contentType? }]
-  note          String? // optional note the user submitted with the request
-  remarks       String? // admin remarks recorded on review
-  manual        Boolean      @default(false) // admin-created/manually-approved (no user submission)
-  reviewedById  String?      @map("reviewed_by_id")
-  reviewedByName String?     @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
-  reviewedAt    DateTime?    @map("reviewed_at")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId     String?      @map("template_id")
+  template       KycTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateTitle  String?      @map("template_title") // snapshot; survives template rename/delete
+  status         String       @default("pending") // pending | approved | rejected
+  fieldValues    Json?        @map("field_values") // [{ label, type, value, name?, contentType? }]
+  note           String? // optional note the user submitted with the request
+  remarks        String? // admin remarks recorded on review
+  manual         Boolean      @default(false) // admin-created/manually-approved (no user submission)
+  reviewedById   String?      @map("reviewed_by_id")
+  reviewedByName String?      @map("reviewed_by_name") // snapshot; survives the reviewer being renamed/deleted
+  reviewedAt     DateTime?    @map("reviewed_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([status])
@@ -898,4 +898,106 @@ model TicketMessage {
 
   @@index([ticketId])
   @@map("ticket_messages")
+}
+
+// ---------------------------------------------------------------------------
+// Marketing CMS — pages composed of reusable components (sections).
+// A component stores per-locale fixed-field values (CmsComponentContent.data)
+// plus repeatable rows (CmsComponentItem) grouped into named collections
+// (e.g. the hero has "badges" and "steps"). Field shapes per schemaKey are
+// defined in code: lib/cms/schemas.ts. Seed/fallback copy: lib/cms/seed-data.ts.
+// ---------------------------------------------------------------------------
+
+model CmsPage {
+  id          String   @id @default(uuid())
+  slug        String   @unique // stable identifier; also the URL segment for admin-created pages
+  path        String   @unique // rendered route, e.g. "/" or "/about"
+  title       String // admin display + PageHero title + metadata title
+  breadcrumb  String? // PageHero breadcrumb label; null = page renders no PageHero
+  isActive    Boolean  @default(true) @map("is_active")
+  isProtected Boolean  @default(false) @map("is_protected") // seeded pages can't be deleted
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sections CmsPageSection[]
+
+  @@map("cms_pages")
+}
+
+model CmsComponent {
+  id          String   @id @default(uuid())
+  key         String   @unique // stable code reference, e.g. "hero", "faq"
+  name        String // admin display name
+  schemaKey   String   @map("schema_key") // field schema in lib/cms/schemas.ts describing this component
+  type        String   @default("static") // static (structured fields) | dynamic (rich-text body)
+  isGlobal    Boolean  @default(false) @map("is_global") // rendered outside page sections (site header/footer)
+  isActive    Boolean  @default(true) @map("is_active")
+  isProtected Boolean  @default(true) @map("is_protected") // seeded components can't be deleted
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sections CmsPageSection[]
+  contents CmsComponentContent[]
+  items    CmsComponentItem[]
+
+  @@map("cms_components")
+}
+
+model CmsPageSection {
+  id          String       @id @default(uuid())
+  pageId      String       @map("page_id")
+  page        CmsPage      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  componentId String       @map("component_id")
+  component   CmsComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  sortOrder   Int          @default(0) @map("sort_order")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@unique([pageId, componentId])
+  @@index([pageId, sortOrder])
+  @@index([componentId])
+  @@map("cms_page_sections")
+}
+
+model CmsComponentContent {
+  id          String       @id @default(uuid())
+  componentId String       @map("component_id")
+  component   CmsComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  locale      String       @default("en") // "en" today; more locales later without migration
+  data        Json // fixed-field values keyed by field key, shape per lib/cms/schemas.ts
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@unique([componentId, locale])
+  @@map("cms_component_contents")
+}
+
+model CmsComponentItem {
+  id          String       @id @default(uuid())
+  componentId String       @map("component_id")
+  component   CmsComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  collection  String       @default("items") // named collection within the component
+  sortOrder   Int          @default(0) @map("sort_order")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  contents CmsComponentItemContent[]
+
+  @@index([componentId, collection, sortOrder])
+  @@map("cms_component_items")
+}
+
+model CmsComponentItemContent {
+  id        String           @id @default(uuid())
+  itemId    String           @map("item_id")
+  item      CmsComponentItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  locale    String           @default("en")
+  data      Json // per-item field values keyed by field key, shape per lib/cms/schemas.ts
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@unique([itemId, locale])
+  @@map("cms_component_item_contents")
 }
