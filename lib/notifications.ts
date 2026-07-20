@@ -154,8 +154,15 @@ export async function deliverEmailNotices(
     });
 
     // Bounded concurrency: a broadcast can span every user, and firing thousands of requests at
-    // once would swamp the mailer's rate limit and the event loop alike.
-    const BATCH = 20;
+    // once would swamp the event loop. The mailer's rate limit is no longer this loop's job —
+    // sendEmail() paces every send to Resend's 2/sec and retries 429s itself, which is what this
+    // batch size used to (incorrectly) try to do: 20 concurrent requests is 10x over the limit,
+    // so the excess came back 429 and was dropped without a retry.
+    //
+    // KNOWN LIMIT: pacing means a broadcast is bounded by ~2 recipients/sec, so more than a few
+    // hundred addresses will outlive the function's execution limit and the tail will not send.
+    // A genuine mass broadcast needs Resend's /emails/batch endpoint (100 per call) or a queue.
+    const BATCH = 10;
     for (let i = 0; i < users.length; i += BATCH) {
       await Promise.all(
         users.slice(i, i + BATCH).map((user) =>

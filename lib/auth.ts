@@ -5,6 +5,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { admin as adminPlugin, twoFactor } from "better-auth/plugins";
 
+import { afterResponse } from "@/lib/after-response";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -118,7 +119,7 @@ export const auth = betterAuth({
     sendResetPassword: async ({ user, url }) => {
       // Rendered through the shared template like every other mail: it also picks up the
       // admin-configured brand name, which the old hardcoded "Rebate Bank" string ignored.
-      void (async () => {
+      afterResponse(async () => {
         const mail = await renderEmail({
           audience: "user",
           heading: "Reset your password",
@@ -134,7 +135,7 @@ export const auth = betterAuth({
           text: mail.text,
           html: mail.html,
         });
-      })();
+      });
     },
   },
 
@@ -158,7 +159,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
       // Fire-and-forget: never await (timing + serverless timeout risk).
-      void (async () => {
+      afterResponse(async () => {
         const mail = await renderEmail({
           audience: "user",
           heading: "Verify your email address",
@@ -175,7 +176,7 @@ export const auth = betterAuth({
           text: mail.text,
           html: mail.html,
         });
-      })();
+      });
     },
   },
 

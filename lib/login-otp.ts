@@ -1,5 +1,6 @@
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 
+import { afterResponse } from "@/lib/after-response";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/email";
@@ -73,7 +74,7 @@ async function issueCode(
 
   // No CTA: the code is entered on the tab the user already has open, and a "sign in" button
   // here would just invite them to start a second, competing session.
-  void (async () => {
+  afterResponse(async () => {
     const mail = await renderEmail({
       audience: "user",
       heading: "Your sign-in code",
@@ -82,7 +83,7 @@ async function issueCode(
       note: "If you didn't try to sign in, someone may have your password — change it and contact support.",
     });
     await sendEmail({ to: email, subject: mail.subject, text: mail.text, html: mail.html });
-  })();
+  });
   return { ok: true };
 }
 

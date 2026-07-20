@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { z } from "zod";
 
+import { afterResponse } from "@/lib/after-response";
 import { requireActiveUser } from "@/lib/auth-guards";
 import { controlAllows } from "@/lib/controls";
 import { TRANSFER_TYPE_FLAGS, type TransferKind } from "@/components/app/app-nav";
@@ -267,7 +268,7 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
   });
   // The amount and destination are restated here on purpose: this code authorizes a specific
   // transfer, and seeing the wrong figures in the mail is the user's last chance to stop it.
-  void (async () => {
+  afterResponse(async () => {
     const mail = await renderEmail({
       audience: "user",
       heading: "Authorize your transfer",
@@ -281,7 +282,7 @@ export async function beginTransfer(input: SendInput, pin: string): Promise<Begi
       note: "If you didn't start this transfer, do not share this code — contact support immediately.",
     });
     await sendEmail({ to: sender.email, subject: mail.subject, text: mail.text, html: mail.html });
-  })();
+  });
 
   return { ok: true, next: `/send/verify/${sequence[0]}` };
 }
@@ -461,7 +462,7 @@ export async function resendTransferOtp(): Promise<{ ok: boolean; error?: string
 
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   await setAuthCookie({ ...state, otpHash: hashOtp(otp), expiresAt: newExpiry() });
-  void (async () => {
+  afterResponse(async () => {
     const mail = await renderEmail({
       audience: "user",
       heading: "Your new transfer code",
@@ -477,6 +478,6 @@ export async function resendTransferOtp(): Promise<{ ok: boolean; error?: string
       text: mail.text,
       html: mail.html,
     });
-  })();
+  });
   return { ok: true };
 }
