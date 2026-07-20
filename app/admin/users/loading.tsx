@@ -2,13 +2,13 @@ import { AdminSectionSkeleton, TableSkeleton } from "@/components/admin/skeleton
 
 export default function Loading() {
   return (
-    <AdminSectionSkeleton description={true} action={false}>
+    <AdminSectionSkeleton description={true} action={true}>
       <TableSkeleton
-        rows={6}
-        columns={3}
+        rows={10}
+        columns={4}
         avatar={true}
-        search={false}
-        filters={true}
+        search={true}
+        filters={false}
         action={true}
       />
     </AdminSectionSkeleton>

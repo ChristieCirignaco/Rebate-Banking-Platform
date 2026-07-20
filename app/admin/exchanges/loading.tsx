@@ -4,12 +4,12 @@ export default function Loading() {
   return (
     <AdminSectionSkeleton description={true} action={false}>
       <TableSkeleton
-        rows={6}
-        columns={3}
-        avatar={true}
+        rows={8}
+        columns={5}
+        avatar={false}
         search={false}
         filters={true}
-        action={true}
+        action={false}
       />
     </AdminSectionSkeleton>
   );

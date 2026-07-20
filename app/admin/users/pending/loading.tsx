@@ -8,7 +8,7 @@ export default function Loading() {
         columns={3}
         avatar={true}
         search={false}
-        filters={true}
+        filters={false}
         action={true}
       />
     </AdminSectionSkeleton>
