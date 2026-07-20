@@ -2,6 +2,7 @@
 // pass raw client payloads through here before persisting; unknown keys are
 // dropped and every value is coerced/sanitized per its declared field type.
 import { CMS_ICONS } from "@/lib/cms/icons";
+import { isCmsDocumentValue } from "@/lib/cms/documents";
 import { isAcceptableImageValue } from "@/lib/media";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import type { CmsData, CmsFieldDef } from "./types";
@@ -88,6 +89,16 @@ export function validateCmsData(fields: CmsFieldDef[], input: unknown): Validate
         const s = asString(value)?.trim() ?? "";
         if (!s || s.length > 2000 || !isAcceptableImageValue(s)) {
           return { ok: false, error: `${field.label} must be an uploaded image or a valid image path.` };
+        }
+        data[field.key] = s;
+        break;
+      }
+      case "file": {
+        const s = asString(value)?.trim() ?? "";
+        // Strict on purpose: only a key we issued. Accepting an arbitrary URL here would let an
+        // admin point a "document" at any third-party host and have the public page embed it.
+        if (!s || s.length > 2000 || !isCmsDocumentValue(s)) {
+          return { ok: false, error: `${field.label} must be an uploaded document.` };
         }
         data[field.key] = s;
         break;

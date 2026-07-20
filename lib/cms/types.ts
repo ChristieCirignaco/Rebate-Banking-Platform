@@ -9,6 +9,8 @@ export const CMS_DEFAULT_LOCALE = "en";
 // - "richtext": sanitized HTML from the in-house editor (dynamic components).
 // - "lines"   : string[] edited as a one-item-per-line textarea.
 // - "icon"    : one of the curated names in lib/cms/icons.
+// - "file"    : an uploaded document (PDF / Office / image) served from
+//               /api/cms-documents — see lib/cms/documents.ts.
 export type CmsFieldType =
   | "text"
   | "textarea"
@@ -20,7 +22,8 @@ export type CmsFieldType =
   | "number"
   | "icon"
   | "select"
-  | "lines";
+  | "lines"
+  | "file";
 
 export type CmsFieldDef = {
   key: string;

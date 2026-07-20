@@ -3,6 +3,7 @@
 // Schema-driven form fields for CMS component content and repeatable items.
 // The field list comes from lib/cms/schemas.ts; server actions re-validate.
 import { ImageField } from "@/components/admin/settings/image-field";
+import { CmsDocumentField } from "@/components/admin/pages/cms-document-field";
 import { RichTextEditor } from "@/components/admin/deposits/rich-text-editor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,6 +111,19 @@ export function CmsFieldInputs({
                   value={text || null}
                   onChange={(url) => onChange(field.key, url ?? "")}
                   description={field.help}
+                />
+              </div>
+            );
+          case "file":
+            return (
+              <div key={field.key} className="flex flex-col gap-2">
+                {label}
+                <CmsDocumentField
+                  id={id}
+                  label={field.label}
+                  value={text}
+                  onChange={(url) => onChange(field.key, url)}
+                  help={field.help}
                 />
               </div>
             );

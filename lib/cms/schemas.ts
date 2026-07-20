@@ -461,6 +461,36 @@ export const CMS_SCHEMAS: Record<string, CmsComponentSchema> = {
       { key: "postPrefix", label: "Post line prefix", type: "text" },
     ],
   },
+  // A list of downloadable/previewable files an admin attaches to any page (policy PDFs,
+  // company profile, rate sheets). Creatable, so it can be added to Privacy, About, Contact or
+  // any admin-made page from the Page Manager.
+  documents: {
+    key: "documents",
+    label: "Documents & Downloads",
+    creatable: true,
+    fields: [
+      { key: "heading", label: "Heading", type: "text" },
+      { key: "intro", label: "Intro text", type: "textarea" },
+    ],
+    collections: [
+      {
+        key: "items",
+        label: "Documents",
+        itemLabelField: "title",
+        fields: [
+          { key: "title", label: "Title", type: "text", required: true },
+          { key: "description", label: "Description", type: "textarea" },
+          {
+            key: "file",
+            label: "File",
+            type: "file",
+            required: true,
+            help: "PDF and images preview on the page; other formats show as a download.",
+          },
+        ],
+      },
+    ],
+  },
   "inline-cta": {
     key: "inline-cta",
     label: "Inline CTA Card",

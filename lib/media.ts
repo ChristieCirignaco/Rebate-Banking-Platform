@@ -90,6 +90,11 @@ export async function uploadUserProductImage(file: File) {
   return uploadTo("/api/user/product-image", file);
 }
 
+// Client-side helper: upload one public marketing document (CMS page attachment).
+export async function uploadCmsDocument(file: File) {
+  return uploadTo("/api/admin/cms-documents", file);
+}
+
 // Client-side helper for a signed-in user uploading a manual-deposit payment proof (image/PDF).
 // The returned URL is admin-served (private); see lib/deposit-proof.ts.
 export async function uploadDepositProof(file: File) {

@@ -51,6 +51,7 @@ import {
   SupportCardsBlock,
   SupportCardsStandalone,
 } from "./misc";
+import { DocumentsSection } from "./documents";
 
 type Renderer = ComponentType<SectionProps>;
 
@@ -97,6 +98,7 @@ const PRODUCT_OVERRIDES: Record<string, Renderer> = {
 };
 
 const BY_SCHEMA: Record<string, Renderer> = {
+  documents: DocumentsSection,
   hero: HeroSection,
   "image-message": ImageMessageSection,
   "steps-section": StepsCardsSection,
