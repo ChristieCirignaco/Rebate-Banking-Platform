@@ -920,9 +920,27 @@ model CmsPage {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  sections CmsPageSection[]
+  sections  CmsPageSection[]
+  menuItems CmsMenuItem[]
 
   @@map("cms_pages")
+}
+
+model CmsMenuItem {
+  id        String   @id @default(uuid())
+  location  String // "header" | "footer"
+  label     String? // override; null → use the linked page's title
+  pageId    String?  @map("page_id")
+  page      CmsPage? @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  url       String? // custom-link href (used when pageId is null)
+  openInNew Boolean  @default(false) @map("open_in_new")
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([location, sortOrder])
+  @@map("cms_menu_items")
 }
 
 model CmsComponent {
