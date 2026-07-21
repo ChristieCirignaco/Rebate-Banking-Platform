@@ -123,13 +123,13 @@ export function NotificationBell({ variant = "surface", className }: Notificatio
         <div className="max-h-[min(60vh,22rem)] overflow-y-auto">
           {items === null ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="size-4 animate-spin text-slate-400" />
+              <Loader2 className="size-4 animate-spin text-slate-400 dark:text-slate-500" />
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center gap-1.5 py-10 text-center">
-              <Bell className="size-6 text-slate-300" />
-              <p className="text-sm font-medium text-slate-500">No notifications yet</p>
-              <p className="text-xs text-slate-400">We&apos;ll let you know when something happens.</p>
+              <Bell className="size-6 text-slate-300 dark:text-slate-500" />
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No notifications yet</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">We&apos;ll let you know when something happens.</p>
             </div>
           ) : (
             <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
@@ -169,7 +169,7 @@ export function NotificationBell({ variant = "surface", className }: Notificatio
                     <span className="mt-0.5 line-clamp-2 block text-xs text-slate-500 dark:text-slate-400">
                       {item.message}
                     </span>
-                    <span className="mt-1 block text-[11px] text-slate-400">{item.dateLabel}</span>
+                    <span className="mt-1 block text-[11px] text-slate-400 dark:text-slate-500">{item.dateLabel}</span>
                   </span>
                 </button>
               ))}

@@ -23,16 +23,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const STATUS_STYLE: Record<TicketStatus, string> = {
-  open: "bg-blue-50 text-blue-700",
-  pending: "bg-amber-50 text-amber-700",
-  replied: "bg-emerald-50 text-emerald-700",
-  closed: "bg-slate-100 text-slate-500",
+  open: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
+  pending: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+  replied: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+  closed: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
 };
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 export function SupportView({
   tickets,
@@ -55,31 +55,31 @@ export function SupportView({
       </button>
 
       {tickets.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-slate-200 py-14 text-center">
-          <MessageSquarePlus className="size-7 text-slate-300" />
-          <p className="text-sm font-medium text-slate-500">No tickets yet</p>
-          <p className="text-xs text-slate-400">Open a ticket and our team will get back to you.</p>
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-slate-200 py-14 text-center dark:border-slate-800">
+          <MessageSquarePlus className="size-7 text-slate-300 dark:text-slate-500" />
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No tickets yet</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">Open a ticket and our team will get back to you.</p>
         </div>
       ) : (
-        <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+        <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
           {tickets.map((t) => (
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="flex items-center gap-3 p-4 transition-colors hover:bg-slate-50"
+              className="flex items-center gap-3 p-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-slate-900">{t.subject}</p>
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{t.subject}</p>
                   {t.fromAdmin && t.status === "replied" ? (
                     <span className="size-2 shrink-0 rounded-full bg-emerald-500" aria-label="New reply" />
                   ) : null}
                 </div>
-                <p className="truncate text-xs text-slate-500">
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                   {t.fromAdmin ? "Support: " : ""}
                   {t.preview}
                 </p>
-                <p className="mt-0.5 font-mono text-[11px] text-slate-400">
+                <p className="mt-0.5 font-mono text-[11px] text-slate-400 dark:text-slate-500">
                   #{t.ticketCode} · {t.lastActivityLabel}
                 </p>
               </div>
@@ -91,7 +91,7 @@ export function SupportView({
               >
                 {t.status}
               </span>
-              <ChevronRight className="size-4 shrink-0 text-slate-300" />
+              <ChevronRight className="size-4 shrink-0 text-slate-300 dark:text-slate-500" />
             </Link>
           ))}
         </div>
@@ -250,7 +250,7 @@ function NewTicketDialog({
               rows={4}
               maxLength={4000}
               placeholder="Describe your issue…"
-              className="rounded-xl border-slate-200 bg-slate-50/70 text-base"
+              className="rounded-xl border-slate-200 bg-slate-50/70 text-base dark:border-slate-800 dark:bg-slate-800/50"
             />
           </div>
 
@@ -265,15 +265,15 @@ function NewTicketDialog({
                 {attachments.map((a, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                   >
-                    <FileText className="size-3.5 text-slate-400" />
+                    <FileText className="size-3.5 text-slate-400 dark:text-slate-500" />
                     <span className="max-w-[10rem] truncate">{a.name}</span>
                     <button
                       type="button"
                       aria-label={`Remove ${a.name}`}
                       onClick={() => setAttachments((list) => list.filter((_, idx) => idx !== i))}
-                      className="text-slate-400 hover:text-red-600"
+                      className="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
                     >
                       <X className="size-3.5" />
                     </button>
@@ -283,7 +283,7 @@ function NewTicketDialog({
             ) : null}
             <label
               className={cn(
-                "inline-flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600",
+                "inline-flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-400",
                 (uploading || submitting) && "pointer-events-none opacity-60",
               )}
             >

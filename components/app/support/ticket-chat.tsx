@@ -16,10 +16,10 @@ import type {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const STATUS_STYLE: Record<TicketStatus, string> = {
-  open: "bg-blue-50 text-blue-700",
-  pending: "bg-amber-50 text-amber-700",
-  replied: "bg-emerald-50 text-emerald-700",
-  closed: "bg-slate-100 text-slate-500",
+  open: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
+  pending: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+  replied: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+  closed: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
 };
 
 function initials(name: string): string {
@@ -61,9 +61,9 @@ function Attachment({ a }: { a: TicketAttachmentView }) {
       href={a.url}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+      className="inline-flex max-w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/50"
     >
-      <FileText className="size-4 shrink-0 text-slate-400" />
+      <FileText className="size-4 shrink-0 text-slate-400 dark:text-slate-500" />
       <span className="truncate">{a.name}</span>
     </a>
   );
@@ -84,7 +84,7 @@ function MessageRow({
         <AvatarFallback
           className={cn(
             "text-xs font-semibold",
-            mine ? "bg-slate-100 text-slate-600" : "bg-blue-600 text-white",
+            mine ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400" : "bg-blue-600 text-white",
           )}
         >
           {mine ? initials(m.senderName) : "S"}
@@ -93,7 +93,7 @@ function MessageRow({
 
       <div className={cn("flex max-w-[80%] min-w-0 flex-col gap-1", mine ? "items-end" : "items-start")}>
         {!mine ? (
-          <span className="px-1 text-xs font-medium text-slate-500">{m.senderName}</span>
+          <span className="px-1 text-xs font-medium text-slate-500 dark:text-slate-400">{m.senderName}</span>
         ) : null}
         {m.body.trim() ? (
           <div
@@ -101,7 +101,7 @@ function MessageRow({
               "w-fit max-w-full overflow-hidden rounded-2xl px-3.5 py-2 text-sm leading-relaxed wrap-break-word",
               mine
                 ? "rounded-br-md bg-blue-600 text-white"
-                : "rounded-bl-md bg-slate-100 text-slate-800",
+                : "rounded-bl-md bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
             )}
           >
             {m.body}
@@ -110,7 +110,7 @@ function MessageRow({
         {m.attachments.map((a, i) => (
           <Attachment key={i} a={a} />
         ))}
-        <span className="px-1 text-[11px] text-slate-400">{timeLabel(m.createdAt)}</span>
+        <span className="px-1 text-[11px] text-slate-400 dark:text-slate-500">{timeLabel(m.createdAt)}</span>
       </div>
     </div>
   );
@@ -175,10 +175,10 @@ export function TicketChat({
   return (
     <div className="flex h-[calc(100dvh-11rem)] flex-col lg:h-[68vh]">
       {/* Thread header */}
-      <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-800">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-bold text-slate-900">{detail.subject}</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">{detail.subject}</h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             #{detail.ticketCode}
             {detail.categoryName ? ` · ${detail.categoryName}` : ""}
           </p>
@@ -203,26 +203,26 @@ export function TicketChat({
 
       {/* Composer */}
       {closed ? (
-        <div className="flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-3 text-sm text-slate-500">
+        <div className="flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-3 text-sm text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
           <Lock className="size-4" />
           This ticket is closed.
         </div>
       ) : (
-        <form onSubmit={onSend} className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+        <form onSubmit={onSend} className="flex flex-col gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           {attachments.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {attachments.map((a, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                 >
-                  <FileText className="size-3.5 text-slate-400" />
+                  <FileText className="size-3.5 text-slate-400 dark:text-slate-500" />
                   <span className="max-w-[10rem] truncate">{a.name}</span>
                   <button
                     type="button"
                     aria-label={`Remove ${a.name}`}
                     onClick={() => setAttachments((list) => list.filter((_, idx) => idx !== i))}
-                    className="text-slate-400 hover:text-red-600"
+                    className="text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
                   >
                     <X className="size-3.5" />
                   </button>
@@ -234,7 +234,7 @@ export function TicketChat({
           <div className="flex items-end gap-2">
             <label
               className={cn(
-                "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-blue-600",
+                "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-blue-400",
                 uploading && "pointer-events-none opacity-60",
               )}
               aria-label="Attach a file"
@@ -263,7 +263,7 @@ export function TicketChat({
               }}
               rows={1}
               placeholder="Type a message…"
-              className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-sm focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:outline-none"
+              className="max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-sm focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900"
             />
 
             <button

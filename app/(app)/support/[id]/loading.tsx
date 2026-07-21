@@ -16,7 +16,7 @@ export default function Loading() {
     <PageShellSkeleton>
       <div className="flex h-[calc(100dvh-11rem)] flex-col lg:h-[68vh]">
         {/* Thread header */}
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-800">
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Skeleton className="h-4 w-48 max-w-full" />
             <Skeleton className="h-3 w-28" />
@@ -46,7 +46,7 @@ export default function Loading() {
         </div>
 
         {/* Composer */}
-        <div className="flex items-end gap-2 border-t border-slate-100 pt-3">
+        <div className="flex items-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           <Skeleton className="size-11 shrink-0 rounded-xl" />
           <Skeleton className="h-11 flex-1 rounded-xl" />
           <Skeleton className="size-11 shrink-0 rounded-xl" />

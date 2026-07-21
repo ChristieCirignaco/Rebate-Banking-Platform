@@ -67,10 +67,10 @@ export function NotificationsView({ items }: { items: UserNotificationItem[] }) 
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
-        <Bell className="size-6 text-slate-300" />
-        <p className="text-sm font-medium text-slate-500">No notifications yet</p>
-        <p className="text-xs text-slate-400">Updates about your account will show up here.</p>
+      <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-slate-200 py-10 text-center dark:border-slate-800">
+        <Bell className="size-6 text-slate-300 dark:text-slate-500" />
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No notifications yet</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Updates about your account will show up here.</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ export function NotificationsView({ items }: { items: UserNotificationItem[] }) 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {unread > 0 ? `${unread} unread` : "You're all caught up"}
         </p>
         {unread > 0 ? (
@@ -86,7 +86,7 @@ export function NotificationsView({ items }: { items: UserNotificationItem[] }) 
             type="button"
             onClick={markAll}
             disabled={isPending}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-60"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-60 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             <CheckCheck className="size-4" />
             Mark all as read
@@ -94,7 +94,7 @@ export function NotificationsView({ items }: { items: UserNotificationItem[] }) 
         ) : null}
       </div>
 
-      <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+      <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {rows.map((item) =>
           item.read ? (
             <div key={item.id} className={ROW}>
@@ -108,7 +108,7 @@ export function NotificationsView({ items }: { items: UserNotificationItem[] }) 
               onClick={() => markOne(item)}
               disabled={isPending}
               aria-label={`Mark "${item.title ?? "notification"}" as read`}
-              className={cn(ROW, "w-full text-left transition-colors hover:bg-slate-50")}
+              className={cn(ROW, "w-full text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50")}
             >
               <Chip read={false} />
               <Body item={item} />
@@ -126,7 +126,9 @@ function Chip({ read }: { read: boolean }) {
     <span
       className={cn(
         "flex size-9 shrink-0 items-center justify-center rounded-full",
-        read ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-blue-600",
+        read
+          ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+          : "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
       )}
     >
       <Bell className="size-4" />
@@ -137,9 +139,9 @@ function Chip({ read }: { read: boolean }) {
 function Body({ item }: { item: UserNotificationItem }) {
   return (
     <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-semibold text-slate-900">{item.title ?? "Notification"}</p>
-      <p className="truncate text-xs text-slate-500">{item.message}</p>
-      <p className="truncate text-xs text-slate-400">{item.dateLabel}</p>
+      <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title ?? "Notification"}</p>
+      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{item.message}</p>
+      <p className="truncate text-xs text-slate-400 dark:text-slate-500">{item.dateLabel}</p>
     </div>
   );
 }

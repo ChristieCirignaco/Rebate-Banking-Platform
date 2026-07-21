@@ -14,7 +14,7 @@ export default function Loading() {
           <Skeleton className="h-3.5 w-24" />
           <Skeleton className="h-9 w-36 shrink-0 rounded-xl" />
         </div>
-        <div className="overflow-hidden rounded-2xl border border-slate-200 px-3.5">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 px-3.5 dark:border-slate-800">
           <RowsSkeleton count={6} />
         </div>
       </div>
