@@ -5,6 +5,7 @@ import { AvatarMenu } from "@/components/app/avatar-menu";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
 import { LanguageDropdown } from "@/components/app/translate/language-dropdown";
 import { TransactionSearch } from "@/components/app/search/transaction-search";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 
 // Desktop-only full-width header (shown at lg+) that spans the very top over BOTH the sidebar
 // and the content. Left segment (aligned to the sidebar width) holds the brand; the rest holds
@@ -61,6 +62,7 @@ export function DesktopHeader({
         <div className="flex items-center gap-2">
           {/* Renders both triggers itself: the wide pill at xl+, the icon button below it. */}
           <TransactionSearch variant="header" />
+          <ThemeToggle className="relative inline-flex size-9 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" />
           <LanguageDropdown triggerClassName="bg-white text-slate-600 shadow-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" />
           <NotificationBell variant="surface" />
           <AvatarMenu
