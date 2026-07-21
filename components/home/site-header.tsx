@@ -7,20 +7,20 @@ import { Menu, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { cmsText, type CmsComponentData } from "@/lib/cms/types";
+import type { MenuLink } from "@/lib/home/menu";
 
 export function SiteHeader({
   logoUrl,
   brandName,
   nav,
+  menu,
 }: {
   logoUrl: string;
   brandName: string;
   nav: CmsComponentData | null;
+  menu: MenuLink[];
 }) {
-  const NAV = (nav?.collections.links ?? []).map((l) => ({
-    label: cmsText(l.data, "label"),
-    href: cmsText(l.data, "href", "/"),
-  }));
+  const NAV = menu; // { label, href, openInNew }[]
   const signInLabel = cmsText(nav?.content ?? {}, "signInLabel", "Sign in");
   const joinLabel = cmsText(nav?.content ?? {}, "joinLabel", "Join Now");
   const pathname = usePathname();
@@ -71,12 +71,14 @@ export function SiteHeader({
 
           {/* desktop pill nav */}
           <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1.5 backdrop-blur-sm lg:flex">
-            {NAV.map((item) => {
+            {NAV.map((item, i) => {
               const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               return (
                 <Link
-                  key={item.href}
+                  key={i}
                   href={item.href}
+                  target={item.openInNew ? "_blank" : undefined}
+                  rel={item.openInNew ? "noreferrer" : undefined}
                   className={cn(
                     "rounded-full px-4 py-2 text-sm font-medium transition-colors",
                     active ? "bg-white/15 text-white" : "text-white/80 hover:text-white",
@@ -118,11 +120,13 @@ export function SiteHeader({
       {open && (
         <div className="border-t border-white/10 bg-[var(--trb-dark)]/98 backdrop-blur-md lg:hidden">
           <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4">
-            {NAV.map((item) => (
+            {NAV.map((item, i) => (
               <Link
-                key={item.href}
+                key={i}
                 href={item.href}
                 onClick={() => setOpen(false)}
+                target={item.openInNew ? "_blank" : undefined}
+                rel={item.openInNew ? "noreferrer" : undefined}
                 className="rounded-lg px-4 py-3 text-base font-medium text-white/85 hover:bg-white/5 hover:text-white"
               >
                 {item.label}

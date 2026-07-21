@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/home/site-footer";
 import { GTranslateWidget } from "@/components/gtranslate-widget";
 import { getCmsComponent } from "@/lib/home/cms";
 import { getMarketingConfig } from "@/lib/home/site-config";
+import { getMenu } from "@/lib/home/menu";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -73,19 +74,21 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [config, nav, footer] = await Promise.all([
+  const [config, nav, footer, headerMenu, footerMenu] = await Promise.all([
     getMarketingConfig(),
     getCmsComponent("site-nav"),
     getCmsComponent("site-footer"),
+    getMenu("header"),
+    getMenu("footer"),
   ]);
   return (
     <div
       className={`${jakarta.variable} ${playfair.variable} ${greatVibes.variable} flex min-h-screen flex-col bg-[var(--trb-dark)] text-white`}
       style={{ fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif" }}
     >
-      <SiteHeader logoUrl={config.logo} brandName={config.brandName} nav={nav} />
+      <SiteHeader logoUrl={config.logo} brandName={config.brandName} nav={nav} menu={headerMenu} />
       <div className="flex-1">{children}</div>
-      <SiteFooter config={config} data={footer} />
+      <SiteFooter config={config} data={footer} footerMenu={footerMenu} />
       {/* Covers every marketing page in one mount. The signed-in app and /admin deliberately
           don't get this — see components/gtranslate-widget.tsx. */}
       <GTranslateWidget />

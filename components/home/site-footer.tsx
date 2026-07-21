@@ -5,21 +5,21 @@ import { cn } from "@/lib/utils";
 import { SOCIAL_ICONS } from "@/components/home/social-icons";
 import { cmsText, type CmsComponentData } from "@/lib/cms/types";
 import type { MarketingConfig } from "@/lib/home/site-config";
+import type { MenuLink } from "@/lib/home/menu";
 
-// Labels + quick links come from the CMS "site-footer" component; contact
-// values (phone/email/socials/description) stay on admin System Settings.
+// Labels come from the CMS "site-footer" component; quick links come from the menu read layer;
+// contact values (phone/email/socials/description) stay on admin System Settings.
 export function SiteFooter({
   config,
   data,
+  footerMenu,
 }: {
   config: MarketingConfig;
   data: CmsComponentData | null;
+  footerMenu: MenuLink[];
 }) {
   const c = data?.content ?? {};
-  const quickLinks = (data?.collections.links ?? []).map((l) => ({
-    label: cmsText(l.data, "label"),
-    href: cmsText(l.data, "href", "/"),
-  }));
+  const quickLinks = footerMenu;
   const presidentEmail = cmsText(c, "presidentEmail");
   return (
     <footer className="bg-[var(--trb-blue)] text-white">
@@ -46,9 +46,14 @@ export function SiteFooter({
         <div className="md:justify-self-center">
           <h3 className="text-base font-semibold">{cmsText(c, "quickLinksHeading", "Quick Links")}</h3>
           <ul className="mt-5 space-y-3 text-sm text-white/75">
-            {quickLinks.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="transition-colors hover:text-white">
+            {quickLinks.map((l, i) => (
+              <li key={i}>
+                <Link
+                  href={l.href}
+                  target={l.openInNew ? "_blank" : undefined}
+                  rel={l.openInNew ? "noreferrer" : undefined}
+                  className="transition-colors hover:text-white"
+                >
                   {l.label}
                 </Link>
               </li>
