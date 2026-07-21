@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { Landmark, Loader2 } from "lucide-react";
 
 import { GTranslateWidget } from "@/components/gtranslate-widget";
@@ -69,19 +70,27 @@ export function AuthShell({
       <div className="w-full max-w-lg">
         <div className="rounded-3xl border border-white/50 bg-gradient-to-b from-white to-slate-50 p-6 shadow-2xl sm:p-10 dark:border-white/10 dark:from-slate-900 dark:to-slate-950">
           <div className="mb-6 flex flex-col items-center gap-3">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="Logo" className="h-11 object-contain" />
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25">
-                  <Landmark className="size-6" />
+            {/* The brand mark doubles as a way back to the marketing home — the auth pages are
+                otherwise a dead end for someone who landed here and just wants to leave. */}
+            <Link
+              href="/"
+              aria-label="Go to homepage"
+              className="flex flex-col items-center gap-3 rounded-xl transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="Logo" className="h-11 object-contain" />
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/25">
+                    <Landmark className="size-6" />
+                  </div>
+                  <span className="text-xs font-semibold tracking-widest text-slate-600 dark:text-slate-300">
+                    REBATE BANK
+                  </span>
                 </div>
-                <span className="text-xs font-semibold tracking-widest text-slate-600 dark:text-slate-300">
-                  REBATE BANK
-                </span>
-              </div>
-            )}
+              )}
+            </Link>
           </div>
           {children}
         </div>
