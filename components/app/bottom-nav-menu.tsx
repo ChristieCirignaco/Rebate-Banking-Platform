@@ -187,7 +187,7 @@ export function BottomNavMenu({ user, enabled = [] }: { user: MenuUser; enabled?
                 onClick={signOut}
                 disabled={pending}
                 aria-label="Sign out"
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-500/10"
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               >
                 <LogOut className="size-4" />
               </button>
