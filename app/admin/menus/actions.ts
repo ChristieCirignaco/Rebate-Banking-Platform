@@ -86,7 +86,11 @@ export async function reorderMenu(location: "header" | "footer", orderedIds: str
   if (!(await getAdminSession())) return NOT_AUTHORIZED;
   const current = await prisma.cmsMenuItem.findMany({ where: { location }, select: { id: true } });
   const set = new Set(current.map((c) => c.id));
-  if (orderedIds.length !== set.size || !orderedIds.every((id) => set.has(id))) {
+  if (
+    orderedIds.length !== set.size ||
+    new Set(orderedIds).size !== orderedIds.length ||
+    !orderedIds.every((id) => set.has(id))
+  ) {
     return { ok: false, error: "The menu changed in another tab — refresh and try again." };
   }
   await prisma.$transaction(orderedIds.map((id, i) => prisma.cmsMenuItem.update({ where: { id }, data: { sortOrder: i } })));
