@@ -22,7 +22,7 @@ function asString(value: unknown): string | null {
 
 // Hrefs may be internal ("/register", "/#faq"), web, mailto: or tel: — never
 // javascript:/data: (these land in <a href> and <video src>).
-function isSafeHref(value: string): boolean {
+export function isSafeHref(value: string): boolean {
   return (
     value.startsWith("/") ||
     value.startsWith("#") ||
