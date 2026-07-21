@@ -23,10 +23,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 type UploadResult =
   | { ok: true; key: string; token: string; name: string; contentType: string }
@@ -64,11 +64,11 @@ export function KycView({ data }: { data: KycData }) {
   // Already verified — nothing to do.
   if (kycStatus === "approved") {
     return (
-      <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-        <BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+      <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+        <BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
         <div className="text-sm">
-          <p className="font-semibold text-emerald-900">Your identity is verified</p>
-          <p className="mt-1 text-emerald-800">
+          <p className="font-semibold text-emerald-900 dark:text-emerald-400">Your identity is verified</p>
+          <p className="mt-1 text-emerald-800 dark:text-emerald-400">
             Verification is complete — no further action is needed.
             {submission?.reviewedAt ? ` Approved on ${submission.reviewedAt}.` : ""}
           </p>
@@ -80,11 +80,11 @@ export function KycView({ data }: { data: KycData }) {
   // Under review — read-only until an admin decides.
   if (kycStatus === "pending") {
     return (
-      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-        <Clock3 className="mt-0.5 size-5 shrink-0 text-amber-600" />
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+        <Clock3 className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
         <div className="text-sm">
-          <p className="font-semibold text-amber-900">Your verification is under review</p>
-          <p className="mt-1 text-amber-800">
+          <p className="font-semibold text-amber-900 dark:text-amber-400">Your verification is under review</p>
+          <p className="mt-1 text-amber-800 dark:text-amber-400">
             {submission?.submittedAt
               ? `Submitted on ${submission.submittedAt}. `
               : ""}
@@ -98,7 +98,7 @@ export function KycView({ data }: { data: KycData }) {
   // Nothing to submit against.
   if (templates.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
         Identity verification isn&apos;t available yet. Please contact support if you need it
         enabled for your account.
       </div>
@@ -109,7 +109,7 @@ export function KycView({ data }: { data: KycData }) {
   // server action would reject.
   if (!canSubmit) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
         You can&apos;t submit a verification right now.
       </div>
     );
@@ -228,13 +228,13 @@ function KycForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
       {rejectedRemarks !== null ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600" />
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="text-sm">
-            <p className="font-semibold text-amber-900">
+            <p className="font-semibold text-amber-900 dark:text-amber-400">
               Your previous submission was rejected
             </p>
-            <p className="mt-1 text-amber-800">
+            <p className="mt-1 text-amber-800 dark:text-amber-400">
               {rejectedRemarks || "Please review your details and submit again."}
             </p>
           </div>
@@ -270,7 +270,7 @@ function KycForm({
       ) : null}
 
       {template.description ? (
-        <p className="text-sm text-slate-500">{template.description}</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{template.description}</p>
       ) : null}
 
       {template.fields.map((field) => (
@@ -289,7 +289,7 @@ function KycForm({
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="kyc-note" className="text-sm font-semibold">
           Note
-          <span className="ml-1 font-normal text-slate-400">(optional)</span>
+          <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">(optional)</span>
         </Label>
         <Textarea
           id="kyc-note"
@@ -298,12 +298,12 @@ function KycForm({
           rows={3}
           maxLength={1000}
           placeholder="Anything the reviewer should know."
-          className="rounded-xl border-slate-200 bg-slate-50/70 text-base"
+          className="rounded-xl border-slate-200 bg-slate-50/70 text-base dark:border-slate-800 dark:bg-slate-800/50"
         />
       </div>
 
       {error ? (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p>
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</p>
       ) : null}
 
       <button
@@ -340,20 +340,20 @@ function KycField({
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id} className="text-sm font-semibold">
         {field.label}
-        {field.required ? null : <span className="ml-1 font-normal text-slate-400">(optional)</span>}
+        {field.required ? null : <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">(optional)</span>}
       </Label>
 
       {field.type === "file" ? (
         value ? (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm">
-            <FileCheck2 className="size-4 shrink-0 text-emerald-600" />
-            <span className="min-w-0 flex-1 truncate font-medium text-slate-700">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm dark:border-emerald-500/30 dark:bg-emerald-500/10">
+            <FileCheck2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span className="min-w-0 flex-1 truncate font-medium text-slate-700 dark:text-slate-200">
               {fileName ?? "File uploaded"}
             </span>
             <button
               type="button"
               onClick={onFileRemove}
-              className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-red-600"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
             >
               <X className="size-3.5" />
               Remove
@@ -362,7 +362,7 @@ function KycField({
         ) : (
           <label
             className={cn(
-              "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600",
+              "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
               uploading && "pointer-events-none opacity-60",
             )}
           >
