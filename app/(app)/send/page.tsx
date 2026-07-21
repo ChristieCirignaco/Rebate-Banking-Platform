@@ -29,9 +29,10 @@ export default async function SendPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { currency: true },
+    select: { currency: true, transactionPin: true },
   });
   const currency = user?.currency ?? "USD";
+  const hasPin = Boolean(user?.transactionPin);
   const wallet = await prisma.wallet.findUnique({
     where: { userId_currency: { userId: session.user.id, currency } },
     select: { balanceMinor: true },
@@ -65,6 +66,7 @@ export default async function SendPage() {
           balanceLabel={balanceLabel}
           currency={currency}
           kinds={kinds}
+          hasPin={hasPin}
         />
       </div>
     </div>

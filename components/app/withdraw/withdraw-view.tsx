@@ -440,6 +440,7 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
           createWithdraw({ walletId: wallet?.id ?? "", accountId: account?.id ?? "", amount }, pin)
         }
         description="Authorize this withdrawal with your PIN."
+        hasPin={data.hasPin}
       />
     </>
   );

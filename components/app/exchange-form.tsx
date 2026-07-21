@@ -208,6 +208,7 @@ export function ExchangeForm({
         onOpenChange={setPinOpen}
         onSubmit={(pin) => createExchange(payload, pin)}
         description="Authorize this exchange with your PIN."
+        hasPin={hasPin}
       />
     </>
   );

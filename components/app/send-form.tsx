@@ -31,10 +31,12 @@ export function SendForm({
   balanceLabel,
   currency,
   kinds,
+  hasPin,
 }: {
   balanceLabel: string;
   currency: string;
   kinds: TransferKind[];
+  hasPin: boolean;
 }) {
   const available = TYPES.filter((t) => kinds.includes(t.key));
   const [type, setType] = useState<TransferType>(available[0]?.key ?? "internal");
@@ -183,6 +185,7 @@ export function SendForm({
         onOpenChange={setPinOpen}
         onSubmit={(pin) => beginTransfer(payload, pin)}
         description="Authorize this transfer with your PIN."
+        hasPin={hasPin}
       />
     </>
   );

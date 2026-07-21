@@ -408,6 +408,7 @@ export function DepositForm({
         onOpenChange={setPinOpen}
         onSubmit={(pin) => createDeposit(payload, pin)}
         description="Authorize this deposit with your PIN."
+        hasPin={hasPin}
       />
     </>
   );
