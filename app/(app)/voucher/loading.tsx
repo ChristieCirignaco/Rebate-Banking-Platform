@@ -12,14 +12,14 @@ export default function Loading() {
           <Skeleton className="h-10 w-40 rounded-xl" />
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <div className="border-b border-slate-100 px-4 py-3">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
             <Skeleton className="h-4 w-28" />
           </div>
-          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
             <Skeleton className="h-3.5 w-full" />
           </div>
-          <div className="flex flex-col divide-y divide-slate-100">
+          <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="flex items-center gap-4 px-4 py-3">
                 <Skeleton className="h-4 flex-1" />

@@ -51,12 +51,12 @@ export default async function VerifyStepPage({
 
   return (
     <div className="mx-auto max-w-md px-5 pb-24 lg:px-0 lg:pb-0">
-      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg">
+      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg lg:dark:bg-slate-900">
         <div className="flex items-center justify-end py-2 lg:pt-0">
           <Link
             href="/send"
             aria-label="Cancel"
-            className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200"
+            className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             <X className="size-4" />
           </Link>
