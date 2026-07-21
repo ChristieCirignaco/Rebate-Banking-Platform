@@ -18,9 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { PasscodeDialog } from "@/components/app/passcode-dialog";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 // The deposit (add money) form: pick a wallet, pick a payment method available for that wallet's
 // currency, fill any manual credentials the method requires, enter an amount, and authorize with
@@ -155,7 +155,7 @@ export function DepositForm({
 
   if (wallets.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
         You don&apos;t have any wallets yet. Please contact support to have one issued.
       </div>
     );
@@ -170,7 +170,7 @@ export function DepositForm({
             Deposit to wallet
           </Label>
           <div className="relative">
-            <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+            <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <select
               id="wallet"
               value={walletId}
@@ -192,14 +192,14 @@ export function DepositForm({
             Payment method
           </Label>
           {availableMethods.length === 0 ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
               No deposit methods are available for {currency} right now. Try another wallet or contact
               support.
             </p>
           ) : (
             <>
               <div className="relative">
-                <Landmark className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                <Landmark className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
                 <select
                   id="method"
                   value={methodId}
@@ -215,13 +215,13 @@ export function DepositForm({
                 </select>
               </div>
               {method ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                   {/* Every method is reviewed by an admin before the wallet is credited, so this
                       no longer varies by type. Auto methods used to badge "Instant" and credit on
                       submission with no payment collected; they now take the same path, and
                       promising "Instant" here would be telling the user their money has landed
                       when it has not. */}
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                     <Clock3 className="size-3" /> Manual review
                   </span>
                   <span>{method.feeLabel}</span>
@@ -234,9 +234,9 @@ export function DepositForm({
 
         {/* Manual instructions + credential fields */}
         {method && method.type === "manual" ? (
-          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-800/50">
             {method.instructionsHtml ? (
-              <div className="flex gap-2 text-sm text-slate-600">
+              <div className="flex gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <Info className="mt-0.5 size-4 shrink-0 text-blue-500" />
                 <div
                   className="prose prose-sm max-w-none prose-p:my-1 prose-a:text-blue-600"
@@ -249,7 +249,7 @@ export function DepositForm({
                 <Label htmlFor={`f-${f.id}`} className="text-sm font-semibold">
                   {f.label}
                   {f.required ? null : (
-                    <span className="ml-1 font-normal text-slate-400">(optional)</span>
+                    <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">(optional)</span>
                   )}
                 </Label>
                 {f.type === "select" ? (
@@ -272,19 +272,19 @@ export function DepositForm({
                     value={fields[f.id] ?? ""}
                     onChange={(e) => setFields((p) => ({ ...p, [f.id]: e.target.value }))}
                     rows={3}
-                    className="rounded-xl border-slate-200 bg-white text-base"
+                    className="rounded-xl border-slate-200 bg-white text-base dark:border-slate-800 dark:bg-slate-900"
                   />
                 ) : f.type === "file" ? (
                   fields[f.id] ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm">
-                      <FileCheck2 className="size-4 shrink-0 text-emerald-600" />
-                      <span className="min-w-0 flex-1 truncate font-medium text-slate-700">
+                    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-sm dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                      <FileCheck2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span className="min-w-0 flex-1 truncate font-medium text-slate-700 dark:text-slate-200">
                         {fileNames[f.id] ?? "File uploaded"}
                       </span>
                       <button
                         type="button"
                         onClick={() => removeProof(f.id)}
-                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-red-600"
+                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
                       >
                         <X className="size-3.5" />
                         Remove
@@ -293,7 +293,7 @@ export function DepositForm({
                   ) : (
                     <label
                       className={cn(
-                        "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600",
+                        "flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-blue-400",
                         uploading[f.id] && "pointer-events-none opacity-60",
                       )}
                     >
@@ -326,7 +326,7 @@ export function DepositForm({
                     type="text"
                     value={fields[f.id] ?? ""}
                     onChange={(e) => setFields((p) => ({ ...p, [f.id]: e.target.value }))}
-                    className={cn(FIELD, "bg-white")}
+                    className={cn(FIELD, "bg-white dark:bg-slate-900")}
                   />
                 )}
               </div>
@@ -351,7 +351,7 @@ export function DepositForm({
               onChange={(e) => setAmount(e.target.value)}
               className={cn(FIELD, "pr-16")}
             />
-            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">
+            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400 dark:text-slate-500">
               {currency}
             </span>
           </div>
@@ -359,20 +359,20 @@ export function DepositForm({
 
         {/* Summary */}
         {method && validAmount ? (
-          <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm">
-            <div className="flex justify-between text-slate-500">
+          <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800/50">
+            <div className="flex justify-between text-slate-500 dark:text-slate-400">
               <span>Deposit amount</span>
-              <span className="font-medium text-slate-700">{formatCurrency(amountNum, currency)}</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200">{formatCurrency(amountNum, currency)}</span>
             </div>
-            <div className="flex justify-between text-slate-500">
+            <div className="flex justify-between text-slate-500 dark:text-slate-400">
               <span>Fee</span>
-              <span className="font-medium text-slate-700">{formatCurrency(feePreview, currency)}</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200">{formatCurrency(feePreview, currency)}</span>
             </div>
-            <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900">
+            <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
               <span>Total to pay</span>
               <span>{formatCurrency(totalPreview, currency)}</span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-slate-500">
               {formatCurrency(amountNum, currency)} will be credited to your {currency} wallet
               after admin approval.
             </p>
@@ -388,16 +388,16 @@ export function DepositForm({
         </button>
 
         {!hasPin ? (
-          <p className="text-center text-xs text-slate-500">
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400">
             You&apos;ll need a transaction PIN.{" "}
-            <Link href="/account/security" className="font-semibold text-blue-600 hover:underline">
+            <Link href="/account/security" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
               Set it up in Security
             </Link>
           </p>
         ) : null}
 
-        <p className="text-center text-xs text-slate-400">
-          <Link href="/transactions" className="font-medium text-slate-500 hover:underline">
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500">
+          <Link href="/transactions" className="font-medium text-slate-500 hover:underline dark:text-slate-400">
             View deposit history
           </Link>
         </p>

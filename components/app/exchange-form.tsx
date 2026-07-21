@@ -15,9 +15,9 @@ import { Label } from "@/components/ui/label";
 import { PasscodeDialog } from "@/components/app/passcode-dialog";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 // Convert between two of the user's own wallets. Live preview uses the admin-configured rates
 // passed on each wallet; the server (createExchange) recomputes authoritatively and settles
@@ -63,7 +63,7 @@ export function ExchangeForm({
 
   if (wallets.length < 2) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
         You need at least two currency wallets to exchange. Please contact support to have another
         wallet issued.
       </div>
@@ -105,7 +105,7 @@ export function ExchangeForm({
           {label}
         </Label>
         <div className="relative">
-          <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+          <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <select
             id={id}
             value={value}
@@ -133,7 +133,7 @@ export function ExchangeForm({
             type="button"
             onClick={swap}
             aria-label="Swap wallets"
-            className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-blue-600"
+            className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
           >
             <ArrowDownUp className="size-4" />
           </button>
@@ -157,25 +157,25 @@ export function ExchangeForm({
               onChange={(e) => setAmount(e.target.value)}
               className={cn(FIELD, "pr-16", overBalance && "border-red-400 focus-visible:ring-red-500/20")}
             />
-            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">
+            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400 dark:text-slate-500">
               {from?.currency}
             </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Available: <span className="font-semibold">{from?.balanceLabel}</span>
-            {overBalance ? <span className="ml-2 font-semibold text-red-600">Exceeds balance</span> : null}
+            {overBalance ? <span className="ml-2 font-semibold text-red-600 dark:text-red-400">Exceeds balance</span> : null}
           </p>
         </div>
 
         {from && to && crossRate > 0 ? (
-          <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm">
-            <div className="flex items-center justify-between text-slate-500">
+          <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800/50">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
               <span>You&apos;ll receive</span>
-              <span className="text-base font-bold text-slate-900">
+              <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {formatCurrency(toAmount, to.currency)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
               <span>Rate</span>
               <span>
                 1 {from.currency} = {crossRate.toLocaleString("en-US", { maximumFractionDigits: 8 })}{" "}
@@ -194,9 +194,9 @@ export function ExchangeForm({
         </button>
 
         {!hasPin ? (
-          <p className="text-center text-xs text-slate-500">
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400">
             You&apos;ll need a transaction PIN.{" "}
-            <Link href="/account/security" className="font-semibold text-blue-600 hover:underline">
+            <Link href="/account/security" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
               Set it up in Security
             </Link>
           </p>

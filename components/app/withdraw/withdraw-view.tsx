@@ -30,9 +30,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 export function WithdrawView({ data }: { data: WithdrawData }) {
   const router = useRouter();
@@ -45,8 +45,8 @@ export function WithdrawView({ data }: { data: WithdrawData }) {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Withdrawal accounts</h2>
-          <p className="text-xs text-slate-500">Where your money is sent.</p>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Withdrawal accounts</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Where your money is sent.</p>
         </div>
         <button
           type="button"
@@ -138,29 +138,31 @@ function AccountList({
 
   if (accounts.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
-        <Banknote className="size-6 text-slate-300" />
-        <p className="text-sm font-medium text-slate-500">No withdrawal account yet</p>
-        <p className="text-xs text-slate-400">Add a bank account or crypto address to withdraw.</p>
+      <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-slate-200 py-10 text-center dark:border-slate-800">
+        <Banknote className="size-6 text-slate-300 dark:text-slate-500" />
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">No withdrawal account yet</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Add a bank account or crypto address to withdraw.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+    <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
       {accounts.map((a) => (
         <div key={a.id} className="flex items-center gap-3 p-3.5">
           <span
             className={cn(
               "flex size-9 shrink-0 items-center justify-center rounded-full",
-              a.kind === "crypto" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600",
+              a.kind === "crypto"
+                ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
+                : "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
             )}
           >
             {a.kind === "crypto" ? <Bitcoin className="size-4" /> : <Banknote className="size-4" />}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">{a.label}</p>
-            <p className="truncate text-xs text-slate-500">
+            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{a.label}</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
               {a.methodName} · {a.currency}
               {a.summary ? ` · ${a.summary}` : ""}
             </p>
@@ -170,7 +172,7 @@ function AccountList({
             onClick={() => remove(a.id)}
             disabled={removing === a.id}
             aria-label={`Remove ${a.label}`}
-            className="shrink-0 text-slate-300 transition-colors hover:text-red-600 disabled:opacity-50"
+            className="shrink-0 text-slate-300 transition-colors hover:text-red-600 disabled:opacity-50 dark:text-slate-500 dark:hover:text-red-400"
           >
             {removing === a.id ? (
               <Loader2 className="size-4 animate-spin" />
@@ -252,7 +254,7 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
 
   if (data.wallets.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
         You don&apos;t have any wallets yet. Please contact support.
       </div>
     );
@@ -266,7 +268,7 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
             Withdraw from wallet
           </Label>
           <div className="relative">
-            <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+            <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <select
               id="w-wallet"
               value={walletId}
@@ -287,7 +289,7 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
             Withdrawal account
           </Label>
           {usable.length === 0 ? (
-            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
               No {currency} withdrawal account yet — add one above to withdraw from this wallet.
             </p>
           ) : (
@@ -305,13 +307,13 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
                 ))}
               </select>
               {account ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                   <span
                     className={cn(
                       "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
                       account.kind === "crypto"
-                        ? "bg-amber-50 text-amber-700"
-                        : "bg-blue-50 text-blue-700",
+                        ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+                        : "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
                     )}
                   >
                     {account.kind === "crypto" ? (
@@ -350,15 +352,15 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
               onChange={(e) => setAmount(e.target.value)}
               className={cn(FIELD, "pr-16", overBalance && "border-red-400")}
             />
-            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">
+            <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400 dark:text-slate-500">
               {currency}
             </span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Available: <span className="font-semibold">{wallet?.balanceLabel}</span>
-            {overBalance ? <span className="ml-2 font-semibold text-red-600">Exceeds balance</span> : null}
+            {overBalance ? <span className="ml-2 font-semibold text-red-600 dark:text-red-400">Exceeds balance</span> : null}
             {data.limits.dailyLimit > 0 ? (
-              <span className="ml-2 text-slate-400">
+              <span className="ml-2 text-slate-400 dark:text-slate-500">
                 Daily limit {formatCurrency(data.limits.dailyLimit, currency)}
               </span>
             ) : null}
@@ -366,16 +368,16 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
         </div>
 
         {account && validAmount ? (
-          <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm">
-            <div className="flex justify-between text-slate-500">
+          <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800/50">
+            <div className="flex justify-between text-slate-500 dark:text-slate-400">
               <span>Withdraw amount</span>
-              <span className="font-medium text-slate-700">{formatCurrency(amountNum, currency)}</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200">{formatCurrency(amountNum, currency)}</span>
             </div>
-            <div className="flex justify-between text-slate-500">
+            <div className="flex justify-between text-slate-500 dark:text-slate-400">
               <span>Fee</span>
-              <span className="font-medium text-slate-700">{formatCurrency(fee, currency)}</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200">{formatCurrency(fee, currency)}</span>
             </div>
-            <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900">
+            <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
               <span>You&apos;ll receive</span>
               <span>{formatCurrency(receive, currency)}</span>
             </div>
@@ -392,9 +394,9 @@ function WithdrawForm({ data }: { data: WithdrawData }) {
         </button>
 
         {!data.hasPin ? (
-          <p className="text-center text-xs text-slate-500">
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400">
             You&apos;ll need a transaction PIN.{" "}
-            <Link href="/account/security" className="font-semibold text-blue-600 hover:underline">
+            <Link href="/account/security" className="font-semibold text-blue-600 hover:underline dark:text-blue-400">
               Set it up in Security
             </Link>
           </p>
@@ -520,7 +522,7 @@ function AddAccountDialog({
         </DialogHeader>
 
         {methods.length === 0 ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
             No withdrawal methods are available for your wallets right now.
           </p>
         ) : (
@@ -542,7 +544,7 @@ function AddAccountDialog({
                 ))}
               </select>
               {method ? (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {method.feeLabel}
                   {method.limitLabel ? ` · ${method.limitLabel}` : ""}
                 </p>
@@ -555,7 +557,7 @@ function AddAccountDialog({
                 <Label htmlFor={`af-${f.id}`} className="text-sm font-semibold">
                   {f.label}
                   {f.required ? null : (
-                    <span className="ml-1 font-normal text-slate-400">(optional)</span>
+                    <span className="ml-1 font-normal text-slate-400 dark:text-slate-500">(optional)</span>
                   )}
                 </Label>
                 {f.type === "select" ? (
@@ -578,7 +580,7 @@ function AddAccountDialog({
                     rows={3}
                     value={fields[f.id] ?? ""}
                     onChange={(e) => setFields((p) => ({ ...p, [f.id]: e.target.value }))}
-                    className="rounded-xl border-slate-200 bg-slate-50/70 text-base"
+                    className="rounded-xl border-slate-200 bg-slate-50/70 text-base dark:border-slate-800 dark:bg-slate-800/50"
                   />
                 ) : (
                   <Input
@@ -593,7 +595,7 @@ function AddAccountDialog({
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="a-label" className="text-sm font-semibold">
-                Nickname <span className="font-normal text-slate-400">(optional)</span>
+                Nickname <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
               </Label>
               <Input
                 id="a-label"
@@ -605,7 +607,7 @@ function AddAccountDialog({
             </div>
 
             {error ? (
-              <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p>
+              <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</p>
             ) : null}
 
             <button

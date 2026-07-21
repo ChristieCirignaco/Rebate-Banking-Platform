@@ -14,9 +14,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 // Create a money request: pick which wallet (currency) to be credited, an amount, and a reason.
 // No transaction PIN — nothing moves until an admin approves. On success we hard-navigate back
@@ -34,7 +34,7 @@ export function RequestForm({ wallets }: { wallets: RequestWalletView[] }) {
 
   if (wallets.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
         You don&apos;t have any wallets yet. Please contact support to have one issued.
       </div>
     );
@@ -69,7 +69,7 @@ export function RequestForm({ wallets }: { wallets: RequestWalletView[] }) {
           Credit to wallet
         </Label>
         <div className="relative">
-          <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+          <Wallet className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <select
             id="wallet"
             value={walletId}
@@ -101,7 +101,7 @@ export function RequestForm({ wallets }: { wallets: RequestWalletView[] }) {
             onChange={(e) => setAmount(e.target.value)}
             className={cn(FIELD, "pr-16")}
           />
-          <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">
+          <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400 dark:text-slate-500">
             {currency}
           </span>
         </div>
@@ -109,7 +109,7 @@ export function RequestForm({ wallets }: { wallets: RequestWalletView[] }) {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="reason" className="text-sm font-semibold">
-          Reason <span className="font-normal text-slate-400">(optional)</span>
+          Reason <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
         </Label>
         <Textarea
           id="reason"
@@ -118,13 +118,13 @@ export function RequestForm({ wallets }: { wallets: RequestWalletView[] }) {
           rows={3}
           maxLength={500}
           placeholder="What is this request for?"
-          className="rounded-xl border-slate-200 bg-slate-50/70 text-base"
+          className="rounded-xl border-slate-200 bg-slate-50/70 text-base dark:border-slate-800 dark:bg-slate-800/50"
         />
       </div>
 
       {validAmount ? (
-        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
-          You&apos;re requesting <span className="font-semibold text-slate-700">{formatCurrency(amountNum, currency)}</span>.
+        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+          You&apos;re requesting <span className="font-semibold text-slate-700 dark:text-slate-200">{formatCurrency(amountNum, currency)}</span>.
           It will be credited to your {currency} wallet once an admin approves.
         </p>
       ) : null}
