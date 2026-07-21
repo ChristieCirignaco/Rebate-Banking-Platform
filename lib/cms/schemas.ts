@@ -22,17 +22,6 @@ export const CMS_SCHEMAS: Record<string, CmsComponentSchema> = {
       { key: "signInLabel", label: "Sign-in button label", type: "text", required: true },
       { key: "joinLabel", label: "Join button label", type: "text", required: true },
     ],
-    collections: [
-      {
-        key: "links",
-        label: "Menu links",
-        itemLabelField: "label",
-        fields: [
-          { key: "label", label: "Label", type: "text", required: true },
-          { key: "href", label: "Link", type: "url", required: true },
-        ],
-      },
-    ],
   },
   "site-footer": {
     key: "site-footer",
@@ -46,17 +35,6 @@ export const CMS_SCHEMAS: Record<string, CmsComponentSchema> = {
       { key: "presidentLabel", label: "President email label", type: "text" },
       { key: "presidentEmail", label: "President email address", type: "text" },
       { key: "rightsText", label: "Rights text (after © year + brand)", type: "text" },
-    ],
-    collections: [
-      {
-        key: "links",
-        label: "Quick links",
-        itemLabelField: "label",
-        fields: [
-          { key: "label", label: "Label", type: "text", required: true },
-          { key: "href", label: "Link", type: "url", required: true },
-        ],
-      },
     ],
   },
 

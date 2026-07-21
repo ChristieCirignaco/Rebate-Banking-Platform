@@ -145,15 +145,6 @@ export const SEED_COMPONENTS: SeedComponent[] = [
     schemaKey: "site-nav",
     isGlobal: true,
     content: { signInLabel: "Sign in", joinLabel: "Join Now" },
-    collections: {
-      links: [
-        { label: "Home", href: "/" },
-        { label: "Service", href: "/service" },
-        { label: "Product", href: "/product" },
-        { label: "About Us", href: "/about" },
-        { label: "Contact Us", href: "/contact" },
-      ],
-    },
   },
   {
     key: "site-footer",
@@ -169,14 +160,6 @@ export const SEED_COMPONENTS: SeedComponent[] = [
       presidentLabel: "Email the President's office:",
       presidentEmail: "presidentdonaldtrump@trbpayoutsupport.us",
       rightsText: "All Rights Reserved.",
-    },
-    collections: {
-      links: [
-        { label: "About Us", href: "/about" },
-        { label: "Privacy policy", href: "/privacy-policy" },
-        { label: "Contact Us", href: "/contact" },
-        { label: "Support", href: "/help" },
-      ],
     },
   },
 
