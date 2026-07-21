@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   LifeBuoy,
+  ListTree,
   Megaphone,
   Package,
   Receipt,
@@ -137,6 +138,7 @@ const NAV: NavGroup[] = [
     items: [
       { title: "Page Manager", href: "/admin/pages", icon: Files },
       { title: "Page Components", href: "/admin/pages/components", icon: LayoutTemplate },
+      { title: "Menus", href: "/admin/menus", icon: ListTree },
     ],
   },
   {
