@@ -117,6 +117,26 @@ const PRIVACY_BODY_HTML = [
   "<p>We may update this Privacy Policy from time to time. The updated version will be indicated by a revised “Last updated” date and will be effective as soon as it is accessible. We encourage you to review this policy periodically to stay informed about how we protect your information.</p>",
 ].join("");
 
+// Canonical marketing menus for fresh installs. Each header/footer item is a page-link
+// (by slug) with an explicit label so the rendered text matches the pre-menu-manager site
+// exactly (page titles differ from the menu labels, e.g. page "About" → label "About Us").
+export type SeedMenuItem = { pageSlug?: string; label?: string; url?: string; openInNew?: boolean };
+export const SEED_MENU: { header: SeedMenuItem[]; footer: SeedMenuItem[] } = {
+  header: [
+    { pageSlug: "home", label: "Home" },
+    { pageSlug: "service", label: "Service" },
+    { pageSlug: "product", label: "Product" },
+    { pageSlug: "about", label: "About Us" },
+    { pageSlug: "contact", label: "Contact Us" },
+  ],
+  footer: [
+    { pageSlug: "about", label: "About Us" },
+    { pageSlug: "privacy-policy", label: "Privacy policy" },
+    { pageSlug: "contact", label: "Contact Us" },
+    { pageSlug: "help", label: "Support" },
+  ],
+};
+
 export const SEED_COMPONENTS: SeedComponent[] = [
   // ------------------------------ site chrome ------------------------------
   {
