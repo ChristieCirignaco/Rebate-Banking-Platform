@@ -58,9 +58,12 @@ async function seedMenuLocation(location: "header" | "footer", componentKey: str
 
 async function main() {
   if (force) {
-    // Pages cascade their sections; components cascade contents/items.
+    // Pages cascade their sections; components cascade contents/items. Menu items with a pageId
+    // cascade via the CmsPage FK, but custom-link items (pageId = null) don't — delete explicitly
+    // so seedMenuLocation's "existing > 0" guard doesn't skip re-backfill on a forced reseed.
     await prisma.cmsPage.deleteMany();
     await prisma.cmsComponent.deleteMany();
+    await prisma.cmsMenuItem.deleteMany();
     console.log("--force: cleared existing CMS content");
   }
 
