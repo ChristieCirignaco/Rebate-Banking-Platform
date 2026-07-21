@@ -55,6 +55,8 @@ export type CmsPageDetailData = {
   breadcrumb: string | null;
   isActive: boolean;
   isProtected: boolean;
+  inHeaderMenu: boolean;
+  inFooterMenu: boolean;
   sections: CmsSectionRow[];
   // Components not yet on this page (the add-to-page library).
   library: { id: string; key: string; name: string; schemaKey: string; schemaLabel: string; type: string }[];
@@ -69,10 +71,16 @@ export async function getCmsPageDetail(id: string): Promise<CmsPageDetailData | 
   });
   if (!page) return null;
   const usedIds = page.sections.map((s) => s.componentId);
-  const library = await prisma.cmsComponent.findMany({
-    where: { id: { notIn: usedIds }, isGlobal: false },
-    orderBy: { name: "asc" },
-  });
+  const [library, menuLinks] = await Promise.all([
+    prisma.cmsComponent.findMany({
+      where: { id: { notIn: usedIds }, isGlobal: false },
+      orderBy: { name: "asc" },
+    }),
+    prisma.cmsMenuItem.findMany({
+      where: { pageId: id },
+      select: { location: true },
+    }),
+  ]);
   const schemaLabel = (key: string) => getCmsSchema(key)?.label ?? key;
   return {
     id: page.id,
@@ -82,6 +90,8 @@ export async function getCmsPageDetail(id: string): Promise<CmsPageDetailData | 
     breadcrumb: page.breadcrumb,
     isActive: page.isActive,
     isProtected: page.isProtected,
+    inHeaderMenu: menuLinks.some((m) => m.location === "header"),
+    inFooterMenu: menuLinks.some((m) => m.location === "footer"),
     sections: page.sections.map((s) => ({
       id: s.id,
       sortOrder: s.sortOrder,

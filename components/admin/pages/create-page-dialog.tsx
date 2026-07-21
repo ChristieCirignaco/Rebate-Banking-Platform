@@ -49,6 +49,8 @@ export function CreatePageDialog() {
   const [slugTouched, setSlugTouched] = useState(false);
   const [breadcrumb, setBreadcrumb] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [addToHeader, setAddToHeader] = useState(false);
+  const [addToFooter, setAddToFooter] = useState(false);
 
   function reset() {
     setTitle("");
@@ -56,13 +58,22 @@ export function CreatePageDialog() {
     setSlugTouched(false);
     setBreadcrumb("");
     setIsActive(true);
+    setAddToHeader(false);
+    setAddToFooter(false);
   }
 
   async function submit() {
     if (busy) return;
     setBusy(true);
     try {
-      const result = await createCmsPage({ title, slug, breadcrumb, isActive });
+      const result = await createCmsPage({
+        title,
+        slug,
+        breadcrumb,
+        isActive,
+        addToHeader,
+        addToFooter,
+      });
       if (result.ok) {
         toast.success("Page created — now add components to it");
         // Full navigation: router.push after a server action wedges the router.
@@ -140,6 +151,26 @@ export function CreatePageDialog() {
               Page status — {isActive ? "active" : "inactive"}
             </Label>
             <Switch id="cms-page-active" checked={isActive} onCheckedChange={setIsActive} />
+          </div>
+          <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+            <Label htmlFor="cms-page-add-header" className="font-normal">
+              Add to header menu
+            </Label>
+            <Switch
+              id="cms-page-add-header"
+              checked={addToHeader}
+              onCheckedChange={setAddToHeader}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+            <Label htmlFor="cms-page-add-footer" className="font-normal">
+              Add to footer menu
+            </Label>
+            <Switch
+              id="cms-page-add-footer"
+              checked={addToFooter}
+              onCheckedChange={setAddToFooter}
+            />
           </div>
         </div>
         <DialogFooter>

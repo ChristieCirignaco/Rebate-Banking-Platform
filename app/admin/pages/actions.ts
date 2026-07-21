@@ -21,11 +21,32 @@ function revalidateMarketing(paths: (string | null | undefined)[]) {
   }
 }
 
+// Header/footer chrome renders on every marketing page, so a menu change has
+// to flush every page path (not just the one being edited).
+async function revalidateMarketingChrome() {
+  const paths = (await prisma.cmsPage.findMany({ select: { path: true } })).map((p) => p.path);
+  for (const path of new Set(paths)) revalidatePath(path);
+  revalidatePath("/news/[id]", "page");
+  revalidatePath("/admin/menus", "layout");
+}
+
+async function appendPageLink(location: "header" | "footer", pageId: string) {
+  const max = await prisma.cmsMenuItem.aggregate({
+    where: { location },
+    _max: { sortOrder: true },
+  });
+  await prisma.cmsMenuItem.create({
+    data: { location, pageId, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+  });
+}
+
 export type CreateCmsPagePayload = {
   title: string;
   slug: string;
   breadcrumb: string;
   isActive: boolean;
+  addToHeader?: boolean;
+  addToFooter?: boolean;
 };
 
 export async function createCmsPage(
@@ -54,8 +75,14 @@ export async function createCmsPage(
         sortOrder: 100,
       },
     });
+    if (payload.addToHeader) await appendPageLink("header", page.id);
+    if (payload.addToFooter) await appendPageLink("footer", page.id);
     revalidateAdmin();
-    revalidateMarketing([page.path]);
+    if (payload.addToHeader || payload.addToFooter) {
+      await revalidateMarketingChrome();
+    } else {
+      revalidateMarketing([page.path]);
+    }
     return { ok: true, id: page.id };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -237,5 +264,33 @@ export async function reorderPageSections(
   );
   revalidateAdmin();
   revalidateMarketing([page.path]);
+  return { ok: true };
+}
+
+export async function setPageInMenu(
+  pageId: string,
+  location: "header" | "footer",
+  present: boolean,
+): Promise<ActionResult> {
+  if (!(await getAdminSession())) return NOT_AUTHORIZED;
+  if (location !== "header" && location !== "footer") {
+    return { ok: false, error: "Invalid location." };
+  }
+  const page = await prisma.cmsPage.findUnique({ where: { id: pageId }, select: { id: true } });
+  if (!page) return { ok: false, error: "Page not found." };
+
+  const existing = await prisma.cmsMenuItem.findFirst({
+    where: { pageId, location },
+    select: { id: true },
+  });
+
+  if (present) {
+    if (!existing) await appendPageLink(location, pageId);
+  } else if (existing) {
+    await prisma.cmsMenuItem.deleteMany({ where: { pageId, location } });
+  }
+
+  revalidateAdmin();
+  await revalidateMarketingChrome();
   return { ok: true };
 }

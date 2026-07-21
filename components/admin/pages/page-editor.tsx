@@ -28,6 +28,7 @@ import {
   deleteCmsPage,
   removePageSection,
   reorderPageSections,
+  setPageInMenu,
   toggleSectionActive,
   updateCmsPageMeta,
   type ActionResult,
@@ -133,6 +134,8 @@ export function PageEditor({ page }: { page: CmsPageDetailData }) {
   const [slug, setSlug] = useState(page.slug);
   const [breadcrumb, setBreadcrumb] = useState(page.breadcrumb ?? "");
   const [isActive, setIsActive] = useState(page.isActive);
+  const [inHeaderMenu, setInHeaderMenu] = useState(page.inHeaderMenu);
+  const [inFooterMenu, setInFooterMenu] = useState(page.inFooterMenu);
   // Last-saved snapshot: "Save settings" sends only fields that differ from it,
   // so this tab can't clobber changes made elsewhere with stale values.
   const savedMeta = useRef({
@@ -155,6 +158,21 @@ export function PageEditor({ page }: { page: CmsPageDetailData }) {
     }
     const ok = await run(updateCmsPageMeta(page.id, patch), "Page settings saved");
     if (ok) savedMeta.current = { title, slug, breadcrumb, isActive };
+  }
+
+  async function onToggleMenu(location: "header" | "footer", value: boolean) {
+    const setter = location === "header" ? setInHeaderMenu : setInFooterMenu;
+    setter(value);
+    const result = await setPageInMenu(page.id, location, value);
+    if (result.ok) {
+      toast.success(
+        `${page.title} ${value ? "added to" : "removed from"} the ${location} menu`,
+      );
+      router.refresh();
+    } else {
+      setter(!value);
+      toast.error(result.error);
+    }
   }
 
   // router.refresh() re-renders with fresh server data — mirror it into the
@@ -375,6 +393,28 @@ export function PageEditor({ page }: { page: CmsPageDetailData }) {
                 Page status — {isActive ? "active" : "inactive"}
               </Label>
               <Switch id="cms-edit-active" checked={isActive} onCheckedChange={setIsActive} />
+            </div>
+            <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+              <Label htmlFor="cms-edit-header-menu" className="font-normal">
+                In header menu
+              </Label>
+              <Switch
+                id="cms-edit-header-menu"
+                checked={inHeaderMenu}
+                disabled={busy}
+                onCheckedChange={(value) => onToggleMenu("header", value)}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
+              <Label htmlFor="cms-edit-footer-menu" className="font-normal">
+                In footer menu
+              </Label>
+              <Switch
+                id="cms-edit-footer-menu"
+                checked={inFooterMenu}
+                disabled={busy}
+                onCheckedChange={(value) => onToggleMenu("footer", value)}
+              />
             </div>
             <div className="flex items-center gap-2">
               <Button disabled={busy} onClick={onSaveSettings}>
