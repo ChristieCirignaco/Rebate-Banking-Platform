@@ -25,12 +25,12 @@ import {
 import { Input } from "@/components/ui/input";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 
 // The desktop header's existing search controls, matched class-for-class so dropping this in
 // changes behavior only — never layout.
 const PILL =
-  "hidden h-10 w-56 items-center gap-2 rounded-full bg-white px-4 text-sm text-slate-400 shadow-sm transition-colors hover:bg-slate-100 xl:flex dark:bg-slate-800 dark:hover:bg-slate-700";
+  "hidden h-10 w-56 items-center gap-2 rounded-full bg-white px-4 text-sm text-slate-400 shadow-sm transition-colors hover:bg-slate-100 xl:flex dark:bg-slate-800 dark:text-slate-500 dark:hover:bg-slate-700";
 const ICON_BTN =
   "relative flex size-10 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700";
 
@@ -186,20 +186,20 @@ export function TransactionSearch({
 
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="flex flex-col items-center gap-3 py-10 text-slate-400">
+              <div className="flex flex-col items-center gap-3 py-10 text-slate-400 dark:text-slate-500">
                 <Loader2 className="size-5 animate-spin" />
                 <p className="text-sm">Searching…</p>
               </div>
             ) : tooShort ? (
-              <p className="py-10 text-center text-sm text-slate-400">
+              <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">
                 Type at least {MIN_QUERY} characters to search.
               </p>
             ) : results.length === 0 ? (
-              <p className="py-10 text-center text-sm text-slate-400">
+              <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">
                 No matching transactions
               </p>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {results.map((row) => {
                   const Icon = TXN_ICONS[row.iconKey];
                   return (
@@ -207,28 +207,30 @@ export function TransactionSearch({
                       key={row.id}
                       type="button"
                       onClick={() => onSelect(row.id)}
-                      className="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-slate-50"
+                      className="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
                       <span
                         className={cn(
                           "flex size-10 shrink-0 items-center justify-center rounded-full",
                           row.positive
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-slate-100 text-slate-500",
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                            : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
                         )}
                       >
                         <Icon className="size-5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
+                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {row.title}
                         </p>
-                        <p className="truncate text-xs text-slate-400">{row.dateLabel}</p>
+                        <p className="truncate text-xs text-slate-400 dark:text-slate-500">{row.dateLabel}</p>
                       </div>
                       <span
                         className={cn(
                           "shrink-0 text-sm font-bold tabular-nums",
-                          row.positive ? "text-emerald-600" : "text-red-600",
+                          row.positive
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400",
                         )}
                       >
                         {row.amountLabel}
