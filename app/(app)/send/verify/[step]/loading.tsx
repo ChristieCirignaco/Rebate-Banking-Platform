@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Loading() {
   return (
     <div className="mx-auto max-w-md px-5 pb-24 lg:px-0 lg:pb-0">
-      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg">
+      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg lg:dark:bg-slate-900">
         <div className="flex items-center justify-end py-2 lg:pt-0">
           <Skeleton className="size-9 rounded-full" />
         </div>

@@ -9,6 +9,7 @@ import { BottomTabBar } from "@/components/app/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/app/desktop-sidebar";
 import { DesktopHeader } from "@/components/app/desktop-header";
 import { TranslateProvider } from "@/components/app/translate/translate-provider";
+import { UserThemeProvider } from "@/components/app/user-theme-provider";
 import { ImpersonationBanner } from "@/components/app/impersonation-banner";
 
 // Shell for the whole authenticated user area. Full gate runs once here.
@@ -45,6 +46,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <TranslateProvider initialLang={initialLang}>
+     <UserThemeProvider>
       {/* Lift the live-chat launcher above the mobile bottom nav. The chat widget floats
           site-wide (SitePluginScripts), but only the signed-in app has a bottom tab bar, and the
           vendor bubble sits at bottom:24px right:12px — directly over it. This style is present
@@ -90,6 +92,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
         <BottomTabBar enabled={enabled} user={user} />
       </div>
+     </UserThemeProvider>
     </TranslateProvider>
   );
 }

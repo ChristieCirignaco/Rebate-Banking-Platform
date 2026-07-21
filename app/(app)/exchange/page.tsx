@@ -21,20 +21,20 @@ export default async function ExchangePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 lg:px-0 lg:pb-0">
-      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg">
+      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg lg:dark:bg-slate-900">
         <div className="flex items-center gap-3 py-4 lg:pt-0">
           <Link
             href="/dashboard"
             aria-label="Back"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             <ChevronLeft className="size-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
               Exchange money
             </h1>
-            <p className="truncate text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
               Convert instantly between your wallets.
             </p>
           </div>
@@ -44,27 +44,27 @@ export default async function ExchangePage() {
 
         {history.length > 0 ? (
           <div className="mt-8 flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-slate-900">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               Recent exchanges
             </h2>
-            <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+            <div className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
               {history.map((e) => (
                 <div
                   key={e.id}
                   className="flex items-center justify-between gap-3 p-3.5"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {e.fromLabel}
                     </span>
-                    <ArrowRight className="size-3.5 shrink-0 text-slate-400" />
-                    <span className="text-sm font-semibold text-emerald-600">
+                    <ArrowRight className="size-3.5 shrink-0 text-slate-400 dark:text-slate-500" />
+                    <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                       {e.toLabel}
                     </span>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-[11px] text-slate-400">{e.rateLabel}</p>
-                    <p className="font-mono text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">{e.rateLabel}</p>
+                    <p className="font-mono text-[11px] text-slate-400 dark:text-slate-500">
                       {e.createdAtLabel}
                     </p>
                   </div>

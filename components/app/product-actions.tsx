@@ -77,7 +77,7 @@ export function ProductActions({ product }: { product: ProductRowView }) {
 
   if (editing) {
     return (
-      <form onSubmit={onSave} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3">
+      <form onSubmit={onSave} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="p-name" className="text-xs font-semibold">
             Name

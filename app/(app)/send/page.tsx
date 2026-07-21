@@ -29,9 +29,10 @@ export default async function SendPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { currency: true },
+    select: { currency: true, transactionPin: true },
   });
   const currency = user?.currency ?? "USD";
+  const hasPin = Boolean(user?.transactionPin);
   const wallet = await prisma.wallet.findUnique({
     where: { userId_currency: { userId: session.user.id, currency } },
     select: { balanceMinor: true },
@@ -43,20 +44,20 @@ export default async function SendPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 lg:px-0 lg:pb-0">
-      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg">
+      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg lg:dark:bg-slate-900">
         <div className="flex items-center gap-3 py-4 lg:pt-0">
           <Link
             href="/dashboard"
             aria-label="Back"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
           >
             <ChevronLeft className="size-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
               Send money
             </h1>
-            <p className="truncate text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
               Transfer to a user, a domestic bank, or by wire.
             </p>
           </div>
@@ -65,6 +66,7 @@ export default async function SendPage() {
           balanceLabel={balanceLabel}
           currency={currency}
           kinds={kinds}
+          hasPin={hasPin}
         />
       </div>
     </div>

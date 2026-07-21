@@ -95,7 +95,7 @@ export function ManageWalletDialog({ wallet }: { wallet: WalletCardView }) {
           <DialogTitle>
             {wallet.currency} wallet
             {wallet.isDefault ? (
-              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-600 uppercase">
+              <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-600 uppercase dark:bg-blue-500/10 dark:text-blue-400">
                 Primary
               </span>
             ) : null}
@@ -109,14 +109,14 @@ export function ManageWalletDialog({ wallet }: { wallet: WalletCardView }) {
           <div className="grid grid-cols-2 gap-2">
             <Link
               href="/deposit"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
             >
               <ArrowDownToLine className="size-4" />
               Deposit
             </Link>
             <Link
               href="/withdraw"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
             >
               <ArrowUpFromLine className="size-4" />
               Withdraw
@@ -124,14 +124,14 @@ export function ManageWalletDialog({ wallet }: { wallet: WalletCardView }) {
           </div>
           <Link
             href="/transactions"
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-600 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
           >
             <Receipt className="size-4" />
             View transactions
           </Link>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+        <div className="flex flex-col gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           {wallet.isDefault ? null : (
             <Button variant="secondary" size="sm" disabled={busy} onClick={() => void onMakePrimary()}>
               {busy ? <Loader2 className="size-4 animate-spin" /> : <Star className="size-4" />}
@@ -143,7 +143,7 @@ export function ManageWalletDialog({ wallet }: { wallet: WalletCardView }) {
               enforces, so the button states the actual reason instead of making the user click
               to discover it. */}
           {wallet.removeBlockedReason ? (
-            <p className="rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500">
+            <p className="rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
               {wallet.removeBlockedReason}
             </p>
           ) : confirming ? (
@@ -161,7 +161,7 @@ export function ManageWalletDialog({ wallet }: { wallet: WalletCardView }) {
               variant="ghost"
               size="sm"
               disabled={busy}
-              className="text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
               onClick={() => setConfirming(true)}
             >
               <Trash2 className="size-4" />

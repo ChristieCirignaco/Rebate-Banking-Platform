@@ -84,7 +84,7 @@ export function RecipientField({
       ? "border-emerald-500 bg-emerald-50/50 focus:ring-2 focus:ring-emerald-500/20 dark:bg-emerald-500/5"
       : status === "notfound"
         ? "border-red-500 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 dark:bg-red-500/5"
-        : "border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700";
+        : "border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:focus:bg-slate-900";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -92,7 +92,7 @@ export function RecipientField({
         Recipient (email or @username)
       </Label>
       <div ref={wrapRef} className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
         <input
           id="recipient"
           value={value}
@@ -104,7 +104,7 @@ export function RecipientField({
         />
         <span className="absolute top-1/2 right-3 -translate-y-1/2">
           {status === "loading" ? (
-            <Loader2 className="size-4 animate-spin text-slate-400" />
+            <Loader2 className="size-4 animate-spin text-slate-400 dark:text-slate-500" />
           ) : status === "found" ? (
             <Check className="size-4 text-emerald-500" />
           ) : status === "notfound" ? (

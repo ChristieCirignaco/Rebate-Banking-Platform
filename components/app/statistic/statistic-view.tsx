@@ -18,7 +18,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 // pulled into the client bundle.
 
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 // Typed against StatRange so these can never drift from the ranges the read layer buckets.
 const RANGE_OPTIONS: { value: StatRange; label: string }[] = [
@@ -99,7 +99,7 @@ function Controls({
           mixing them into a single series would be meaningless. */}
       {currencies.length > 1 ? (
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Wallet</span>
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Wallet</span>
           <select
             className={SELECT}
             value={active.currency}
@@ -115,7 +115,7 @@ function Controls({
       ) : null}
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Range</span>
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Range</span>
         <select
           className={SELECT}
           value={range}
@@ -134,22 +134,22 @@ function Controls({
 
 function Summary({ view }: { view: StatRangeView }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm">
-      <div className="flex justify-between text-slate-500">
+    <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800/50">
+      <div className="flex justify-between text-slate-500 dark:text-slate-400">
         <span>Money in</span>
-        <span className="text-emerald-600">{view.inLabel}</span>
+        <span className="text-emerald-600 dark:text-emerald-400">{view.inLabel}</span>
       </div>
-      <div className="flex justify-between text-slate-500">
+      <div className="flex justify-between text-slate-500 dark:text-slate-400">
         <span>Money out</span>
-        <span className="text-red-600">{view.outLabel}</span>
+        <span className="text-red-600 dark:text-red-400">{view.outLabel}</span>
       </div>
-      <div className="flex justify-between text-slate-500">
+      <div className="flex justify-between text-slate-500 dark:text-slate-400">
         <span>Transactions</span>
         <span>{view.count}</span>
       </div>
-      <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900">
+      <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
         <span>Net</span>
-        <span className={view.netPositive ? "text-emerald-600" : "text-red-600"}>
+        <span className={view.netPositive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
           {view.netLabel}
         </span>
       </div>
@@ -159,10 +159,10 @@ function Summary({ view }: { view: StatRangeView }) {
 
 function ActivityChart({ view, currency }: { view: StatRangeView; currency: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4">
+    <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">Money in vs money out</h2>
-        <p className="text-xs text-slate-500">Daily totals for your {currency} wallet.</p>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Money in vs money out</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Daily totals for your {currency} wallet.</p>
       </div>
 
       <ChartContainer config={activityConfig} className="aspect-[16/10] w-full">
@@ -215,10 +215,10 @@ function ActivityChart({ view, currency }: { view: StatRangeView; currency: stri
 
 function SourceChart({ view, currency }: { view: StatRangeView; currency: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4">
+    <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">Where it moved</h2>
-        <p className="text-xs text-slate-500">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Where it moved</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Total {currency} volume by transaction type — credits and debits both count.
         </p>
       </div>
@@ -277,10 +277,10 @@ function moneyFormatter(currency: string, config: ChartConfig) {
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-slate-200 py-10 text-center">
-      <ChartColumn className="size-6 text-slate-300" />
-      <p className="text-sm font-medium text-slate-500">{title}</p>
-      <p className="text-xs text-slate-400">{detail}</p>
+    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-slate-200 py-10 text-center dark:border-slate-800">
+      <ChartColumn className="size-6 text-slate-300 dark:text-slate-500" />
+      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+      <p className="text-xs text-slate-400 dark:text-slate-500">{detail}</p>
     </div>
   );
 }

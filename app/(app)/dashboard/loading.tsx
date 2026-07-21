@@ -10,7 +10,7 @@ export default function Loading() {
   return (
     <>
       {/* Mobile — dark hero over a white sheet (MobileHome) */}
-      <div className="mx-auto flex min-h-svh w-full max-w-[600px] flex-col bg-white lg:hidden">
+      <div className="mx-auto flex min-h-svh w-full max-w-[600px] flex-col bg-white lg:hidden dark:bg-slate-950">
         <section
           className="px-5 pt-6 pb-10"
           style={{
@@ -49,7 +49,7 @@ export default function Loading() {
           </div>
         </section>
 
-        <section className="-mt-6 flex-1 rounded-t-[28px] bg-white px-5 pt-5 pb-28">
+        <section className="-mt-6 flex-1 rounded-t-[28px] bg-white px-5 pt-5 pb-28 dark:bg-slate-950">
           <Skeleton className="mb-3 h-5 w-24" />
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 2 }).map((_, index) => (

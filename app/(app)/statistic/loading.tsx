@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function ChartSection({ plot }: { plot: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4">
+    <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
       <div className="flex flex-col gap-1.5">
         <Skeleton className="h-4 w-48" />
         <Skeleton className="h-3 w-64 max-w-full" />
@@ -30,14 +30,14 @@ export default function Loading() {
         </div>
 
         {/* Summary tile: money in, money out, transactions, then the ruled net row. */}
-        <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4">
+        <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/50">
           {Array.from({ length: 3 }).map((_, index) => (
             <div key={index} className="flex items-center justify-between">
               <Skeleton className="h-3.5 w-24" />
               <Skeleton className="h-3.5 w-20" />
             </div>
           ))}
-          <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-2">
+          <div className="mt-1 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
             <Skeleton className="h-4 w-12" />
             <Skeleton className="h-4 w-24" />
           </div>

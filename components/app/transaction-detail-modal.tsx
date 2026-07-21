@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/dialog";
 
 const STATUS_STYLE: Record<TransactionStatus, string> = {
-  pending: "bg-amber-50 text-amber-700",
-  completed: "bg-emerald-50 text-emerald-700",
-  failed: "bg-red-50 text-red-700",
+  pending: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+  completed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+  failed: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
 function Field({
@@ -31,8 +31,8 @@ function Field({
 }) {
   return (
     <div className={cn("flex flex-col gap-0.5", className)}>
-      <span className="text-xs text-slate-400">{label}</span>
-      <span className="text-sm font-medium break-words text-slate-900">{value}</span>
+      <span className="text-xs text-slate-400 dark:text-slate-500">{label}</span>
+      <span className="text-sm font-medium break-words text-slate-900 dark:text-slate-100">{value}</span>
     </div>
   );
 }
@@ -55,7 +55,7 @@ export function TransactionDetailModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         {!detail ? (
-          <div className="flex flex-col items-center gap-3 py-12 text-slate-400">
+          <div className="flex flex-col items-center gap-3 py-12 text-slate-400 dark:text-slate-500">
             <DialogTitle className="sr-only">Transaction Details</DialogTitle>
             <Loader2 className="size-6 animate-spin" />
             <p className="text-sm">Loading…</p>
@@ -67,8 +67,8 @@ export function TransactionDetailModal({
                 className={cn(
                   "mx-auto flex size-12 items-center justify-center rounded-full",
                   detail.positive
-                    ? "bg-emerald-50 text-emerald-600"
-                    : "bg-slate-100 text-slate-500",
+                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
                 )}
               >
                 {Icon ? <Icon className="size-6" /> : null}
@@ -76,11 +76,11 @@ export function TransactionDetailModal({
               <DialogTitle className="text-center">Transaction Details</DialogTitle>
               <DialogDescription className="text-center">
                 {detail.typeDescription}
-                <span className="mt-0.5 block text-xs text-slate-400">{detail.dateLabel}</span>
+                <span className="mt-0.5 block text-xs text-slate-400 dark:text-slate-500">{detail.dateLabel}</span>
               </DialogDescription>
             </DialogHeader>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl bg-slate-50 p-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/50">
               <Field
                 label="Transaction ID"
                 value={<span className="font-mono text-xs">{detail.reference}</span>}
@@ -92,8 +92,8 @@ export function TransactionDetailModal({
               <Field label="Fee" value={detail.feeLabel} />
               <Field label="Net Amount" value={detail.netLabel} />
               <Field label="Payable Amount" value={detail.payableLabel} />
-              <div className="col-span-2 flex items-center justify-between border-t border-slate-200 pt-3">
-                <span className="text-xs text-slate-400">Status</span>
+              <div className="col-span-2 flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+                <span className="text-xs text-slate-400 dark:text-slate-500">Status</span>
                 <span
                   className={cn(
                     "rounded-full px-2.5 py-1 text-xs font-semibold capitalize",

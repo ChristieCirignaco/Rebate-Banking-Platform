@@ -30,7 +30,7 @@ export function PageShellSkeleton({
 }) {
   return (
     <div className={cn("mx-auto px-5 pb-24 lg:px-0 lg:pb-0", maxWidth)}>
-      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg">
+      <div className="lg:rounded-2xl lg:bg-white lg:p-6 lg:shadow-lg lg:dark:bg-slate-900">
         <div className="flex items-center gap-3 py-4 lg:pt-0">
           <Skeleton className="size-10 shrink-0 rounded-full" />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -48,7 +48,7 @@ export function PageShellSkeleton({
 /** List rows: leading circle, two stacked text lines, right-aligned trailing pair. */
 export function RowsSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="flex flex-col divide-y divide-slate-100">
+    <div className="flex flex-col divide-y divide-slate-100 dark:divide-slate-800">
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="flex items-center gap-3 py-3">
           <Skeleton className="size-10 shrink-0 rounded-full" />

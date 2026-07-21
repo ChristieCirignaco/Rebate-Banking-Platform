@@ -22,15 +22,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const SELECT =
-  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none";
+  "h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19 9l-7 7-7-7%22/></svg>')] bg-[length:1.15rem] bg-[right_0.75rem_center] bg-no-repeat px-3.5 pr-10 text-base text-slate-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-100 dark:focus:bg-slate-900";
 
 const STATUS_STYLE: Record<VoucherStatus, string> = {
-  pending: "bg-amber-50 text-amber-700",
-  redeemed: "bg-emerald-50 text-emerald-700",
-  expired: "bg-slate-100 text-slate-500",
-  canceled: "bg-red-50 text-red-700",
+  pending: "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+  redeemed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+  expired: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+  canceled: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
 };
 
 export function VoucherView({
@@ -65,7 +65,7 @@ export function VoucherView({
         <button
           type="button"
           onClick={() => setRedeemOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <TicketCheck className="size-4" />
           Redeem Voucher
@@ -98,13 +98,13 @@ export function VoucherView({
 
 function VoucherTable({ vouchers }: { vouchers: VoucherRow[] }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200">
-      <div className="border-b border-slate-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">My Vouchers</h2>
+    <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Vouchers</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-slate-50 text-xs font-medium text-slate-500">
+          <thead className="bg-slate-50 text-xs font-medium text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
             <tr>
               <th className="px-4 py-2.5 font-medium">Voucher Code</th>
               <th className="px-4 py-2.5 font-medium">Amount</th>
@@ -114,19 +114,19 @@ function VoucherTable({ vouchers }: { vouchers: VoucherRow[] }) {
               <th className="px-4 py-2.5 font-medium">Created On</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {vouchers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-10 text-center text-slate-400 dark:text-slate-500">
                   You haven&apos;t created any vouchers yet.
                 </td>
               </tr>
             ) : (
               vouchers.map((v) => (
                 <tr key={v.id}>
-                  <td className="px-4 py-3 font-mono text-xs font-medium text-slate-900">{v.code}</td>
-                  <td className="px-4 py-3 font-medium tabular-nums text-slate-900">{v.amountLabel}</td>
-                  <td className="px-4 py-3 text-slate-600">{v.currency}</td>
+                  <td className="px-4 py-3 font-mono text-xs font-medium text-slate-900 dark:text-slate-100">{v.code}</td>
+                  <td className="px-4 py-3 font-medium tabular-nums text-slate-900 dark:text-slate-100">{v.amountLabel}</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{v.currency}</td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
@@ -137,19 +137,19 @@ function VoucherTable({ vouchers }: { vouchers: VoucherRow[] }) {
                       {v.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
                     {v.redeemedOnLabel ? (
                       <span>
                         {v.redeemedOnLabel}
                         {v.redeemedByName ? (
-                          <span className="block text-slate-400">by {v.redeemedByName}</span>
+                          <span className="block text-slate-400 dark:text-slate-500">by {v.redeemedByName}</span>
                         ) : null}
                       </span>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{v.createdOnLabel}</td>
+                  <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{v.createdOnLabel}</td>
                 </tr>
               ))
             )}
@@ -163,8 +163,8 @@ function VoucherTable({ vouchers }: { vouchers: VoucherRow[] }) {
 function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className={cn("text-slate-500", strong && "font-semibold text-slate-700")}>{label}</span>
-      <span className={cn("tabular-nums text-slate-700", strong && "font-bold text-slate-900")}>
+      <span className={cn("text-slate-500 dark:text-slate-400", strong && "font-semibold text-slate-700 dark:text-slate-200")}>{label}</span>
+      <span className={cn("tabular-nums text-slate-700 dark:text-slate-200", strong && "font-bold text-slate-900 dark:text-slate-100")}>
         {value}
       </span>
     </div>
@@ -255,7 +255,7 @@ function GenerateModal({
         </DialogHeader>
 
         {wallets.length === 0 ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
             No wallet is available for vouchers right now.
           </p>
         ) : (
@@ -294,18 +294,18 @@ function GenerateModal({
                   onChange={(e) => setAmount(e.target.value)}
                   className={cn(FIELD, "pr-16")}
                 />
-                <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400">
+                <span className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm font-semibold text-slate-400 dark:text-slate-500">
                   {currency}
                 </span>
               </div>
               {wallet ? (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Available: <span className="font-semibold">{wallet.balanceLabel}</span>
                 </p>
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm">
+            <div className="flex flex-col gap-1.5 rounded-2xl bg-slate-50 p-4 text-sm dark:bg-slate-800/50">
               <SummaryRow label="Voucher Amount" value={formatCurrency(validAmount ? amountNum : 0, currency)} />
               <SummaryRow label="Voucher Fee" value={formatCurrency(fee, currency)} />
               <SummaryRow label="Total Amount" value={formatCurrency(total, currency)} />
@@ -313,7 +313,7 @@ function GenerateModal({
                 label="Conversion Rate"
                 value={`1 ${currency} = ${rateToBase.toLocaleString("en-US", { maximumFractionDigits: 6 })} ${baseCode}`}
               />
-              <div className="my-1 border-t border-slate-200" />
+              <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
               <SummaryRow
                 label="Final Voucher Value"
                 value={formatCurrency(validAmount ? amountNum : 0, currency)}
@@ -323,7 +323,7 @@ function GenerateModal({
             </div>
 
             {error ? (
-              <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p>
+              <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</p>
             ) : null}
 
             <button
@@ -418,7 +418,7 @@ function RedeemModal({
           </div>
 
           {error ? (
-            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600">{error}</p>
+            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">{error}</p>
           ) : null}
 
           <button

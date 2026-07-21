@@ -43,12 +43,18 @@ export function PasscodeDialog({
   onSubmit,
   title = "Enter your transaction PIN",
   description = "Authorize this with your PIN.",
+  hasPin = true,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSubmit: (pin: string) => Promise<PasscodeSubmitResult>;
   title?: string;
   description?: string;
+  // Whether this user has a transaction PIN set. When false, the dialog shows a "set up your
+  // PIN first" notice instead of the PIN input — so a brand-new user who hasn't created a PIN
+  // yet isn't asked to enter one they don't have. Centralized here so no money flow can forget
+  // the check (the transfer flow did): every caller just passes hasPin and the gate is correct.
+  hasPin?: boolean;
 }) {
   const [pin, setPin] = useState("");
   const [needPin, setNeedPin] = useState(false);
@@ -166,22 +172,30 @@ export function PasscodeDialog({
                   : "Done"
             }
           />
-        ) : needPin ? (
+        ) : needPin || !hasPin ? (
+          // Shown up front when the user has no PIN (hasPin=false), and also if the server reports
+          // one is needed mid-flow (needPin). Either way there is nothing to type — point them to
+          // where they set it, before they try to continue.
           <>
             <DialogHeader>
-              <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
                 <KeyRound className="size-5" />
               </div>
-              <DialogTitle className="text-center">{title}</DialogTitle>
-              <DialogDescription className="text-center">{description}</DialogDescription>
+              <DialogTitle className="text-center">Set up your transaction PIN</DialogTitle>
+              <DialogDescription className="text-center">
+                You need a transaction PIN to authorize this. You haven&apos;t created one yet.
+              </DialogDescription>
             </DialogHeader>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-              You haven&apos;t set a transaction PIN yet.
-              <br />
-              <Link href="/account/security" className="font-semibold underline">
-                Set it up in Security →
-              </Link>
+              Go to your profile&apos;s Security settings to create a PIN, then come back to
+              continue.
             </div>
+            <Link
+              href="/account/security"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+            >
+              Set up my PIN
+            </Link>
           </>
         ) : (
           <>

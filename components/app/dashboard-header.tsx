@@ -1,6 +1,7 @@
 import { AvatarMenu } from "@/components/app/avatar-menu";
 import { NotificationBell } from "@/components/app/notifications/notification-bell";
 import { LanguageDropdown } from "@/components/app/translate/language-dropdown";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 
 // Top of the mobile Home hero: avatar + time-based greeting on the left, notifications on the
 // right. Mobile only — the desktop shell has its own sidebar. The nav menu no longer lives here:
@@ -42,6 +43,9 @@ export function DashboardHeader({
 
       {/* shrink-0: the name truncates, the controls never do. */}
       <div className="flex shrink-0 items-center gap-2">
+        {/* On the navy home hero the toggle is always white-on-navy, regardless of theme —
+            the hero background is brand chrome, not theme-driven. */}
+        <ThemeToggle className="relative inline-flex size-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20" />
         <LanguageDropdown triggerClassName="bg-white/10 text-white hover:bg-white/20" />
         <NotificationBell variant="hero" />
       </div>

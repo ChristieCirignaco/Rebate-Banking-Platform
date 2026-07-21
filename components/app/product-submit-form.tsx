@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 const MAX_PRODUCTS = 50;
 
 type Row = {
@@ -140,7 +140,7 @@ export function ProductSubmitForm({ currency }: { currency: string }) {
                 onClick={() => removeRow(row.id)}
                 disabled={submitting}
                 aria-label={`Remove product ${index + 1}`}
-                className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+                className="text-slate-400 hover:text-red-600 disabled:opacity-50 dark:text-slate-500 dark:hover:text-red-400"
               >
                 <Trash2 className="size-4" />
               </button>
@@ -200,7 +200,7 @@ export function ProductSubmitForm({ currency }: { currency: string }) {
 
           <div className="flex flex-col gap-1.5">
             <Label className="text-sm font-semibold">
-              Product Image <span className="font-normal text-slate-400">(optional)</span>
+              Product Image <span className="font-normal text-slate-400 dark:text-slate-500">(optional)</span>
             </Label>
             {row.imageUrl ? (
               <div className="flex items-center gap-3">
@@ -214,7 +214,7 @@ export function ProductSubmitForm({ currency }: { currency: string }) {
                   type="button"
                   onClick={() => update(row.id, { imageUrl: "" })}
                   disabled={submitting}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-red-600 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-red-600 disabled:opacity-50 dark:text-slate-400 dark:hover:text-red-400"
                 >
                   <X className="size-4" />
                   Remove image
@@ -223,7 +223,7 @@ export function ProductSubmitForm({ currency }: { currency: string }) {
             ) : (
               <label
                 className={cn(
-                  "flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-slate-600 dark:text-slate-300",
+                  "flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 text-sm font-medium text-slate-600 transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-slate-600 dark:text-slate-300 dark:hover:text-blue-400",
                   (submitting || row.imageUploading) && "pointer-events-none opacity-60",
                 )}
               >

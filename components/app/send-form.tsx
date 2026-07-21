@@ -15,7 +15,7 @@ import { RecipientField } from "@/components/app/recipient-field";
 import { PasscodeDialog } from "@/components/app/passcode-dialog";
 
 const FIELD =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/70 px-3.5 text-base focus-visible:border-blue-500 focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-visible:bg-slate-900";
 
 type TransferType = TransferKind;
 
@@ -31,10 +31,12 @@ export function SendForm({
   balanceLabel,
   currency,
   kinds,
+  hasPin,
 }: {
   balanceLabel: string;
   currency: string;
   kinds: TransferKind[];
+  hasPin: boolean;
 }) {
   const available = TYPES.filter((t) => kinds.includes(t.key));
   const [type, setType] = useState<TransferType>(available[0]?.key ?? "internal");
@@ -183,6 +185,7 @@ export function SendForm({
         onOpenChange={setPinOpen}
         onSubmit={(pin) => beginTransfer(payload, pin)}
         description="Authorize this transfer with your PIN."
+        hasPin={hasPin}
       />
     </>
   );
