@@ -1,8 +1,4 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import {
@@ -11,6 +7,7 @@ import {
   KycStatusBadge,
   OnlineDot,
 } from "./user-badges";
+import { UserRowActions } from "./user-row-actions";
 import type { AdminUser } from "./types";
 
 function initials(name: string): string {
@@ -34,7 +31,13 @@ function StackedTime({ iso }: { iso?: string }) {
   );
 }
 
-export function UserTableRow({ user }: { user: AdminUser }) {
+export function UserTableRow({
+  user,
+  canDelete,
+}: {
+  user: AdminUser;
+  canDelete: boolean;
+}) {
   return (
     <TableRow>
       <TableCell>
@@ -90,12 +93,16 @@ export function UserTableRow({ user }: { user: AdminUser }) {
       </TableCell>
 
       <TableCell className="text-right">
-        <Button asChild size="sm">
-          <Link href={`/admin/users/${user.id}`}>
-            Manage
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <UserRowActions
+          user={{
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            joinedAt: user.joinedAt,
+          }}
+          canDelete={canDelete}
+        />
       </TableCell>
     </TableRow>
   );

@@ -141,7 +141,8 @@ export function WithdrawalControlDialog({
       <DialogTrigger asChild>
         <ActionIconButton
           icon={ShieldAlert}
-          tint="rose"
+          tint="sky"
+          fill
           label="Withdrawal Control"
         />
       </DialogTrigger>

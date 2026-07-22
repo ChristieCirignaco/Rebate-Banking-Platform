@@ -123,6 +123,7 @@ export async function getUserDetailData(id: string): Promise<UserDetailData | nu
     username: dbUser.username ?? dbUser.email.split("@")[0],
     email: dbUser.email,
     emailVerified: dbUser.emailVerified,
+    joinedAt: dbUser.createdAt.toISOString(),
     phone: dbUser.phone ?? "",
     gender: (dbUser.gender as UserDetail["gender"]) ?? "unspecified",
     birthday: dbUser.birthday ? dbUser.birthday.toISOString().slice(0, 10) : "",

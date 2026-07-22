@@ -3,11 +3,11 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
-import { getAdminSession, isAdminTierRole } from "@/lib/auth-guards";
+import { getAdminSession, getSuperAdminSession, isAdminTierRole } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { formatCurrency } from "@/lib/format";
 import { postLedgerEntry } from "@/lib/money/ledger";
-import { hashPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { isValidPin } from "@/lib/transaction-pin";
 import { toMajor } from "@/lib/money/money";
 import { deliverEmailNotices, notifyUserOf, USER_NOTICE_TYPES } from "@/lib/notifications";
@@ -519,12 +519,14 @@ export async function adminClearUserPin(userId: string): Promise<ActionResult> {
   if (!user?.transactionPin) return { ok: false, error: "This user has no PIN set." };
 
   await prisma.user.update({ where: { id: userId }, data: { transactionPin: null } });
-  await notifyUserOf(userId, {
-    type: "email",
-    title: "Your transaction PIN was removed",
-    message:
-      "An administrator removed the transaction PIN on your account. You'll be asked to create a new one the next time you move money.",
-  });
+
+  // No notification, by policy: clearing a forgotten PIN is a support action, not a
+  // takeover primitive — it grants no access, and the user is already prompted to create a
+  // new PIN at their next money action (every money action returns needPin when it's null).
+  // So neither a bell push nor an email is sent. (Unlike SETTING a password/PIN or disabling
+  // 2FA above, which do notify because a silent credential change is the dangerous case.)
+  // (removed 2026-07-22)
+
   revalidate(userId);
   return { ok: true };
 }
@@ -578,5 +580,55 @@ export async function adminRevokeSessions(userId: string): Promise<ActionResult>
   });
 
   revalidate(userId);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Delete account (super_admin only)
+// ---------------------------------------------------------------------------
+// The one irreversible action in this file. `prisma.user.delete` cascades at the DB level to
+// everything the user owns — sessions, credential/social accounts, wallets and their ENTIRE
+// ledger (WalletTransaction), deposits, withdrawals, transfers, vouchers, KYC, tickets, product
+// submissions, referral earnings. People they referred keep their accounts (referredById is
+// nulled), as do the counterparties of transfers they received. There is no recovery, so no
+// email is sent — the account it would be about no longer exists.
+//
+// Three bars, tighter than any other action here:
+//   1. getSuperAdminSession — regular admins can't reach it (mirrors admin-account management).
+//   2. assertRegularUserTarget — never an admin-tier account (those live at /admin/users/admin,
+//      and can't be self-deleted through this path).
+//   3. The acting super-admin must re-enter their OWN password (same proof as the idle screen
+//      lock), so a walked-up session can't destroy an account with a single click.
+export async function deleteUser(userId: string, password: string): Promise<ActionResult> {
+  const session = await getSuperAdminSession();
+  if (!session) return NOT_AUTHORIZED;
+  const targetError = await assertRegularUserTarget(userId);
+  if (targetError) return targetError;
+
+  if (!password) return { ok: false, error: "Enter your admin password." };
+
+  // Re-confirm the human behind the session against their credential row. A social-only admin
+  // has no password to check — the branch keeps this from throwing on a null hash rather than
+  // being a real code path (seeded admins sign in with a password).
+  const account = await prisma.account.findFirst({
+    where: { userId: session.user.id, providerId: "credential" },
+    select: { password: true },
+  });
+  if (!account?.password) {
+    return { ok: false, error: "Password confirmation isn't available for your account." };
+  }
+  if (!(await verifyPassword({ hash: account.password, password }))) {
+    return { ok: false, error: "Incorrect password." };
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+  } catch {
+    // Already gone (a concurrent delete) or an unexpected constraint issue — either way the
+    // admin's next refresh shows the real state, so keep the message generic.
+    return { ok: false, error: "Could not delete this user. Please try again." };
+  }
+
+  revalidatePath("/admin/users");
   return { ok: true };
 }

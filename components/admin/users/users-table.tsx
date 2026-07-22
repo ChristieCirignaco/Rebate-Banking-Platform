@@ -9,7 +9,13 @@ import {
 import { UserTableRow } from "./user-table-row";
 import type { AdminUser } from "./types";
 
-export function UsersTable({ users }: { users: AdminUser[] }) {
+export function UsersTable({
+  users,
+  canDelete,
+}: {
+  users: AdminUser[];
+  canDelete: boolean;
+}) {
   return (
     <Table>
       <TableHeader>
@@ -34,7 +40,9 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
             </TableCell>
           </TableRow>
         ) : (
-          users.map((user) => <UserTableRow key={user.id} user={user} />)
+          users.map((user) => (
+            <UserTableRow key={user.id} user={user} canDelete={canDelete} />
+          ))
         )}
       </TableBody>
     </Table>

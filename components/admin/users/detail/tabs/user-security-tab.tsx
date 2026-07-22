@@ -3,7 +3,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, Loader2, LogOut, Lock, Smartphone } from "lucide-react";
+import { KeyRound, Loader2, LogOut, Lock, Smartphone, Trash2 } from "lucide-react";
 
 import {
   adminClearUserPin,
@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { DeleteUserDialog } from "../../delete-user-dialog";
 import type { UserDetail } from "../types";
 
 // -----------------------------------------------------------------------------
@@ -132,12 +133,19 @@ function ConfirmDialog({
   );
 }
 
-export function UserSecurityTab({ user }: { user: UserDetail }) {
+export function UserSecurityTab({
+  user,
+  canDelete,
+}: {
+  user: UserDetail;
+  canDelete: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   // Which control is mid-flight, so only its button spins while every button disables.
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -427,7 +435,7 @@ export function UserSecurityTab({ user }: { user: UserDetail }) {
         open={clearPinOpen}
         onOpenChange={setClearPinOpen}
         title="Remove this transaction PIN?"
-        description={`${user.name} will be asked to create a new PIN the next time they move money, and will be emailed that an administrator removed it. This does not disable the PIN gate — it only clears the PIN they forgot.`}
+        description={`${user.name} will be asked to create a new PIN the next time they move money. They are not notified that it was removed. This does not disable the PIN gate — it only clears the PIN they forgot.`}
         confirmLabel="Remove PIN"
         pending={isPending && busy === "clear-pin"}
         onConfirm={() =>
@@ -526,6 +534,60 @@ export function UserSecurityTab({ user }: { user: UserDetail }) {
           )
         }
       />
+
+      {/* ---------------- Delete account (super_admin only) ---------------- */}
+      {/* The one irreversible control on the page — sits last, in its own red-framed card so it
+          reads as separate from the reversible resets above. Shown only to a super_admin; the
+          deleteUser action enforces the same gate regardless of what renders here. */}
+      {canDelete ? (
+        <>
+          <Card className="border-destructive/40">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <Trash2 className="size-4" />
+                Delete account
+              </CardTitle>
+              <CardDescription>
+                Permanently delete {user.name} and all of their data. This cannot be undone.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <DangerNote>
+                This erases the account, every wallet, and the entire transaction history for{" "}
+                {user.name} — there is no recovery. You&apos;ll be asked for your admin password to
+                confirm.
+              </DangerNote>
+              <div>
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteOpen(true)}
+                  disabled={isPending}
+                >
+                  <Trash2 className="size-4" />
+                  Delete account
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <DeleteUserDialog
+            user={{
+              id: user.id,
+              name: user.name,
+              username: user.username,
+              email: user.email,
+              joinedAt: user.joinedAt,
+            }}
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            // The record we're viewing is gone after this — a full navigation avoids the wedge
+            // that awaiting a Server Action then router.push causes, and lands on the list.
+            onDeleted={() => {
+              window.location.href = "/admin/users";
+            }}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

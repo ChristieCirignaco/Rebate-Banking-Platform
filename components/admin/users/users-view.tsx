@@ -41,7 +41,13 @@ function matches(
 
 // Client state (filters/search/page) over the passed users. Filtering/pagination is
 // local for now; swap the in-memory filter for a server query to wire real data.
-export function UsersView({ users }: { users: AdminUser[] }) {
+export function UsersView({
+  users,
+  canDelete,
+}: {
+  users: AdminUser[];
+  canDelete: boolean;
+}) {
   const [filters, setFilters] = React.useState<UserFilters>(DEFAULT_FILTERS);
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
@@ -80,7 +86,7 @@ export function UsersView({ users }: { users: AdminUser[] }) {
       />
 
       <Card className="overflow-hidden py-0">
-        <UsersTable users={pageUsers} />
+        <UsersTable users={pageUsers} canDelete={canDelete} />
       </Card>
 
       <Pagination

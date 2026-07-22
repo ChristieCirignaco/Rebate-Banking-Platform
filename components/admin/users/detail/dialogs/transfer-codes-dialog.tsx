@@ -121,7 +121,8 @@ export function TransferCodesDialog({
       <DialogTrigger asChild>
         <ActionIconButton
           icon={KeyRound}
-          tint="amber"
+          tint="blue"
+          fill
           label="Manage Transfer Codes"
         />
       </DialogTrigger>
