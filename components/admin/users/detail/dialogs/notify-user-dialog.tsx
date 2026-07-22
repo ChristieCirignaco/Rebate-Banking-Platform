@@ -55,7 +55,7 @@ export function NotifyUserDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <ActionIconButton icon={Bell} tint="blue" label="Notify User" />
+        <ActionIconButton icon={Bell} tint="amber" fill label="Notify User" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

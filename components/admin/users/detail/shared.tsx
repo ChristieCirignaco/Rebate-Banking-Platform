@@ -18,15 +18,36 @@ import type { UserStat } from "./types";
 
 // Colored circular icon button used as a dialog trigger. forwardRef so it works as
 // a `<DialogTrigger asChild>` / `<TooltipTrigger asChild>` child.
+//
+// Two looks off the same tint: the default GHOST (a colored icon on a transparent, bordered
+// button — used by the product status actions) and, with `fill`, a SOLID button (white icon on
+// a filled semantic color, CoreUI-style — used by the user-detail action row so each control
+// reads as its own colored button).
 const ACTION_TINTS = {
   blue: "text-blue-600 hover:bg-blue-500/10 dark:text-blue-400",
   emerald: "text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400",
   amber: "text-amber-600 hover:bg-amber-500/10 dark:text-amber-400",
   rose: "text-rose-600 hover:bg-rose-500/10 dark:text-rose-400",
   violet: "text-violet-600 hover:bg-violet-500/10 dark:text-violet-400",
+  sky: "text-sky-600 hover:bg-sky-500/10 dark:text-sky-400",
+  slate: "text-slate-600 hover:bg-slate-500/10 dark:text-slate-300",
 } as const;
 
 export type ActionTint = keyof typeof ACTION_TINTS;
+
+// Solid fills, keyed the same as ACTION_TINTS. Base text (white) and hover text are set on the
+// button itself, so each entry only carries the background — hover included, since the ghost
+// variant's `hover:bg-muted`/`hover:text-foreground` would otherwise win. Semantic names map to
+// CoreUI: blue=primary, emerald=success, amber=warning, sky=info, slate=dark.
+const SOLID_TINTS: Record<ActionTint, string> = {
+  blue: "bg-blue-600 hover:bg-blue-700",
+  emerald: "bg-emerald-600 hover:bg-emerald-700",
+  amber: "bg-amber-500 hover:bg-amber-600",
+  rose: "bg-rose-600 hover:bg-rose-700",
+  violet: "bg-violet-600 hover:bg-violet-700",
+  sky: "bg-sky-500 hover:bg-sky-600",
+  slate: "bg-slate-700 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500",
+};
 
 export const ActionIconButton = React.forwardRef<
   HTMLButtonElement,
@@ -34,9 +55,10 @@ export const ActionIconButton = React.forwardRef<
     icon: ComponentType<{ className?: string }>;
     tint: ActionTint;
     label: string;
+    fill?: boolean;
   } & React.ComponentProps<"button">
 >(function ActionIconButton(
-  { icon: Icon, tint, label, className, ...props },
+  { icon: Icon, tint, label, fill = false, className, ...props },
   ref,
 ) {
   return (
@@ -48,8 +70,10 @@ export const ActionIconButton = React.forwardRef<
       title={label}
       aria-label={label}
       className={cn(
-        "size-10 rounded-full border",
-        ACTION_TINTS[tint],
+        "size-10 rounded-full",
+        fill
+          ? cn("border-0 text-white shadow-sm hover:text-white", SOLID_TINTS[tint])
+          : cn("border", ACTION_TINTS[tint]),
         className,
       )}
       {...props}

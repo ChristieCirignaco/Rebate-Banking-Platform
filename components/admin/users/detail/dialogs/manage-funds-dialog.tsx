@@ -84,7 +84,7 @@ export function ManageFundsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <ActionIconButton icon={Coins} tint="emerald" label="Manage Funds" />
+        <ActionIconButton icon={Coins} tint="emerald" fill label="Manage Funds" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

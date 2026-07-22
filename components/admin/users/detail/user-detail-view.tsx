@@ -42,6 +42,7 @@ import type {
 
 export function UserDetailView({
   user,
+  canDelete,
   wallets,
   assignableCurrencies,
   walletSlotsLeft,
@@ -55,6 +56,7 @@ export function UserDetailView({
   transferCodes,
 }: {
   user: UserDetail;
+  canDelete: boolean;
   wallets: DetailWallet[];
   assignableCurrencies: { code: string; name: string }[];
   walletSlotsLeft: number;
@@ -203,7 +205,7 @@ export function UserDetailView({
             <UserActivityTab activity={activity} />
           </TabsContent>
           <TabsContent value="security">
-            <UserSecurityTab user={user} />
+            <UserSecurityTab user={user} canDelete={canDelete} />
           </TabsContent>
         </Tabs>
         </div>

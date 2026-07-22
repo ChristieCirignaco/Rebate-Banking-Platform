@@ -3,9 +3,9 @@
 import { LogIn } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
+import { ActionIconButton } from "./shared";
 import { ManageFundsDialog } from "./dialogs/manage-funds-dialog";
 import { NotifyUserDialog } from "./dialogs/notify-user-dialog";
 import { TransferCodesDialog } from "./dialogs/transfer-codes-dialog";
@@ -88,17 +88,13 @@ export function UserProfilePanel({
             user={user}
             onUpdateStatus={onWithdrawalControl}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            title="Login as User"
-            aria-label="Login as User"
-            className="size-10 rounded-full border text-slate-600 hover:bg-slate-500/10 dark:text-slate-300"
+          <ActionIconButton
+            icon={LogIn}
+            tint="slate"
+            fill
+            label="Login as User"
             onClick={onLoginAsUser}
-          >
-            <LogIn className="size-4" />
-          </Button>
+          />
         </div>
       </CardContent>
     </Card>

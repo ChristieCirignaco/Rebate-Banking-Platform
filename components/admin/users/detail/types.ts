@@ -18,6 +18,7 @@ export interface UserDetail {
   username: string;
   email: string;
   emailVerified: boolean;
+  joinedAt: string; // ISO — account creation date, shown in the delete-confirmation modal
   phone: string;
   gender: Gender;
   birthday: string; // ISO yyyy-mm-dd
