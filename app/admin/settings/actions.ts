@@ -96,6 +96,10 @@ export async function updatePluginsSettings(
   if (!session) return NOT_AUTHORIZED;
   await saveSettings("plugins", payload, session.user.id);
   revalidateSettings();
+  // The public tree reads this group too — the root layout for the Translator switch, and the
+  // marketing routes are ISR (revalidate = 300). Without this, turning the translator off would
+  // take up to five minutes to show on the homepage. "layout" covers everything below /.
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 

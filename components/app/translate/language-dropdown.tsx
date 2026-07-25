@@ -10,6 +10,7 @@ import {
   type TranslateLanguage,
 } from "@/lib/translate/config";
 import { useTranslate } from "@/components/app/translate/translate-provider";
+import { useTranslatorEnabled } from "@/components/translator-enabled";
 import { SmoothDropdown } from "@/components/app/smooth-dropdown";
 
 // The UI-language picker: a globe button that morphs open into a list of languages (the
@@ -40,13 +41,19 @@ function useLanguages(open: boolean): TranslateLanguage[] {
 }
 
 export function LanguageDropdown({ triggerClassName }: { triggerClassName?: string }) {
+  const enabled = useTranslatorEnabled();
   const { lang, setLang } = useTranslate();
   const [open, setOpen] = useState(false);
-  const languages = useLanguages(open);
+  // `open && enabled` so a disabled dropdown can never trigger the languages fetch.
+  const languages = useLanguages(open && enabled);
 
   const current = languages.find((l) => l.language === lang);
   const currentLabel = current?.name ?? (lang === SOURCE_LANG ? "English" : lang.toUpperCase());
   const translating = lang !== SOURCE_LANG;
+
+  // Admin kill-switch (Settings → Plugins → Translator): no globe button in either header.
+  // After every hook, so the hook order is identical whichever way the switch is set.
+  if (!enabled) return null;
 
   return (
     <SmoothDropdown

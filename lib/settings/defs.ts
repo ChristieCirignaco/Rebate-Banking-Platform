@@ -50,6 +50,10 @@ export interface PluginsSettings {
   analyticsEnabled: boolean;
   analyticsProvider: AnalyticsProvider;
   analyticsMeasurementId: string;
+  // ONE switch for every translator on the site: the GTranslate floating picker on the
+  // marketing pages + auth funnel, and the in-app language dropdown / translation engine on the
+  // signed-in dashboard. Off hides both pickers, stops the engine, and rejects /api/translate.
+  translatorEnabled: boolean;
 }
 
 export type ScreenLockUnit = "seconds" | "minutes" | "hours";
@@ -151,6 +155,9 @@ export const SETTINGS_DEFAULTS: SettingsGroups = {
     analyticsEnabled: false,
     analyticsProvider: "",
     analyticsMeasurementId: "",
+    // Defaults ON: the translators shipped before this toggle existed, so no stored value
+    // must not silently remove them from a live site.
+    translatorEnabled: true,
   },
   security: {
     emailOtpOnLogin: false,
