@@ -210,6 +210,19 @@ export function PluginsForm({
         </div>
       </SettingsSection>
 
+      <SettingsSection
+        title="Translator"
+        description="The language picker visitors and users use to translate the site. One switch covers every surface: the floating GTranslate picker on the marketing pages and sign-in screens, and the globe menu in the dashboard header."
+      >
+        <SettingsToggle
+          id="translator-enabled"
+          label="Enable Translator"
+          description="Off removes both pickers and leaves every page in its original language. A user's saved language choice is kept and restored if you switch this back on."
+          checked={form.translatorEnabled}
+          onCheckedChange={(v) => set("translatorEnabled", v)}
+        />
+      </SettingsSection>
+
       <SettingsSaveBar onSave={save} saving={isPending} />
     </div>
   );

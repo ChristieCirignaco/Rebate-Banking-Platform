@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth-guards";
+import { getSettings } from "@/lib/settings/store";
 import { FALLBACK_LANGUAGES, type TranslateLanguage } from "@/lib/translate/config";
 
 // The languages the dropdown offers. Proxies TranslateX's /supported-languages (the key can't
@@ -35,6 +36,12 @@ async function fetchLanguages(key: string): Promise<TranslateLanguage[] | null> 
 export async function GET() {
   if (!(await getSession())) {
     return Response.json({ error: "Not authorized." }, { status: 401 });
+  }
+
+  // Same admin switch as /api/translate — with the translator off there is no picker to fill.
+  const { translatorEnabled } = await getSettings("plugins");
+  if (!translatorEnabled) {
+    return Response.json({ error: "Translation is disabled." }, { status: 503 });
   }
 
   if (cached) return Response.json({ languages: cached });

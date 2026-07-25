@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth-guards";
+import { getSettings } from "@/lib/settings/store";
 import {
   MAX_TEXT_LENGTH,
   MAX_TEXTS_PER_REQUEST,
@@ -67,6 +68,14 @@ async function translateBatch(
 export async function POST(request: Request) {
   if (!(await getSession())) {
     return Response.json({ error: "Not authorized." }, { status: 401 });
+  }
+
+  // The admin switch is enforced here too, not just in the UI: hiding the picker leaves any
+  // already-loaded tab able to keep calling this, and the quota is real money. 503 is the same
+  // "unavailable" the engine already handles by leaving the source text in place.
+  const { translatorEnabled } = await getSettings("plugins");
+  if (!translatorEnabled) {
+    return Response.json({ error: "Translation is disabled." }, { status: 503 });
   }
 
   const key = process.env.TRANSLATEX_API_KEY?.trim();

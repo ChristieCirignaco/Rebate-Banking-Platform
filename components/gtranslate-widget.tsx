@@ -2,6 +2,8 @@
 
 import Script from "next/script";
 
+import { useTranslatorEnabled } from "@/components/translator-enabled";
+
 // GTranslate's floating language picker, bottom-left.
 //
 // Scoped deliberately: this renders on the MARKETING pages and the AUTH funnel only — the two
@@ -38,6 +40,11 @@ if (typeof window !== "undefined") {
 }
 
 export function GTranslateWidget() {
+  // Admin kill-switch (Settings → Plugins → Translator). Rendering nothing means the vendor
+  // script is never fetched at all, not merely hidden — no picker, no CDN request. Any
+  // previously stored googtrans preference simply goes unread until it's switched back on.
+  if (!useTranslatorEnabled()) return null;
+
   return (
     <>
       {/* The vendor injects the picker into this element. */}

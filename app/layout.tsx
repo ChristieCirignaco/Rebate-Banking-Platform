@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SitePluginScripts } from "@/components/site-plugin-scripts";
 import { Toaster } from "@/components/toaster";
+import { TranslatorGate } from "@/components/translator-gate";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSettings } from "@/lib/settings/store";
 
@@ -44,7 +45,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+        {/* Publishes the admin Translator switch (Settings → Plugins) to the whole tree — the
+            marketing/auth GTranslate widget and the in-app language dropdown both read it, so
+            one toggle turns translation off everywhere. */}
+        <TooltipProvider delayDuration={0}>
+          <TranslatorGate>{children}</TranslatorGate>
+        </TooltipProvider>
         <Toaster />
         {/* Admin-configured Analytics/Chat tags (Settings → Plugins). Renders nothing unless
             enabled. A plain settings read, so static pages stay static and pick it up on their
