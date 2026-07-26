@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/admin/markdown-editor";
+import { markdownToEmailHtml } from "@/lib/email/markdown";
 import type { NotificationType } from "@/components/admin/users/detail/types";
 
 // True only after hydration, so clock-dependent values render client-side only (no
@@ -164,14 +166,28 @@ export function BroadcastComposer({ audienceSize }: { audienceSize: number }) {
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="broadcast-message">Message</Label>
-            <Textarea
-              id="broadcast-message"
-              rows={6}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Write your message…"
-              maxLength={2000}
-            />
+            {/* Markdown for email (delivered with its structure intact), plain text for push —
+                a bell row is one line and has nowhere to render formatting. The email cap is
+                higher because markup spends characters that never reach the reader. */}
+            {type === "email" ? (
+              <MarkdownEditor
+                id="broadcast-message"
+                rows={10}
+                value={message}
+                onChange={setMessage}
+                placeholder="Write your message…"
+                maxLength={8000}
+              />
+            ) : (
+              <Textarea
+                id="broadcast-message"
+                rows={6}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Write your message…"
+                maxLength={2000}
+              />
+            )}
           </div>
 
           {type === "push" ? (
@@ -225,9 +241,23 @@ export function BroadcastComposer({ audienceSize }: { audienceSize: number }) {
                 </span>
               )}
             </p>
-            <p className="text-muted-foreground mt-1 text-sm break-words whitespace-pre-wrap">
-              {message.trim() || "Your message will appear here…"}
-            </p>
+            {/* Email renders through the mailer's own markdown function, so this preview is the
+                delivered body rather than an approximation of it. Push keeps the flat preview —
+                its message is stored and shown verbatim. */}
+            {type === "email" && message.trim() ? (
+              <div
+                className="mt-2 rounded-md bg-white p-3 text-slate-800"
+                style={{
+                  fontFamily:
+                    "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
+                }}
+                dangerouslySetInnerHTML={{ __html: markdownToEmailHtml(message) }}
+              />
+            ) : (
+              <p className="text-muted-foreground mt-1 text-sm break-words whitespace-pre-wrap">
+                {message.trim() || "Your message will appear here…"}
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

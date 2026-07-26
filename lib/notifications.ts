@@ -128,6 +128,14 @@ export async function deliverEmailNotices(
     cta?: { label: string; url: string };
     audience?: EmailAudience;
     greeting?: string;
+    // Treat `message` as Markdown rather than one literal paragraph. Set by the two composers an
+    // admin types into (the Notify dialog, the broadcast page), so their headings, lists and line
+    // breaks reach the inbox instead of collapsing into a single run-on block.
+    //
+    // Opt-in, not the default: system notices are assembled from references and amounts, and a
+    // string like "ref TRX_9*2*" should stay literal there. Nothing is lost by leaving them
+    // escaped — they have no formatting to preserve.
+    markdown?: boolean;
   },
 ): Promise<void> {
   try {
@@ -144,7 +152,16 @@ export async function deliverEmailNotices(
     const mail = await renderEmail({
       audience,
       heading: title?.trim() || "Notification",
-      paragraphs: extra?.greeting ? [extra.greeting, message] : [message],
+      // In markdown mode the greeting stays a plain paragraph above the authored body, so a
+      // "Dear Jane," line can't be swallowed into the admin's first block.
+      paragraphs: extra?.markdown
+        ? extra.greeting
+          ? [extra.greeting]
+          : []
+        : extra?.greeting
+          ? [extra.greeting, message]
+          : [message],
+      markdown: extra?.markdown ? message : undefined,
       rows: extra?.rows,
       cta: extra?.cta ?? { label: "Open dashboard", url: audience === "admin" ? "/admin" : "/dashboard" },
       note:

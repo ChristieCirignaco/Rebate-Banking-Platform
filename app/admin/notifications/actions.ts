@@ -94,10 +94,12 @@ export async function broadcastNotification(
   // user's bell when its time arrives, but nothing dispatches on scheduledAt yet, so mailing
   // here would deliver early — the rows are the record either way.
   if (input.type === "email" && !scheduledAt) {
+    // markdown: the broadcast composer is a Markdown editor, same as the per-user Notify dialog.
     await deliverEmailNotices(
       users.map((user) => user.id),
       title,
       message,
+      { markdown: true },
     );
   }
 

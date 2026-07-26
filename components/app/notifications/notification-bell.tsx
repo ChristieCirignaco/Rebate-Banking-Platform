@@ -11,6 +11,7 @@ import {
   markNotificationRead,
 } from "@/app/(app)/notifications/actions";
 import { cn } from "@/lib/utils";
+import { markdownToPlainText } from "@/lib/email/markdown";
 import type { UserNotificationItem } from "@/lib/notifications";
 import { SmoothDropdown } from "@/components/app/smooth-dropdown";
 
@@ -166,8 +167,10 @@ export function NotificationBell({ variant = "surface", className }: Notificatio
                         <span className="size-1.5 shrink-0 rounded-full bg-blue-600" />
                       )}
                     </span>
+                    {/* Markdown stripped for the same reason as the full list: an email notice
+                        stores its Markdown source, and the bell has no formatting to render. */}
                     <span className="mt-0.5 line-clamp-2 block text-xs text-slate-500 dark:text-slate-400">
-                      {item.message}
+                      {markdownToPlainText(item.message)}
                     </span>
                     <span className="mt-1 block text-[11px] text-slate-400 dark:text-slate-500">{item.dateLabel}</span>
                   </span>

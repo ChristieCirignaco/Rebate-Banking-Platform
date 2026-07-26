@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/admin/markdown-editor";
 import { ActionIconButton } from "../shared";
 import type { NotificationType, NotifyPayload, UserDetail } from "../types";
 
@@ -57,7 +58,9 @@ export function NotifyUserDialog({
       <DialogTrigger asChild>
         <ActionIconButton icon={Bell} tint="amber" fill label="Notify User" />
       </DialogTrigger>
-      <DialogContent>
+      {/* Wider than the sm:max-w-sm default: the Markdown toolbar carries seven tools plus the
+          write/preview switch, which wrap into two rows at the default width. */}
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Notify User</DialogTitle>
           <DialogDescription>
@@ -96,13 +99,26 @@ export function NotifyUserDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="notify-message">Message</Label>
-            <Textarea
-              id="notify-message"
-              rows={4}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Write your message…"
-            />
+            {/* Email bodies are composed in Markdown and delivered with that structure intact.
+                A push notice is a single bell line with nowhere to render formatting, so it
+                keeps the plain textarea — markdown syntax there would just be visible noise. */}
+            {type === "email" ? (
+              <MarkdownEditor
+                id="notify-message"
+                rows={8}
+                value={message}
+                onChange={setMessage}
+                placeholder="Write your message…"
+              />
+            ) : (
+              <Textarea
+                id="notify-message"
+                rows={4}
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Write your message…"
+              />
+            )}
           </div>
 
           {type === "push" ? (

@@ -10,6 +10,7 @@ import {
 } from "@/app/(app)/notifications/actions";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { markdownToPlainText } from "@/lib/email/markdown";
 import type { UserNotificationItem } from "@/lib/notifications";
 import { notifyNotificationsChanged } from "@/components/app/notifications/notification-bell";
 
@@ -140,7 +141,12 @@ function Body({ item }: { item: UserNotificationItem }) {
   return (
     <div className="min-w-0 flex-1">
       <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title ?? "Notification"}</p>
-      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{item.message}</p>
+      {/* An admin-composed email notice is stored as Markdown (that's what the mail renders
+          from). Strip the syntax here so this one-line preview reads as prose instead of
+          showing raw ** and ##. Plain messages pass through untouched. */}
+      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+        {markdownToPlainText(item.message)}
+      </p>
       <p className="truncate text-xs text-slate-400 dark:text-slate-500">{item.dateLabel}</p>
     </div>
   );
