@@ -397,7 +397,10 @@ export async function notifyUser(userId: string, input: NotifyPayload): Promise<
   // in the bell when its time comes, but nothing dispatches on scheduledAt yet — mailing it here
   // would deliver early, which is worse than not mailing at all.
   if (input.type === "email" && !scheduledAt) {
-    await deliverEmailNotices([userId], input.title ?? null, input.message);
+    // markdown: the Notify dialog composes email bodies in Markdown, so what the admin laid out
+    // is what the recipient reads. Push notices are stored raw — the bell row is a one-line
+    // preview with nowhere to render structure.
+    await deliverEmailNotices([userId], input.title ?? null, input.message, { markdown: true });
   }
   revalidate(userId);
   return { ok: true };

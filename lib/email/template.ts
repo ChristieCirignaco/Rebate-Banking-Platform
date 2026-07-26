@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { markdownToEmailHtml, markdownToPlainText } from "@/lib/email/markdown";
 
 // The transactional email template. Hand-rolled rather than pulled from a library because email
 // HTML is its own dialect: no <style> in many clients, no flexbox/grid in Outlook, so this is
@@ -16,8 +17,14 @@ export type EmailRow = { label: string; value: string };
 export type EmailContent = {
   audience: EmailAudience;
   heading: string;
-  // One or more plain sentences. Each becomes a paragraph.
+  // One or more plain sentences. Each becomes a paragraph. Escaped, never parsed — use this for
+  // machine-composed copy where a stray * or _ must stay literal.
   paragraphs: string[];
+  // Admin-AUTHORED body, rendered from Markdown into inline-styled HTML and appended after
+  // `paragraphs` (so a greeting can lead). This is what preserves the structure someone types
+  // into the Notify dialog or the broadcast composer — headings, lists, quotes, links, line
+  // breaks. Still escaped before parsing, so raw HTML in the source stays inert text.
+  markdown?: string;
   // Optional detail table — the transaction facts (amount, reference, method).
   rows?: EmailRow[];
   // A one-time code (sign-in, transfer authorization). Rendered as its own large, letter-spaced
@@ -94,7 +101,9 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
     content.audience === "admin" ? `[${brand.name} admin] ${content.heading}` : content.heading;
 
   // ---- plain text twin ----
+  const bodyText = content.markdown ? markdownToPlainText(content.markdown) : "";
   const textParts = [content.heading, "", ...content.paragraphs];
+  if (bodyText) textParts.push("", bodyText);
   if (content.code) textParts.push("", content.code);
   if (content.rows?.length) {
     textParts.push("", ...content.rows.map((r) => `${r.label}: ${r.value}`));
@@ -112,8 +121,11 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
   // absolute() still returns null when siteUrl isn't configured, so a broken <img> is never
   // rendered; the text wordmark remains the fallback.
   const logo = brand.logo ? absolute(brand, brand.logo) : null;
+  // Centered: `margin:0 auto` on a display:block image, plus align="center" on the cell below.
+  // Both are needed — Outlook's word engine ignores auto margins and honours the align
+  // attribute, while several webmail clients do the opposite.
   const header = logo
-    ? `<img src="${esc(logo)}" alt="${esc(brand.name)}" height="28" style="height:28px;display:block;border:0" />`
+    ? `<img src="${esc(logo)}" alt="${esc(brand.name)}" height="28" style="height:28px;display:block;border:0;margin:0 auto" />`
     : `<span style="font-size:17px;font-weight:700;color:${accent};letter-spacing:-0.2px">${esc(brand.name)}</span>`;
 
   const paragraphs = content.paragraphs
@@ -122,6 +134,10 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
         `<p style="margin:0 0 14px;font-size:15px;line-height:23px;color:#334155">${esc(p)}</p>`,
     )
     .join("");
+
+  // The admin-authored body. markdownToEmailHtml escapes before it parses, so this is safe to
+  // interpolate raw — it is the one place in this file that emits HTML it did not escape itself.
+  const body = content.markdown ? markdownToEmailHtml(content.markdown, { accent }) : "";
 
   // Monospace + wide tracking so 0/O and 1/l can't be misread, and a light panel so it reads as
   // a value to copy rather than body text.
@@ -164,7 +180,10 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
     : "";
 
   // The preheader is the grey line inboxes show beside the subject. Hidden in the body itself.
-  const preheader = content.paragraphs[0] ?? content.heading;
+  // Falls through to the markdown body's first line for a mail that is body-only, which is the
+  // shape every admin-composed notice has.
+  const preheader =
+    content.paragraphs[0] ?? bodyText.split("\n").find((line) => line.trim()) ?? content.heading;
 
   const html = `<!doctype html>
 <html lang="en">
@@ -174,10 +193,11 @@ export async function renderEmail(content: EmailContent): Promise<RenderedEmail>
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f1f5f9">
     <tr><td align="center" style="padding:28px 12px">
       <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:14px;border:1px solid #e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
-        <tr><td style="padding:22px 24px 0">${header}</td></tr>
+        <tr><td align="center" style="padding:22px 24px 0;text-align:center">${header}</td></tr>
         <tr><td style="padding:16px 24px 24px">
           <h1 style="margin:0 0 12px;font-size:19px;line-height:26px;font-weight:700;color:#0f172a;letter-spacing:-0.3px">${esc(content.heading)}</h1>
           ${paragraphs}
+          ${body}
           ${code}
           ${rows}
           ${cta}

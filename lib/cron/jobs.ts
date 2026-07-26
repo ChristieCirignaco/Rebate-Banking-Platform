@@ -68,7 +68,13 @@ export async function dispatchScheduledNotifications(now = new Date()): Promise<
       const mail = await renderEmail({
         audience: "user",
         heading: notice.title?.trim() || "Notification",
-        paragraphs: [notice.message],
+        // Markdown, matching the immediate path in deliverEmailNotices. Every row this sweep
+        // mails carries a scheduledAt, and only the two admin composers ever set that column —
+        // so these bodies are admin-authored and must keep the structure they were written with.
+        // Rendering them as one escaped paragraph here would mean a scheduled notice arrived
+        // formatted differently from the identical one sent now.
+        paragraphs: [],
+        markdown: notice.message,
         cta: { label: "Open dashboard", url: "/dashboard" },
         note: "You're receiving this because of activity on your account.",
       });
